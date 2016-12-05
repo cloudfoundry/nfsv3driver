@@ -15,6 +15,7 @@ import (
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/nfsdriver"
+	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
@@ -101,7 +102,7 @@ func main() {
 	logger.Info("start")
 	defer logger.Info("end")
 
-	mounter := nfsdriver.NewNfsMounter(invoker.NewRealInvoker(), fsType, mountOptions)
+	mounter := nfsv3driver.NewNfsV3Mounter(invoker.NewRealInvoker())
 
 	client := nfsdriver.NewNfsDriver(
 		logger,
