@@ -155,9 +155,9 @@ func processRunnerFor(servers grouper.Members) ifrit.Runner {
 
 func createNfsDriverServer(logger lager.Logger, client voldriver.Driver, atAddress, driversPath string, jsonSpec bool) ifrit.Runner {
 	advertisedUrl := "http://" + atAddress
-	logger.Info("writing-spec-file", lager.Data{"location": driversPath, "name": "nfsdriver", "address": advertisedUrl})
+	logger.Info("writing-spec-file", lager.Data{"location": driversPath, "name": "nfsv3driver", "address": advertisedUrl})
 	if jsonSpec {
-		driverJsonSpec := voldriver.DriverSpec{Name: "nfsdriver", Address: advertisedUrl}
+		driverJsonSpec := voldriver.DriverSpec{Name: "nfsv3driver", Address: advertisedUrl}
 
 		if *requireSSL {
 			absCaFile, err := filepath.Abs(*caFile)
@@ -173,10 +173,10 @@ func createNfsDriverServer(logger lager.Logger, client voldriver.Driver, atAddre
 		jsonBytes, err := json.Marshal(driverJsonSpec)
 
 		exitOnFailure(logger, err)
-		err = voldriver.WriteDriverSpec(logger, driversPath, "nfsdriver", "json", jsonBytes)
+		err = voldriver.WriteDriverSpec(logger, driversPath, "nfsv3driver", "json", jsonBytes)
 		exitOnFailure(logger, err)
 	} else {
-		err := voldriver.WriteDriverSpec(logger, driversPath, "nfsdriver", "spec", []byte(advertisedUrl))
+		err := voldriver.WriteDriverSpec(logger, driversPath, "nfsv3driver", "spec", []byte(advertisedUrl))
 		exitOnFailure(logger, err)
 	}
 
