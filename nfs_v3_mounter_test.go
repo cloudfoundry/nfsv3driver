@@ -7,12 +7,12 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/nfsdriver"
+	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/voldriverfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/nfsv3driver"
 )
 
 var _ = Describe("NfsV3Mounter", func() {
@@ -55,10 +55,11 @@ var _ = Describe("NfsV3Mounter", func() {
 			It("should use the passed in variables", func() {
 				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("fuse-nfs"))
-				Expect(args[0]).To(Equal("-n"))
-				Expect(args[1]).To(Equal("source"))
-				Expect(args[2]).To(Equal("-m"))
-				Expect(args[3]).To(Equal("target"))
+				Expect(args[0]).To(Equal("-a"))
+				Expect(args[1]).To(Equal("-n"))
+				Expect(args[2]).To(Equal("source"))
+				Expect(args[3]).To(Equal("-m"))
+				Expect(args[4]).To(Equal("target"))
 			})
 		})
 

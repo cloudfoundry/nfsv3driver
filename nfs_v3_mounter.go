@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"code.cloudfoundry.org/nfsdriver"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
-	"code.cloudfoundry.org/nfsdriver"
 )
 
 type nfsV3Mounter struct {
-	invoker     invoker.Invoker
+	invoker invoker.Invoker
 }
 
 func NewNfsV3Mounter(invoker invoker.Invoker) nfsdriver.Mounter {
@@ -20,7 +20,7 @@ func NewNfsV3Mounter(invoker invoker.Invoker) nfsdriver.Mounter {
 }
 
 func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, opts map[string]interface{}) error {
-	_, err := m.invoker.Invoke(env, "fuse-nfs", []string{"-n", source, "-m", target})
+	_, err := m.invoker.Invoke(env, "fuse-nfs", []string{"-a", "-n", source, "-m", target})
 	return err
 }
 
