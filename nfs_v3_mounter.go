@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/nfsdriver"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
@@ -20,6 +21,11 @@ func NewNfsV3Mounter(invoker invoker.Invoker) nfsdriver.Mounter {
 }
 
 func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, opts map[string]interface{}) error {
+	logger := env.Logger().Session("fuse-nfs-mount")
+	logger.Info("start")
+	defer logger.Info("end")
+
+	logger.Debug("exec-mount", lager.Data{"source": source, "target": target})
 	_, err := m.invoker.Invoke(env, "fuse-nfs", []string{"-a", "-n", source, "-m", target})
 	return err
 }
