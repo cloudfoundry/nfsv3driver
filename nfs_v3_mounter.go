@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"strings"
+
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/nfsdriver"
 	"code.cloudfoundry.org/voldriver"
@@ -24,6 +26,9 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	logger := env.Logger().Session("fuse-nfs-mount")
 	logger.Info("start")
 	defer logger.Info("end")
+
+	// fix &s in source string in case someone has HTML encoded it
+	source = strings.Replace(source, "\\u0026", "&", -1)
 
 	logger.Debug("exec-mount", lager.Data{"source": source, "target": target})
 	_, err := m.invoker.Invoke(env, "fuse-nfs", []string{"-a", "-n", source, "-m", target})
