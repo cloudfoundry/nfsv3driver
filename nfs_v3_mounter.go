@@ -26,6 +26,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	logger := env.Logger().Session("fuse-nfs-mount")
 	logger.Info("start")
 	defer logger.Info("end")
+	logger.Info(fmt.Sprintf("%s", source))
 
 	// fix &s in source string in case someone has HTML encoded it
 	source = strings.Replace(source, "\\u0026", "&", -1)
