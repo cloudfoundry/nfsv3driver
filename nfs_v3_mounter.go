@@ -20,11 +20,11 @@ type nfsV3Mounter struct {
 
 
 func EscapedToString(source string) string {
-	if strings.Contains(source, "\\u0026") {
+	if strings.Contains(source, `\\u0026`) {
 		return "Double Escaped"
-	} else if strings.Contains(source, "\u0026") {
+	} else if strings.Contains(source, `\u0026`) {
 		return "Single Escaped"
-	} else if strings.Contains(source, "&") {
+	} else if strings.Contains(source, `&`) {
 		return "UnEscaped"
 	} else {
 		return "Not Found"
