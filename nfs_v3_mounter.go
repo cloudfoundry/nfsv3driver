@@ -41,7 +41,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	defer logger.Info("end")
 	logger.Info(EscapedToString(source))
 	// fix &s in source string in case someone has HTML encoded it
-	source = strings.Replace(source, "\\u0026", "&", -1)
+	//source = strings.Replace(source, "\\u0026", "&", -1)
 
 	logger.Info(EscapedToString(source))
 	logger.Debug("exec-mount", lager.Data{"source": source, "target": target})
