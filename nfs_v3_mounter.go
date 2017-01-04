@@ -18,19 +18,6 @@ type nfsV3Mounter struct {
 	invoker invoker.Invoker
 }
 
-
-func EscapedToString(source string) string {
-	if strings.Contains(source, `\\u0026`) {
-		return "Double Escaped"
-	} else if strings.Contains(source, `\u0026`) {
-		return "Single Escaped"
-	} else if strings.Contains(source, `&`) {
-		return "UnEscaped"
-	} else {
-		return "Not Found"
-	}
-}
-
 func NewNfsV3Mounter(invoker invoker.Invoker) nfsdriver.Mounter {
 	return &nfsV3Mounter{invoker}
 }
@@ -39,11 +26,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	logger := env.Logger().Session("fuse-nfs-mount")
 	logger.Info("start")
 	defer logger.Info("end")
-	logger.Info(EscapedToString(source))
-	// fix &s in source string in case someone has HTML encoded it
-	//source = strings.Replace(source, "\\u0026", "&", -1)
 
-	logger.Info(EscapedToString(source))
 	logger.Debug("exec-mount", lager.Data{"source": source, "target": target})
 	_, err := m.invoker.Invoke(env, "fuse-nfs", []string{"-a", "-n", source, "-m", target})
 	return err
