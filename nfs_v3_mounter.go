@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/nfsdriver"
