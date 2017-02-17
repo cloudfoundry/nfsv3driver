@@ -13,6 +13,7 @@ import (
 	"code.cloudfoundry.org/voldriver/voldriverfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"strings"
 )
 
 var _ = Describe("NfsV3Mounter", func() {
@@ -38,7 +39,13 @@ var _ = Describe("NfsV3Mounter", func() {
 
 		fakeInvoker = &voldriverfakes.FakeInvoker{}
 
-		subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker)
+		source := nfsv3driver.NewNfsV3ConfigDetails()
+		source.ReadConf("uid,gid", "", []string{})
+
+		mounts := nfsv3driver.NewNfsV3ConfigDetails()
+		mounts.ReadConf("sloppy_mount,allow_other,allow_root,multithread,default_permissions,fusenfs_uid,fusenfs_gid", "", []string{})
+
+		subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts))
 	})
 
 	Context("#Mount", func() {
@@ -55,11 +62,8 @@ var _ = Describe("NfsV3Mounter", func() {
 			It("should use the passed in variables", func() {
 				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("fuse-nfs"))
-				Expect(args[0]).To(Equal("-a"))
-				Expect(args[1]).To(Equal("-n"))
-				Expect(args[2]).To(Equal("source"))
-				Expect(args[3]).To(Equal("-m"))
-				Expect(args[4]).To(Equal("target"))
+				Expect(strings.Join(args, " ")).To(ContainSubstring("-n source"))
+				Expect(strings.Join(args, " ")).To(ContainSubstring("-m target"))
 			})
 		})
 
@@ -96,7 +100,7 @@ var _ = Describe("NfsV3Mounter", func() {
 			It("should use the passed in variables", func() {
 				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("fusermount"))
-				Expect(args[1]).To(Equal("target"))
+				Expect(strings.Join(args, " ")).To(ContainSubstring("-u target"))
 			})
 		})
 
@@ -137,6 +141,137 @@ var _ = Describe("NfsV3Mounter", func() {
 			})
 			It("reports invalid mountpoint", func() {
 				Expect(success).To(BeFalse())
+			})
+		})
+	})
+
+	Context("#CustomConfig", func() {
+
+		var (
+			sourceAllow   string
+			sourceDefault string
+			mountAllow    string
+			mountDefault  string
+		)
+
+		Context("given allowed parameters is empty", func() {
+
+			BeforeEach(func() {
+				sourceAllow = ""
+				sourceDefault = ""
+				mountAllow = ""
+				mountDefault = ""
+			})
+
+			Context("given allow_root=true is supplied", func() {
+
+				BeforeEach(func() {
+					source := nfsv3driver.NewNfsV3ConfigDetails()
+					source.ReadConf(sourceAllow, sourceDefault, []string{})
+
+					mounts := nfsv3driver.NewNfsV3ConfigDetails()
+					mounts.ReadConf(mountAllow, mountDefault, []string{})
+
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts))
+
+					fakeInvoker.InvokeReturns(nil, nil)
+
+					opts["allow_root"] = true
+
+					err = subject.Mount(env, "source", "target", opts)
+				})
+
+				It("should return an error", func() {
+					Expect(err).To(HaveOccurred())
+				})
+			})
+		})
+
+		Context("given allowed parameters contains allow_root", func() {
+
+			BeforeEach(func() {
+				sourceAllow = ""
+				sourceDefault = ""
+				mountAllow = "allow_root"
+				mountDefault = ""
+			})
+
+			Context("given allow_root=true is supplied", func() {
+
+				BeforeEach(func() {
+
+					source := nfsv3driver.NewNfsV3ConfigDetails()
+					source.ReadConf(sourceAllow, sourceDefault, []string{})
+
+					mounts := nfsv3driver.NewNfsV3ConfigDetails()
+					mounts.ReadConf(mountAllow, mountDefault, []string{})
+
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts))
+
+					fakeInvoker.InvokeReturns(nil, nil)
+
+					opts["allow_root"] = true
+
+					err = subject.Mount(env, "source", "target", opts)
+				})
+
+				It("should return without error", func() {
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("flows allow_root=true option through", func() {
+					_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+
+					Expect(cmd).To(Equal("fuse-nfs"))
+					Expect(strings.Join(args, " ")).To(ContainSubstring("--allow_root"))
+					Expect(strings.Join(args, " ")).ToNot(ContainSubstring("allow_root=true"))
+					Expect(strings.Join(args, " ")).To(ContainSubstring("-n source"))
+					Expect(strings.Join(args, " ")).To(ContainSubstring("-m target"))
+				})
+			})
+		})
+
+		Context("given sloppy_mount is true", func() {
+
+			BeforeEach(func() {
+				sourceAllow = ""
+				sourceDefault = ""
+				mountAllow = ""
+				mountDefault = "sloppy_mount:true"
+			})
+
+			Context("given violation parameters", func() {
+
+				BeforeEach(func() {
+
+					source := nfsv3driver.NewNfsV3ConfigDetails()
+					source.ReadConf(sourceAllow, sourceDefault, []string{})
+
+					mounts := nfsv3driver.NewNfsV3ConfigDetails()
+					mounts.ReadConf(mountAllow, mountDefault, []string{})
+
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts))
+
+					fakeInvoker.InvokeReturns(nil, nil)
+
+					opts["allow_root"] = true
+
+					err = subject.Mount(env, "source", "target", opts)
+				})
+
+				It("should return without error", func() {
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("does not flow violation parameters", func() {
+					_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+
+					Expect(cmd).To(Equal("fuse-nfs"))
+					Expect(strings.Join(args, " ")).ToNot(ContainSubstring("--allow_root"))
+					Expect(strings.Join(args, " ")).ToNot(ContainSubstring("--allow_root=true"))
+					Expect(strings.Join(args, " ")).To(ContainSubstring("-n source"))
+					Expect(strings.Join(args, " ")).To(ContainSubstring("-m target"))
+				})
 			})
 		})
 	})

@@ -90,6 +90,30 @@ var insecureSkipVerify = flag.Bool(
 	"whether SSL communication should skip verification of server IP addresses in the certificate",
 )
 
+var sourceFlagAllowed = flag.String(
+	"allowed-in-source",
+	"",
+	"This is a comma separted list of parameters allowed to be send in share url. Each of this parameters can be specify by brokers",
+)
+
+var sourceFlagDefault = flag.String(
+	"default-in-source",
+	"",
+	"This is a comma separted list of like params:value. This list specify default value of parameters. If parameters has default value and is not in allowed list, this default value become a forced value who's cannot be override",
+)
+
+var mountFlagAllowed = flag.String(
+	"allowed-in-mount",
+	"",
+	"This is a comma separted list of parameters allowed to be send in extra config. Each of this parameters can be specify by brokers",
+)
+
+var mountFlagDefault = flag.String(
+	"default-in-mount",
+	"",
+	"This is a comma separted list of like params:value. This list specify default value of parameters. If parameters has default value and is not in allowed list, this default value become a forced value who's cannot be override",
+)
+
 const fsType = "nfs4"
 const mountOptions = "vers=4.0,rsize=1048576,wsize=1048576,hard,intr,timeo=600,retrans=2,actimeo=0"
 
@@ -102,7 +126,16 @@ func main() {
 	logger.Info("start")
 	defer logger.Info("end")
 
-	mounter := nfsv3driver.NewNfsV3Mounter(invoker.NewRealInvoker())
+	source := nfsv3driver.NewNfsV3ConfigDetails()
+	source.ReadConf(*sourceFlagAllowed, *sourceFlagDefault, []string{"uid", "gid"})
+
+	mounts := nfsv3driver.NewNfsV3ConfigDetails()
+	mounts.ReadConf(*mountFlagAllowed, *mountFlagDefault, []string{})
+
+	mounter := nfsv3driver.NewNfsV3Mounter(
+		invoker.NewRealInvoker(),
+		nfsv3driver.NewNfsV3Config(source, mounts),
+	)
 
 	client := nfsdriver.NewNfsDriver(
 		logger,
