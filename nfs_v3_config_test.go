@@ -256,14 +256,14 @@ var _ = Describe("BrokerConfigDetails", func() {
 			AbitraryConfig = make(map[string]interface{}, 0)
 			IgnoreConfigKey = make([]string, 0)
 
-			SourceAllowed = []string{"uid", "gid"}
+			SourceAllowed = []string{"uid", "gid", "auto-traverse-mounts", "dircache"}
 			SourceMandatory = []string{"uid", "gid"}
 			SourceOptions = map[string]string{
 				"uid": "1004",
 				"gid": "1002",
 			}
 
-			MountsAllowed = []string{"sloppy_mount", "nfs_uid", "nfs_gid"}
+			MountsAllowed = []string{"sloppy_mount", "nfs_uid", "nfs_gid", "allow_other"}
 			MountsMandatory = make([]string, 0)
 			MountsOptions = map[string]string{
 				"nfs_uid": "1003",
@@ -425,6 +425,9 @@ var _ = Describe("BrokerConfigDetails", func() {
 				ClientShare = "nfs://1.2.3.4?err=true&test=err"
 				AbitraryConfig = map[string]interface{}{
 					"sloppy_mount": true,
+					"allow_other": true,
+					"auto-traverse-mounts": true,
+					"dircache": 		false,
 					"missing":      true,
 					"wrong":        1234,
 					"search":       "notfound",
@@ -442,7 +445,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 
 			It("should flow the mount default options into the mount command parameters ", func() {
 				actualRes := config.Mount()
-				expectRes := map2slice(MountsOptions, "=", "--")
+				expectRes := append(map2slice(MountsOptions, "=", "--"), []string{"--allow_other"}...)
 
 				for _, exp := range expectRes {
 					logger.Debug("Checking actualRes contain part", lager.Data{"actualRes": actualRes, "part": exp})
@@ -457,10 +460,12 @@ var _ = Describe("BrokerConfigDetails", func() {
 
 			It("should flow the mount default options into the MountOptions struct", func() {
 				actualRes := config.MountConfig()
+
 				expectRes := mapstring2mapinterface(MountsOptions)
+				expectRes["allow_other"] = "true"
 
 				for k, exp := range expectRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
+					logger.Debug("Checking expectRes contain part", lager.Data{"actualRes": actualRes, "key": k, "val": exp})
 					Expect(inMapInt(actualRes, k, exp)).To(BeTrue())
 				}
 
@@ -475,7 +480,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 				share := config.Share(ClientShare)
 				Expect(share).To(ContainSubstring("nfs://1.2.3.4?"))
 
-				for _, exp := range map2slice(SourceOptions, "=", "") {
+				for _, exp := range append(map2slice(SourceOptions, "=", ""), []string{"auto-traverse-mounts=1"}...) {
 					logger.Debug("Checking Share contain part", lager.Data{"share": share, "part": exp})
 					Expect(share).To(ContainSubstring(exp))
 				}

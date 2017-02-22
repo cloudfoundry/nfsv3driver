@@ -108,17 +108,9 @@ func (m Config) MountConfig() map[string]interface{} {
 	return m.mount.makeConfig()
 }
 
-func (m *ConfigDetails) readConfAllowed(flagString string) error {
-	if len(flagString) > 0 {
-		m.Allowed = strings.Split(flagString, ",")
-	}
-
-	return nil
-}
-
-func (m *ConfigDetails) readConfDefault(flagString string) error {
+func (m *ConfigDetails) readConfDefault(flagString string) {
 	if len(flagString) < 1 {
-		return nil
+		return
 	}
 
 	m.Options = m.parseConfig(strings.Split(flagString, ","))
@@ -130,18 +122,14 @@ func (m *ConfigDetails) readConfDefault(flagString string) error {
 			delete(m.Options, k)
 		}
 	}
-
-	return nil
 }
 
 func (m *ConfigDetails) ReadConf(allowedFlag string, defaultFlag string, mandatoryFields []string) error {
-	if err := m.readConfAllowed(allowedFlag); err != nil {
-		return err
+	if len(allowedFlag) > 0 {
+		m.Allowed = strings.Split(allowedFlag, ",")
 	}
 
-	if err := m.readConfDefault(defaultFlag); err != nil {
-		return err
-	}
+	m.readConfDefault(defaultFlag)
 
 	if len(mandatoryFields) > 0 {
 		m.Mandatory = mandatoryFields
@@ -291,7 +279,7 @@ func (m *ConfigDetails) parseMap(entryList map[string]interface{}, ignoreList []
 
 	for k, v := range entryList {
 
-		value := m.uniformData(v, false)
+		value := m.uniformKeyData(k, v)
 
 		if value == "" || len(k) < 1 || inArray(ignoreList, k) {
 			continue
@@ -316,15 +304,15 @@ func (m ConfigDetails) makeParams(prefix string) []string {
 			continue
 		}
 
+		if val, err := strconv.ParseInt(v.(string), 10, 16); err == nil {
+			params = append(params, fmt.Sprintf("%s%s=%d", prefix, k, val))
+			continue
+		}
+
 		if val, err := strconv.ParseBool(v.(string)); err == nil {
 			if val {
 				params = append(params, fmt.Sprintf("%s%s", prefix, k))
 			}
-			continue
-		}
-
-		if val, err := strconv.ParseInt(v.(string), 10, 16); err == nil {
-			params = append(params, fmt.Sprintf("%s%s=%d", prefix, k, val))
 			continue
 		}
 
