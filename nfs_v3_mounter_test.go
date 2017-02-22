@@ -240,7 +240,7 @@ var _ = Describe("NfsV3Mounter", func() {
 				mountDefault = "sloppy_mount:true"
 			})
 
-			Context("given violation parameters", func() {
+			Context("given invalid parameters", func() {
 
 				BeforeEach(func() {
 
@@ -263,7 +263,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("does not flow violation parameters", func() {
+				It("does not flow invalid parameters", func() {
 					_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 
 					Expect(cmd).To(Equal("fuse-nfs"))

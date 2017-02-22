@@ -129,10 +129,10 @@ var _ = Describe("BrokerConfigDetails", func() {
 			mounts.ReadConf(strings.Join(MountsAllowed, ","), map2string(MountsOptions, ":", "", ","), MountsMandatory)
 
 			config = NewNfsV3Config(source, mounts)
-			logger.Debug("Debug config Initiated", lager.Data{"source": source, "mount": mounts})
+			logger.Debug("debug-config-initiated", lager.Data{"source": source, "mount": mounts})
 
 			errorEntries = config.SetEntries(ClientShare, AbitraryConfig, IgnoreConfigKey)
-			logger.Debug("Debug config updated", lager.Data{"source": source, "mount": mounts})
+			logger.Debug("debug-config-updated", lager.Data{"source": source, "mount": mounts})
 		})
 
 		It("should returns empty allowed list", func() {
@@ -198,10 +198,10 @@ var _ = Describe("BrokerConfigDetails", func() {
 			mounts.ReadConf(strings.Join(MountsAllowed, ","), map2string(MountsOptions, ":", "", ","), MountsMandatory)
 
 			config = NewNfsV3Config(source, mounts)
-			logger.Debug("Debug config Initiated", lager.Data{"source": source, "mount": mounts})
+			logger.Debug("debug-config-initiated", lager.Data{"source": source, "mount": mounts})
 
 			errorEntries = config.SetEntries(ClientShare, AbitraryConfig, IgnoreConfigKey)
-			logger.Debug("Debug config updated", lager.Data{"config": config, "source": source, "mount": mounts})
+			logger.Debug("debug-config-updated", lager.Data{"config": config, "source": source, "mount": mounts})
 		})
 
 		It("should returns empty allowed list", func() {
@@ -277,7 +277,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 			mounts.ReadConf(strings.Join(MountsAllowed, ","), map2string(MountsOptions, ":", "", ","), MountsMandatory)
 
 			config = NewNfsV3Config(source, mounts)
-			logger.Debug("Debug config Initiated", lager.Data{"config": config, "source": source, "mount": mounts})
+			logger.Debug("debug-config-initiated", lager.Data{"config": config, "source": source, "mount": mounts})
 		})
 
 		It("should flow the allowed list", func() {
@@ -308,7 +308,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 		Context("Given empty abitrary params and share without any params", func() {
 			BeforeEach(func() {
 				errorEntries = config.SetEntries(ClientShare, AbitraryConfig, IgnoreConfigKey)
-				logger.Debug("Debug config updated", lager.Data{"config": config, "source": source, "mount": mounts})
+				logger.Debug("debug-config-updated", lager.Data{"config": config, "source": source, "mount": mounts})
 			})
 
 			It("should return nil result on setting end users'entries", func() {
@@ -320,12 +320,12 @@ var _ = Describe("BrokerConfigDetails", func() {
 				expectRes := map2slice(MountsOptions, "=", "--")
 
 				for _, exp := range expectRes {
-					logger.Debug("Checking actualRes contain part", lager.Data{"actualRes": actualRes, "part": exp})
+					logger.Debug("checking-actual-res-contains-part", lager.Data{"actualRes": actualRes, "part": exp})
 					Expect(inSliceString(actualRes, exp)).To(BeTrue())
 				}
 
 				for _, exp := range actualRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "part": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"expectRes": expectRes, "part": exp})
 					Expect(inSliceString(expectRes, exp)).To(BeTrue())
 				}
 			})
@@ -335,12 +335,12 @@ var _ = Describe("BrokerConfigDetails", func() {
 				expectRes := mapstring2mapinterface(MountsOptions)
 
 				for k, exp := range expectRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
 					Expect(inMapInt(actualRes, k, exp)).To(BeTrue())
 				}
 
 				for k, exp := range actualRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
 					Expect(inMapInt(expectRes, k, exp)).To(BeTrue())
 				}
 			})
@@ -351,7 +351,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 				Expect(share).To(ContainSubstring(ClientShare + "?"))
 
 				for _, exp := range map2slice(SourceOptions, "=", "") {
-					logger.Debug("Checking Share contain part", lager.Data{"share": share, "part": exp})
+					logger.Debug("checking-share-contains-part", lager.Data{"share": share, "part": exp})
 					Expect(share).To(ContainSubstring(exp))
 				}
 			})
@@ -369,12 +369,12 @@ var _ = Describe("BrokerConfigDetails", func() {
 				IgnoreConfigKey = make([]string, 0)
 
 				errorEntries = config.SetEntries(ClientShare, AbitraryConfig, IgnoreConfigKey)
-				logger.Debug("Debug config updated", lager.Data{"config": config, "source": source, "mount": mounts})
+				logger.Debug("debug-config-updated", lager.Data{"config": config, "source": source, "mount": mounts})
 			})
 
 			It("should occured an error", func() {
 				Expect(errorEntries).To(HaveOccurred())
-				logger.Debug("Debug config updated with entry", lager.Data{"config": config, "source": source, "mount": mounts})
+				logger.Debug("debug-config-updated-with-entry", lager.Data{"config": config, "source": source, "mount": mounts})
 			})
 
 			It("should flow the mount default options into the mount command parameters ", func() {
@@ -382,12 +382,12 @@ var _ = Describe("BrokerConfigDetails", func() {
 				expectRes := map2slice(MountsOptions, "=", "--")
 
 				for _, exp := range expectRes {
-					logger.Debug("Checking actualRes contain part", lager.Data{"actualRes": actualRes, "part": exp})
+					logger.Debug("checking-actual-res-contains-part", lager.Data{"actualRes": actualRes, "part": exp})
 					Expect(inSliceString(actualRes, exp)).To(BeTrue())
 				}
 
 				for _, exp := range actualRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "part": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"expectRes": expectRes, "part": exp})
 					Expect(inSliceString(expectRes, exp)).To(BeTrue())
 				}
 			})
@@ -397,12 +397,12 @@ var _ = Describe("BrokerConfigDetails", func() {
 				expectRes := mapstring2mapinterface(MountsOptions)
 
 				for k, exp := range expectRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
 					Expect(inMapInt(actualRes, k, exp)).To(BeTrue())
 				}
 
 				for k, exp := range actualRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
 					Expect(inMapInt(expectRes, k, exp)).To(BeTrue())
 				}
 			})
@@ -413,7 +413,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 				Expect(share).To(ContainSubstring("nfs://1.2.3.4?"))
 
 				for _, exp := range map2slice(SourceOptions, "=", "") {
-					logger.Debug("Checking Share contain part", lager.Data{"share": share, "part": exp})
+					logger.Debug("checking-share-contains-part", lager.Data{"share": share, "part": exp})
 					Expect(share).To(ContainSubstring(exp))
 				}
 			})
@@ -435,12 +435,12 @@ var _ = Describe("BrokerConfigDetails", func() {
 				IgnoreConfigKey = make([]string, 0)
 
 				errorEntries = config.SetEntries(ClientShare, AbitraryConfig, IgnoreConfigKey)
-				logger.Debug("Debug config updated", lager.Data{"config": config, "source": source, "mount": mounts})
+				logger.Debug("debug-config-updated", lager.Data{"config": config, "source": source, "mount": mounts})
 			})
 
 			It("should not occured an error, return nil", func() {
 				Expect(errorEntries).To(BeNil())
-				logger.Debug("Debug config updated with entry", lager.Data{"config": config, "source": source, "mount": mounts})
+				logger.Debug("debug-config-updated-with-entry", lager.Data{"config": config, "source": source, "mount": mounts})
 			})
 
 			It("should flow the mount default options into the mount command parameters ", func() {
@@ -448,12 +448,12 @@ var _ = Describe("BrokerConfigDetails", func() {
 				expectRes := append(map2slice(MountsOptions, "=", "--"), []string{"--allow_other"}...)
 
 				for _, exp := range expectRes {
-					logger.Debug("Checking actualRes contain part", lager.Data{"actualRes": actualRes, "part": exp})
+					logger.Debug("checking-actual-res-contains-part", lager.Data{"actualRes": actualRes, "part": exp})
 					Expect(inSliceString(actualRes, exp)).To(BeTrue())
 				}
 
 				for _, exp := range actualRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "part": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"expectRes": expectRes, "part": exp})
 					Expect(inSliceString(expectRes, exp)).To(BeTrue())
 				}
 			})
@@ -465,12 +465,12 @@ var _ = Describe("BrokerConfigDetails", func() {
 				expectRes["allow_other"] = "true"
 
 				for k, exp := range expectRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"actualRes": actualRes, "key": k, "val": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"actualRes": actualRes, "key": k, "val": exp})
 					Expect(inMapInt(actualRes, k, exp)).To(BeTrue())
 				}
 
 				for k, exp := range actualRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
 					Expect(inMapInt(expectRes, k, exp)).To(BeTrue())
 				}
 			})
@@ -481,7 +481,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 				Expect(share).To(ContainSubstring("nfs://1.2.3.4?"))
 
 				for _, exp := range append(map2slice(SourceOptions, "=", ""), []string{"auto-traverse-mounts=1"}...) {
-					logger.Debug("Checking Share contain part", lager.Data{"share": share, "part": exp})
+					logger.Debug("checking-share-contains-part", lager.Data{"share": share, "part": exp})
 					Expect(share).To(ContainSubstring(exp))
 				}
 			})
@@ -498,7 +498,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 				IgnoreConfigKey = make([]string, 0)
 
 				errorEntries = config.SetEntries(ClientShare, AbitraryConfig, IgnoreConfigKey)
-				logger.Debug("Debug config updated", lager.Data{"config": config, "source": source, "mount": mounts})
+				logger.Debug("debug-config-updated", lager.Data{"config": config, "source": source, "mount": mounts})
 			})
 
 			It("should not occured an error, return nil", func() {
@@ -510,12 +510,12 @@ var _ = Describe("BrokerConfigDetails", func() {
 				expectRes := mapint2slice(AbitraryConfig, "=", "--")
 
 				for _, exp := range expectRes {
-					logger.Debug("Checking actualRes contain part", lager.Data{"actualRes": actualRes, "part": exp})
+					logger.Debug("checking-actual-res-contains-part", lager.Data{"actualRes": actualRes, "part": exp})
 					Expect(inSliceString(actualRes, exp)).To(BeTrue())
 				}
 
 				for _, exp := range actualRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "part": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"expectRes": expectRes, "part": exp})
 					Expect(inSliceString(expectRes, exp)).To(BeTrue())
 				}
 			})
@@ -525,12 +525,12 @@ var _ = Describe("BrokerConfigDetails", func() {
 				expectRes := AbitraryConfig
 
 				for k, exp := range expectRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
 					Expect(inMapInt(actualRes, k, exp)).To(BeTrue())
 				}
 
 				for k, exp := range actualRes {
-					logger.Debug("Checking expectRes contain part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
+					logger.Debug("checking-expect-res-contains-part", lager.Data{"expectRes": expectRes, "key": k, "val": exp})
 					Expect(inMapInt(expectRes, k, exp)).To(BeTrue())
 				}
 			})
@@ -571,8 +571,8 @@ var _ = Describe("BrokerConfigDetails", func() {
 			mounts.ReadConf(strings.Join(MountsAllowed, ","), map2string(MountsOptions, ":", "", ","), MountsMandatory)
 
 			config = NewNfsV3Config(source, mounts)
-			logger.Debug("Debug config Initiated", lager.Data{"config": config, "source": source, "mount": mounts})
-			logger.Debug("Debug config updated", lager.Data{"config": config, "source": source, "mount": mounts})
+			logger.Debug("debug-config-initiated", lager.Data{"config": config, "source": source, "mount": mounts})
+			logger.Debug("debug-config-updated", lager.Data{"config": config, "source": source, "mount": mounts})
 		})
 
 		It("should return empty allowed list", func() {
