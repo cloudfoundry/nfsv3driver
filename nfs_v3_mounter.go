@@ -28,7 +28,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	defer logger.Info("end")
 
 	if err := m.config.SetEntries(source, opts, []string{
-		"share", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly",
+		"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly",
 	}); err != nil {
 		logger.Debug("error-parse-entries", lager.Data{
 			"given_source":  source,
