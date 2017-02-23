@@ -42,6 +42,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	}
 
 	mountOptions := append([]string{
+		"-a",
 		"-n", m.config.Share(source),
 		"-m", target,
 	}, m.config.Mount()...)
