@@ -47,6 +47,10 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 		"-m", target,
 	}, m.config.Mount()...)
 
+	if _, ok := opts["readonly"]; ok {
+		mountOptions = append(mountOptions, "-O")
+	}
+
 	logger.Debug("parse-mount", lager.Data{
 		"given_source":  source,
 		"given_target":  target,
