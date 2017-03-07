@@ -50,7 +50,7 @@ var _ = Describe("NfsV3Mounter", func() {
 
 	Context("#Mount", func() {
 		Context("when mount succeeds", func() {
-			BeforeEach(func() {
+			JustBeforeEach(func() {
 				fakeInvoker.InvokeReturns(nil, nil)
 				err = subject.Mount(env, "source", "target", opts)
 			})
@@ -64,6 +64,17 @@ var _ = Describe("NfsV3Mounter", func() {
 				Expect(cmd).To(Equal("fuse-nfs"))
 				Expect(strings.Join(args, " ")).To(ContainSubstring("-n source"))
 				Expect(strings.Join(args, " ")).To(ContainSubstring("-m target"))
+			})
+
+			Context("when mounting read only", func(){
+				BeforeEach(func(){
+					opts["readonly"] = true
+				})
+
+				It("should include the -O flag", func(){
+					_, _, args := fakeInvoker.InvokeArgsForCall(0)
+					Expect(strings.Join(args, " ")).To(ContainSubstring("-O"))
+				})
 			})
 		})
 
