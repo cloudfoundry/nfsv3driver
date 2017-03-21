@@ -16,19 +16,22 @@ import (
 type nfsV3Mounter struct {
 	invoker invoker.Invoker
 	config  Config
+	resolver IdResolver
 }
 
-func NewNfsV3Mounter(invoker invoker.Invoker, config *Config) nfsdriver.Mounter {
-	return &nfsV3Mounter{invoker: invoker, config: *config}
+func NewNfsV3Mounter(invoker invoker.Invoker, config *Config, resolver IdResolver) nfsdriver.Mounter {
+	return &nfsV3Mounter{invoker: invoker, config: *config, resolver: resolver}
 }
 
 func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, opts map[string]interface{}) error {
 	logger := env.Logger().Session("fuse-nfs-mount")
 	logger.Info("start")
 	defer logger.Info("end")
+	localConfig := m.config
+	localConfig.source.Allowed = append(localConfig.source.Allowed, "uid", "gid")
 
 	if err := m.config.SetEntries(source, opts, []string{
-		"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly",
+		"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
 	}); err != nil {
 		logger.Debug("error-parse-entries", lager.Data{
 			"given_source":  source,
@@ -41,9 +44,27 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 		return err
 	}
 
+	if (m.resolver != nil) {
+		if username, ok := opts["username"]; ok {
+			if password, ok := opts["password"]; ok {
+				uid, gid, err := m.resolver.Resolve(env, username.(string), password.(string))
+				if err != nil {
+					return err
+				}
+				opts["uid"] = uid
+				opts["gid"] = gid
+				if err := localConfig.SetEntries(source, opts, []string{
+					"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
+				}); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	mountOptions := append([]string{
 		"-a",
-		"-n", m.config.Share(source),
+		"-n", localConfig.Share(source),
 		"-m", target,
 	}, m.config.Mount()...)
 

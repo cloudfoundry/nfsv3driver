@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"strings"
+	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
 )
 
 var _ = Describe("NfsV3Mounter", func() {
@@ -25,6 +26,7 @@ var _ = Describe("NfsV3Mounter", func() {
 		err         error
 
 		fakeInvoker *voldriverfakes.FakeInvoker
+		fakeIdResolver *nfsdriverfakes.FakeIdResolver
 
 		subject nfsdriver.Mounter
 
@@ -43,9 +45,9 @@ var _ = Describe("NfsV3Mounter", func() {
 		source.ReadConf("uid,gid", "", []string{})
 
 		mounts := nfsv3driver.NewNfsV3ConfigDetails()
-		mounts.ReadConf("sloppy_mount,allow_other,allow_root,multithread,default_permissions,fusenfs_uid,fusenfs_gid", "", []string{})
+		mounts.ReadConf("sloppy_mount,allow_other,allow_root,multithread,default_permissions,fusenfs_uid,fusenfs_gid,username,password", "", []string{})
 
-		subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts))
+		subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 	})
 
 	Context("#Mount", func() {
@@ -92,6 +94,54 @@ var _ = Describe("NfsV3Mounter", func() {
 
 		Context("when mount is cancelled", func() {
 			// TODO: when we pick up the lager.Context
+		})
+
+		Context("when username mapping is enabled", func() {
+			BeforeEach(func() {
+				fakeIdResolver = &nfsdriverfakes.FakeIdResolver{}
+
+				source := nfsv3driver.NewNfsV3ConfigDetails()
+				source.ReadConf("", "", []string{})
+
+				mounts := nfsv3driver.NewNfsV3ConfigDetails()
+				mounts.ReadConf("sloppy_mount,allow_other,allow_root,multithread,default_permissions,fusenfs_uid,fusenfs_gid,username,password", "", []string{})
+
+				subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), fakeIdResolver)
+				fakeIdResolver.ResolveReturns("100", "100", nil)
+
+				fakeInvoker.InvokeReturns(nil, nil)
+				opts["username"] = "test-user"
+				opts["password"] = "test-pw"
+			})
+
+			JustBeforeEach(func() {
+				err = subject.Mount(env, "source", "target", opts)
+			})
+			It("does not show the credentials in the options", func() {
+				Expect(err).NotTo(HaveOccurred())
+				_, _, args := fakeInvoker.InvokeArgsForCall(0)
+				Expect(strings.Join(args, " ")).To(Not(ContainSubstring("username")))
+				Expect(strings.Join(args, " ")).To(Not(ContainSubstring("password")))
+			})
+
+			It("shows gid and uid", func() {
+				Expect(err).NotTo(HaveOccurred())
+				_, _, args := fakeInvoker.InvokeArgsForCall(0)
+				Expect(strings.Join(args, " ")).To(ContainSubstring("uid"))
+				Expect(strings.Join(args, " ")).To(ContainSubstring("gid"))
+			})
+
+			Context("when uid and gid are passed", func() {
+				BeforeEach(func() {
+					opts["uid"] = "uid"
+					opts["gid"] = "gid"
+				})
+
+				It("should error", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("Not allowed options : uid, gid"))
+				})
+			})
 		})
 	})
 
@@ -183,7 +233,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					mounts := nfsv3driver.NewNfsV3ConfigDetails()
 					mounts.ReadConf(mountAllow, mountDefault, []string{})
 
-					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts))
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 
 					fakeInvoker.InvokeReturns(nil, nil)
 
@@ -217,7 +267,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					mounts := nfsv3driver.NewNfsV3ConfigDetails()
 					mounts.ReadConf(mountAllow, mountDefault, []string{})
 
-					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts))
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 
 					fakeInvoker.InvokeReturns(nil, nil)
 
@@ -261,7 +311,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					mounts := nfsv3driver.NewNfsV3ConfigDetails()
 					mounts.ReadConf(mountAllow, mountDefault, []string{})
 
-					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts))
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 
 					fakeInvoker.InvokeReturns(nil, nil)
 

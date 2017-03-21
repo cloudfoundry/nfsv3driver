@@ -135,6 +135,7 @@ func main() {
 	mounter := nfsv3driver.NewNfsV3Mounter(
 		invoker.NewRealInvoker(),
 		nfsv3driver.NewNfsV3Config(source, mounts),
+		nil,
 	)
 
 	client := nfsdriver.NewNfsDriver(

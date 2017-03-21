@@ -1,0 +1,74 @@
+package nfsv3driver
+
+import (
+	"errors"
+
+	"code.cloudfoundry.org/voldriver"
+	"fmt"
+	"gopkg.in/ldap.v2"
+	"code.cloudfoundry.org/goshims/ldapshim"
+)
+
+//go:generate counterfeiter -o nfsdriverfakes/fake_id_resolver.go . IdResolver
+type IdResolver interface {
+	Resolve(env voldriver.Env, username string, password string) (uid string, gid string, err error)
+}
+
+type ldapIdResolver struct {
+	svcUser string
+	svcPass string
+	ldapHost string
+	ldapPort int
+	ldapProto string
+	ldapFqdn string // ldap domain to search for users .in, e.g. "cn=Users,dc=corp,dc=persi,dc=cf-app,dc=com"
+	ldap ldapshim.Ldap
+}
+
+func NewLdapIdResolver(	svcUser string, svcPass string, ldapHost string, ldapPort int, ldapProto string, ldapFqdn string, ldap ldapshim.Ldap) IdResolver {
+	return &ldapIdResolver{svcUser: svcUser, svcPass: svcPass, ldapHost: ldapHost, ldapPort: ldapPort, ldapProto: ldapProto, ldapFqdn: ldapFqdn, ldap: ldap}
+}
+
+func (d *ldapIdResolver) Resolve(env voldriver.Env, username string, password string) (uid string, gid string, err error) {
+	l, err := d.ldap.Dial(d.ldapProto, fmt.Sprintf("%s:%d", d.ldapHost, d.ldapPort))
+	if err != nil {
+		return "", "", err
+	}
+	defer l.Close()
+
+	// First bind with a read only user
+	err = l.Bind(d.svcUser, d.svcPass)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Search for the given username
+	searchRequest := d.ldap.NewSearchRequest(
+		d.ldapFqdn,
+		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
+		fmt.Sprintf("(&(objectClass=User)(objectCategory=Person)(name=%s))", username),
+		[]string{"dn", "uidNumber", "gidNumber"},
+		nil,
+	)
+
+	sr, err := l.Search(searchRequest)
+	if err != nil {
+		return "", "", err
+	}
+
+	if len(sr.Entries) != 1 {
+		return "", "", errors.New("User does not exist or too many entries returned")
+	}
+
+	userdn := sr.Entries[0].DN
+
+	uid = sr.Entries[0].GetAttributeValue("uidNumber")
+	gid = sr.Entries[0].GetAttributeValue("gidNumber")
+	// Bind as the user to verify their password
+	err = l.Bind(userdn, password)
+
+	if err != nil {
+		return "", "", err
+	}
+
+	return uid, gid, nil
+}
