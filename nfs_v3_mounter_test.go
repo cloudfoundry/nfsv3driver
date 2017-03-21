@@ -139,7 +139,7 @@ var _ = Describe("NfsV3Mounter", func() {
 
 				It("should error", func() {
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("Not allowed options : uid, gid"))
+					Expect(err.Error()).To(ContainSubstring("Not allowed options"))
 				})
 			})
 		})
