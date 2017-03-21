@@ -142,6 +142,22 @@ var _ = Describe("NfsV3Mounter", func() {
 					Expect(err.Error()).To(ContainSubstring("Not allowed options"))
 				})
 			})
+			Context("when idresolver isn't present but username is passed", func() {
+				BeforeEach(func() {
+					source := nfsv3driver.NewNfsV3ConfigDetails()
+					source.ReadConf("", "", []string{})
+
+					mounts := nfsv3driver.NewNfsV3ConfigDetails()
+					mounts.ReadConf("sloppy_mount,allow_other,allow_root,multithread,default_permissions,fusenfs_uid,fusenfs_gid,username,password", "", []string{})
+
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
+				})
+
+				It("should error", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("LDAP is not configured"))
+				})
+			})
 		})
 	})
 

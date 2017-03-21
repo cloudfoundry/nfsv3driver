@@ -2,20 +2,22 @@ package nfsv3driver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
+
+	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/nfsdriver"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
-	"strings"
 )
 
 type nfsV3Mounter struct {
-	invoker invoker.Invoker
-	config  Config
+	invoker  invoker.Invoker
+	config   Config
 	resolver IdResolver
 }
 
@@ -44,21 +46,27 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 		return err
 	}
 
-	if (m.resolver != nil) {
-		if username, ok := opts["username"]; ok {
-			if password, ok := opts["password"]; ok {
-				uid, gid, err := m.resolver.Resolve(env, username.(string), password.(string))
-				if err != nil {
-					return err
-				}
-				opts["uid"] = uid
-				opts["gid"] = gid
-				if err := localConfig.SetEntries(source, opts, []string{
-					"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
-				}); err != nil {
-					return err
-				}
-			}
+	if username, ok := opts["username"]; ok {
+		if m.resolver == nil {
+			return errors.New("LDAP username is specified but LDAP is not configured")
+		}
+		password, ok := opts["password"]
+		if !ok {
+			return errors.New("LDAP username is specified but LDAP password is missing")
+		}
+
+		uid, gid, err := m.resolver.Resolve(env, username.(string), password.(string))
+		if err != nil {
+			return err
+		}
+
+		opts["uid"] = uid
+		opts["gid"] = gid
+		err = localConfig.SetEntries(source, opts, []string{
+			"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
+		})
+	  if err != nil {
+			return err
 		}
 	}
 
