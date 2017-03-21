@@ -55,17 +55,20 @@ func (d *ldapIdResolver) Resolve(env voldriver.Env, username string, password st
 		return "", "", err
 	}
 
-	if len(sr.Entries) != 1 {
-		return "", "", errors.New("User does not exist or too many entries returned")
+	if len(sr.Entries) == 0 {
+		return "", "", errors.New("User does not exist")
+	}
+	if len(sr.Entries) > 1 {
+		return "", "", errors.New("Ambiguous search--too many results")
 	}
 
 	userdn := sr.Entries[0].DN
 
 	uid = sr.Entries[0].GetAttributeValue("uidNumber")
 	gid = sr.Entries[0].GetAttributeValue("gidNumber")
+
 	// Bind as the user to verify their password
 	err = l.Bind(userdn, password)
-
 	if err != nil {
 		return "", "", err
 	}

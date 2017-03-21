@@ -1,20 +1,23 @@
 package nfsv3driver_test
 
 import (
+	"errors"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"code.cloudfoundry.org/nfsv3driver"
+	"context"
+
 	"code.cloudfoundry.org/goshims/ldapshim/ldap_fake"
+	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
-	"code.cloudfoundry.org/lager/lagertest"
-	"context"
 	"gopkg.in/ldap.v2"
 )
 
-var _ = FDescribe("IdResolverTest", func() {
-  var ldapFake *ldap_fake.FakeLdap
+var _ = Describe("IdResolverTest", func() {
+	var ldapFake *ldap_fake.FakeLdap
 	var ldapConnectionFake *ldap_fake.FakeLdapConnection
 	var ldapIdResolver nfsv3driver.IdResolver
 	var env voldriver.Env
@@ -32,18 +35,21 @@ var _ = FDescribe("IdResolverTest", func() {
 			testContext := context.TODO()
 			env = driverhttp.NewHttpDriverEnv(logger, testContext)
 
-			ldapIdResolver = nfsv3driver.NewLdapIdResolver("user", "pw", "host", 111, "tcp", "cn=Users,dc=test,dc=com", ldapFake)
+			ldapIdResolver = nfsv3driver.NewLdapIdResolver("svcuser", "svcpw", "host", 111, "tcp", "cn=Users,dc=test,dc=com", ldapFake)
 		})
 
-		JustBeforeEach(func(){
+		JustBeforeEach(func() {
 			uid, gid, err = ldapIdResolver.Resolve(env, "user", "pw")
 		})
 
-		Context("when search returns sucessfully", func(){
-			BeforeEach(func(){
+		Context("when search returns sucessfully", func() {
+			BeforeEach(func() {
 				entry := &ldap.Entry{
 					DN: "foo",
-					Attributes: []*ldap.EntryAttribute{},
+					Attributes: []*ldap.EntryAttribute{
+						&ldap.EntryAttribute{Name: "uidNumber", Values: []string{"100"}},
+						&ldap.EntryAttribute{Name: "gidNumber", Values: []string{"100"}},
+					},
 				}
 
 				result := &ldap.SearchResult{
@@ -57,7 +63,63 @@ var _ = FDescribe("IdResolverTest", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
+			It("returns the expected UID and GID", func() {
+				Expect(uid).To(Equal("100"))
+				Expect(gid).To(Equal("100"))
+			})
+
+			Context("when the credentials are not good", func() {
+				BeforeEach(func() {
+					ldapConnectionFake.BindStub = func(u, p string) error {
+						if u == "svcuser" {
+							return nil
+						} else {
+							return errors.New("badness")
+						}
+					}
+				})
+				It("should find the user and then fail", func(){
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("badness"))
+					Expect(ldapConnectionFake.SearchCallCount()).To(Equal(1))
+					Expect(uid).To(BeEmpty())
+				})
+			})
 		})
 
+		Context("when the search returns empty", func() {
+			BeforeEach(func() {
+				result := &ldap.SearchResult{Entries: []*ldap.Entry{}}
+				ldapConnectionFake.SearchReturns(result, nil)
+			})
+
+			It("reports an error for the missing user", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("User does not exist"))
+			})
+		})
+
+		Context("when the search returns multiple results", func() {
+			BeforeEach(func() {
+				entry := &ldap.Entry{
+					DN: "foo",
+					Attributes: []*ldap.EntryAttribute{
+						&ldap.EntryAttribute{Name: "uidNumber", Values: []string{"100"}},
+						&ldap.EntryAttribute{Name: "gidNumber", Values: []string{"100"}},
+					},
+				}
+
+				result := &ldap.SearchResult{
+					Entries: []*ldap.Entry{entry, entry},
+				}
+
+				ldapConnectionFake.SearchReturns(result, nil)
+			})
+
+			It("reports an error for the ambiguous search", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Ambiguous search"))
+			})
+		})
 	})
 })
