@@ -23,6 +23,8 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
+	"strconv"
+	"code.cloudfoundry.org/goshims/ldapshim"
 )
 
 var atAddress = flag.String(
@@ -117,10 +119,22 @@ var mountFlagDefault = flag.String(
 const fsType = "nfs4"
 const mountOptions = "vers=4.0,rsize=1048576,wsize=1048576,hard,intr,timeo=600,retrans=2,actimeo=0"
 
+// static variables pulled from the environment
+var (
+	ldapSvcUser string
+	ldapSvcPass string
+	ldapUserFqdn string
+	ldapHost string
+	ldapPort int
+	ldapProto string
+)
+
 func main() {
 	parseCommandLine()
+	parseEnvironment()
 
 	var localDriverServer ifrit.Runner
+	var idResolver nfsv3driver.IdResolver
 
 	logger, logTap := newLogger()
 	logger.Info("start")
@@ -132,10 +146,14 @@ func main() {
 	mounts := nfsv3driver.NewNfsV3ConfigDetails()
 	mounts.ReadConf(*mountFlagAllowed, *mountFlagDefault, []string{})
 
+	if ldapHost != "" {
+		idResolver = nfsv3driver.NewLdapIdResolver(ldapSvcUser, ldapSvcPass, ldapHost, ldapPort, ldapProto, ldapUserFqdn, &ldapshim.LdapShim{})
+	}
+
 	mounter := nfsv3driver.NewNfsV3Mounter(
 		invoker.NewRealInvoker(),
 		nfsv3driver.NewNfsV3Config(source, mounts),
-		nil,
+		idResolver,
 	)
 
 	client := nfsdriver.NewNfsDriver(
@@ -247,3 +265,22 @@ func parseCommandLine() {
 	cf_debug_server.AddFlags(flag.CommandLine)
 	flag.Parse()
 }
+
+func parseEnvironment() {
+	ldapSvcUser, _ = os.LookupEnv("LDAP_SVC_USER")
+	ldapSvcPass, _ = os.LookupEnv("LDAP_SVC_PASS")
+	ldapUserFqdn, _ = os.LookupEnv("LDAP_USER_FQDN")
+	ldapHost, _ = os.LookupEnv("LDAP_HOST")
+	port, _ := os.LookupEnv("LDAP_PORT")
+	ldapPort, _ = strconv.Atoi(port)
+	ldapProto, _ = os.LookupEnv("LDAP_PROTO")
+
+	if (ldapProto == "") {
+		ldapProto = "tcp"
+	}
+
+	if ldapHost != "" && (ldapSvcUser == "" || ldapSvcPass == "" || ldapUserFqdn == "" || ldapPort == 0) {
+		panic("LDAP is enabled but required LDAP parameters are not set.")
+	}
+}
+
