@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestEfsdriver(t *testing.T) {
+func TestNfsV3Driver(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "NFS V3 Main Suite")
 }
