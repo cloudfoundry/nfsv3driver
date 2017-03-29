@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	cf_http "code.cloudfoundry.org/cfhttp"
-	cf_lager "code.cloudfoundry.org/cflager"
 	cf_debug_server "code.cloudfoundry.org/debugserver"
 
 	"code.cloudfoundry.org/goshims/filepathshim"
@@ -25,6 +24,7 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 	"strconv"
 	"code.cloudfoundry.org/goshims/ldapshim"
+	"code.cloudfoundry.org/lager/lagerflags"
 )
 
 var atAddress = flag.String(
@@ -256,12 +256,16 @@ func createNfsDriverUnixServer(logger lager.Logger, client voldriver.Driver, atA
 }
 
 func newLogger() (lager.Logger, *lager.ReconfigurableSink) {
-	logger, reconfigurableSink := cf_lager.New("nfs-driver-server")
+	sink, err := lager.NewRedactingWriterSink(os.Stdout, lager.DEBUG, nil, nil)
+	if err != nil {
+		panic(err)
+	}
+	logger, reconfigurableSink := lagerflags.NewFromSink("nfs-driver-server", sink)
 	return logger, reconfigurableSink
 }
 
 func parseCommandLine() {
-	cf_lager.AddFlags(flag.CommandLine)
+	lagerflags.AddFlags(flag.CommandLine)
 	cf_debug_server.AddFlags(flag.CommandLine)
 	flag.Parse()
 }
