@@ -36,7 +36,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	// TODO--it from leaking information between mounts.
   tempConfig := m.config
 
-	if err := m.config.SetEntries(source, opts, []string{
+	if err := tempConfig.SetEntries(source, opts, []string{
 		"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
 	}); err != nil {
 		logger.Debug("error-parse-entries", lager.Data{
