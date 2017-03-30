@@ -141,7 +141,7 @@ func main() {
 	defer logger.Info("end")
 
 	source := nfsv3driver.NewNfsV3ConfigDetails()
-	source.ReadConf(*sourceFlagAllowed, *sourceFlagDefault, []string{"uid", "gid"})
+	source.ReadConf(*sourceFlagAllowed, *sourceFlagDefault, []string{})
 
 	mounts := nfsv3driver.NewNfsV3ConfigDetails()
 	mounts.ReadConf(*mountFlagAllowed, *mountFlagDefault, []string{})

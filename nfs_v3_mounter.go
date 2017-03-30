@@ -32,6 +32,10 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	localConfig := m.config
 	localConfig.source.Allowed = append(localConfig.source.Allowed, "uid", "gid")
 
+	// TODO--refactor the config object so that we don't have to make a local copy just to keep
+	// TODO--it from leaking information between mounts.
+  tempConfig := m.config
+
 	if err := m.config.SetEntries(source, opts, []string{
 		"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
 	}); err != nil {
@@ -39,9 +43,9 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 			"given_source":  source,
 			"given_target":  target,
 			"given_options": opts,
-			"config_source": m.config.source,
-			"config_mounts": m.config.mount,
-			"config_sloppy": m.config.sloppyMount,
+			"config_source": tempConfig.source,
+			"config_mounts": tempConfig.mount,
+			"config_sloppy": tempConfig.sloppyMount,
 		})
 		return err
 	}
@@ -74,7 +78,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 		"-a",
 		"-n", localConfig.Share(source),
 		"-m", target,
-	}, m.config.Mount()...)
+	}, tempConfig.Mount()...)
 
 	if _, ok := opts["readonly"]; ok {
 		mountOptions = append(mountOptions, "-O")
@@ -84,9 +88,9 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 		"given_source":  source,
 		"given_target":  target,
 		"given_options": opts,
-		"config_source": m.config.source,
-		"config_mounts": m.config.mount,
-		"config_sloppy": m.config.sloppyMount,
+		"config_source": tempConfig.source,
+		"config_mounts": tempConfig.mount,
+		"config_sloppy": tempConfig.sloppyMount,
 		"mountOptions":  mountOptions,
 	})
 
