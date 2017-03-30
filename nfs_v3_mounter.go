@@ -29,8 +29,6 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	logger := env.Logger().Session("fuse-nfs-mount")
 	logger.Info("start")
 	defer logger.Info("end")
-	localConfig := m.config.Copy()
-	localConfig.source.Allowed = append(localConfig.source.Allowed, "uid", "gid")
 
 	// TODO--refactor the config object so that we don't have to make a local copy just to keep
 	// TODO--it from leaking information between mounts.
@@ -59,6 +57,8 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 			return errors.New("LDAP username is specified but LDAP password is missing")
 		}
 
+		tempConfig.source.Allowed = append(tempConfig.source.Allowed, "uid", "gid")
+
 		uid, gid, err := m.resolver.Resolve(env, username.(string), password.(string))
 		if err != nil {
 			return err
@@ -66,7 +66,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 
 		opts["uid"] = uid
 		opts["gid"] = gid
-		err = localConfig.SetEntries(source, opts, []string{
+		err = tempConfig.SetEntries(source, opts, []string{
 			"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
 		})
 	  if err != nil {
@@ -76,7 +76,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 
 	mountOptions := append([]string{
 		"-a",
-		"-n", localConfig.Share(source),
+		"-n", tempConfig.Share(source),
 		"-m", target,
 	}, tempConfig.Mount()...)
 
