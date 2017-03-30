@@ -29,12 +29,12 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	logger := env.Logger().Session("fuse-nfs-mount")
 	logger.Info("start")
 	defer logger.Info("end")
-	localConfig := m.config
+	localConfig := m.config.Copy()
 	localConfig.source.Allowed = append(localConfig.source.Allowed, "uid", "gid")
 
 	// TODO--refactor the config object so that we don't have to make a local copy just to keep
 	// TODO--it from leaking information between mounts.
-  tempConfig := m.config
+  tempConfig := m.config.Copy()
 
 	if err := tempConfig.SetEntries(source, opts, []string{
 		"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",

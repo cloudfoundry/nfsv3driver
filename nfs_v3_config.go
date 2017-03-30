@@ -41,6 +41,15 @@ func NewNfsV3Config(sourceDetails *ConfigDetails, mountDetails *ConfigDetails) *
 	return myConf
 }
 
+func (rhs *Config) Copy() *Config {
+	myConf := new(Config)
+
+	myConf.source = *rhs.source.Copy()
+	myConf.mount = *rhs.mount.Copy()
+	myConf.sloppyMount = rhs.sloppyMount
+	return myConf
+}
+
 func NewNfsV3ConfigDetails() *ConfigDetails {
 	myConf := new(ConfigDetails)
 
@@ -49,6 +58,23 @@ func NewNfsV3ConfigDetails() *ConfigDetails {
 	myConf.Forced = make(map[string]string, 0)
 	myConf.Mandatory = make([]string, 0)
 
+	return myConf
+}
+
+func (rhs *ConfigDetails) Copy() *ConfigDetails {
+	myConf := new(ConfigDetails)
+
+	myConf.Allowed = rhs.Allowed
+	myConf.Mandatory = rhs.Mandatory
+
+	myConf.Forced = make(map[string]string, 0)
+	myConf.Options = make(map[string]string, 0)
+	for k, v := range rhs.Forced {
+		myConf.Forced[k] = v
+	}
+	for k, v := range rhs.Options {
+		myConf.Options[k] = v
+	}
 	return myConf
 }
 
