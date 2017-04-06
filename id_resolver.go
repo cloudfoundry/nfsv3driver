@@ -45,7 +45,7 @@ func (d *ldapIdResolver) Resolve(env voldriver.Env, username string, password st
 	searchRequest := d.ldap.NewSearchRequest(
 		d.ldapFqdn,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		fmt.Sprintf("(&(objectClass=User)(objectCategory=Person)(name=%s))", username),
+		fmt.Sprintf("(&(objectClass=User)(cn=%s))", username),
 		[]string{"dn", "uidNumber", "gidNumber"},
 		nil,
 	)
