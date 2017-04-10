@@ -160,7 +160,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 			Expect(len(mounts.CheckMandatory())).To(Equal(0))
 		})
 
-		It("should returns no error on given client abitrary config", func() {
+		It("should returns no error on given client arbitrary config", func() {
 			Expect(errorEntries).To(BeNil())
 		})
 
@@ -305,7 +305,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 			Expect(len(mounts.CheckMandatory())).To(Equal(0))
 		})
 
-		Context("Given empty abitrary params and share without any params", func() {
+		Context("Given empty arbitrary params and share without any params", func() {
 			BeforeEach(func() {
 				errorEntries = config.SetEntries(ClientShare, AbitraryConfig, IgnoreConfigKey)
 				logger.Debug("debug-config-updated", lager.Data{"config": config, "source": source, "mount": mounts})
@@ -357,7 +357,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 			})
 		})
 
-		Context("Given bad abitrary params and bad share params", func() {
+		Context("Given bad arbitrary params and bad share params", func() {
 
 			BeforeEach(func() {
 				ClientShare = "nfs://1.2.3.4?err=true&test=err"
@@ -419,7 +419,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 			})
 		})
 
-		Context("Given bad abitrary params and bad share params with sloppy_mount mode", func() {
+		Context("Given bad arbitrary params and bad share params with sloppy_mount mode", func() {
 
 			BeforeEach(func() {
 				ClientShare = "nfs://1.2.3.4?err=true&test=err"
@@ -487,7 +487,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 			})
 		})
 
-		Context("Given good abitrary params and good share params", func() {
+		Context("Given good arbitrary params and good share params", func() {
 
 			BeforeEach(func() {
 				ClientShare = "nfs://1.2.3.4?uid=2999&gid=1999"

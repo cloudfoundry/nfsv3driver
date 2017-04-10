@@ -25,12 +25,20 @@ import (
 	"strconv"
 	"code.cloudfoundry.org/goshims/ldapshim"
 	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminhttp"
+	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminlocal"
 )
 
 var atAddress = flag.String(
 	"listenAddr",
-	"0.0.0.0:7589",
+	"127.0.0.1:7589",
 	"host:port to serve volume management functions",
+)
+
+var adminAddress = flag.String(
+	"adminAddr",
+	"127.0.0.1:7590",
+	"host:port to serve process admin functions",
 )
 
 var driversPath = flag.String(
@@ -233,6 +241,7 @@ func createNfsDriverServer(logger lager.Logger, client voldriver.Driver, atAddre
 	}
 
 	handler, err := driverhttp.NewHandler(logger, client)
+
 	exitOnFailure(logger, err)
 
 	var server ifrit.Runner
@@ -246,6 +255,11 @@ func createNfsDriverServer(logger lager.Logger, client voldriver.Driver, atAddre
 		server = http_server.New(atAddress, handler)
 	}
 
+	adminClient := driveradminlocal.NewDriverAdminLocal()
+	adminHandler, err := driveradminhttp.NewHandler(logger, adminClient)
+	adminServer := http_server.New(*adminAddress, adminHandler)
+
+	server = grouper.NewParallel(os.Interrupt, grouper.Members{{"voldriver", server}, {"driveradmin", adminServer}})
 	return server
 }
 
