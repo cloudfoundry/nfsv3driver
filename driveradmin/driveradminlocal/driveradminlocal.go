@@ -3,9 +3,13 @@ package driveradminlocal
 import (
 	"code.cloudfoundry.org/nfsv3driver/driveradmin"
 	"code.cloudfoundry.org/voldriver"
+	"github.com/tedsuo/ifrit"
+	"os"
 )
 
 type DriverAdminLocal struct {
+	serverProcess ifrit.Process
+	drainables []driveradmin.Drainable
 }
 
 func NewDriverAdminLocal() *DriverAdminLocal {
@@ -14,10 +18,30 @@ func NewDriverAdminLocal() *DriverAdminLocal {
 	return d
 }
 
+func (d *DriverAdminLocal) SetServerProc(p ifrit.Process) {
+	d.serverProcess = p
+}
+
+func (d *DriverAdminLocal) RegisterDrainable(rhs driveradmin.Drainable) {
+	d.drainables = append(d.drainables, rhs)
+}
+
 func (d *DriverAdminLocal) Evacuate(env voldriver.Env) driveradmin.ErrorResponse {
 	logger := env.Logger().Session("evacuate")
 	logger.Info("start")
 	defer logger.Info("end")
+
+	if (d.serverProcess == nil) {
+		return driveradmin.ErrorResponse{Err:"unexpected error: server process not found"}
+	}
+
+	for _, svr := range d.drainables {
+		if err := svr.Drain(env); err != nil {
+			logger.Error("failed-draining", err)
+		}
+	}
+
+	d.serverProcess.Signal(os.Interrupt)
 
 	return driveradmin.ErrorResponse{}
 }

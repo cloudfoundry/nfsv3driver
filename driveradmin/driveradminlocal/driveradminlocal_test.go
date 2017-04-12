@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminlocal"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin"
+	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
 )
 
 var _ = Describe("Driver Admin Local", func() {
@@ -32,14 +33,37 @@ var _ = Describe("Driver Admin Local", func() {
 		})
 
 		Describe("Evacuate", func() {
-			Context("when the driver evacuates", func() {
+			JustBeforeEach(func() {
+				err = driverAdminLocal.Evacuate(env)
+			})
+			Context("when the driver evacuates with no process set", func() {
+				It("should fail", func() {
+					Expect(err.Err).To(ContainSubstring("server process not found"))
+				})
+			})
+			Context("when the driver evacuates with a process set", func() {
+				var fakeProcess *nfsdriverfakes.FakeProcess
+
 				BeforeEach(func() {
-					err = driverAdminLocal.Evacuate(env)
+					fakeProcess = &nfsdriverfakes.FakeProcess{}
+					driverAdminLocal.SetServerProc(fakeProcess)
 				})
 
-				It("should not fail", func() {
-					Expect(err.Err).To(Equal(""))
+				It("should signal the process to terminate", func() {
+					Expect(err.Err).To(BeEmpty())
+					Expect(fakeProcess.SignalCallCount()).NotTo(Equal(0))
 				})
+				Context("when there is a drainable server registered", func(){
+					var fakeDrainable *nfsdriverfakes.FakeDrainable
+					BeforeEach(func() {
+						fakeDrainable = &nfsdriverfakes.FakeDrainable{}
+						driverAdminLocal.RegisterDrainable(fakeDrainable)
+					})
+					It("should drain", func(){
+						Expect(fakeDrainable.DrainCallCount()).NotTo(Equal(0))
+					})
+				})
+
 			})
 		})
 

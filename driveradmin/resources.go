@@ -25,3 +25,9 @@ type DriverAdmin interface {
 type ErrorResponse struct {
 	Err string
 }
+
+//go:generate counterfeiter -o ../nfsdriverfakes/fake_drainable.go . Drainable
+type Drainable interface {
+	Drain(env voldriver.Env) error
+}
+

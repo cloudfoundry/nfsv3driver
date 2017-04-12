@@ -191,8 +191,20 @@ func main() {
 		}, servers...)
 	}
 
+	adminClient := driveradminlocal.NewDriverAdminLocal()
+	adminHandler, _ := driveradminhttp.NewHandler(logger, adminClient)
+	// TODO handle error
+	adminServer := http_server.New(*adminAddress, adminHandler)
+
+	servers = append(grouper.Members{
+		{"driveradmin", adminServer},
+	}, servers...)
+
 	process := ifrit.Invoke(processRunnerFor(servers))
 	logger.Info("started")
+
+	adminClient.SetServerProc(process)
+	adminClient.RegisterDrainable(client)
 
 	untilTerminated(logger, process)
 }
@@ -255,11 +267,6 @@ func createNfsDriverServer(logger lager.Logger, client voldriver.Driver, atAddre
 		server = http_server.New(atAddress, handler)
 	}
 
-	adminClient := driveradminlocal.NewDriverAdminLocal()
-	adminHandler, err := driveradminhttp.NewHandler(logger, adminClient)
-	adminServer := http_server.New(*adminAddress, adminHandler)
-
-	server = grouper.NewParallel(os.Interrupt, grouper.Members{{"voldriver", server}, {"driveradmin", adminServer}})
 	return server
 }
 
