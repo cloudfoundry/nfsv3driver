@@ -15,6 +15,9 @@ import (
 	. "github.com/onsi/gomega"
 	"strings"
 	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
+	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
+	"os"
+	"code.cloudfoundry.org/goshims/osshim/os_fake"
 )
 
 var _ = Describe("NfsV3Mounter", func() {
@@ -27,6 +30,8 @@ var _ = Describe("NfsV3Mounter", func() {
 
 		fakeInvoker *voldriverfakes.FakeInvoker
 		fakeIdResolver *nfsdriverfakes.FakeIdResolver
+		fakeIoutil *ioutil_fake.FakeIoutil
+		fakeOs *os_fake.FakeOs
 
 		subject nfsdriver.Mounter
 
@@ -40,6 +45,8 @@ var _ = Describe("NfsV3Mounter", func() {
 		opts = map[string]interface{}{}
 
 		fakeInvoker = &voldriverfakes.FakeInvoker{}
+		fakeIoutil = &ioutil_fake.FakeIoutil{}
+		fakeOs = &os_fake.FakeOs{}
 
 		source := nfsv3driver.NewNfsV3ConfigDetails()
 		source.ReadConf("uid,gid", "", []string{})
@@ -47,7 +54,7 @@ var _ = Describe("NfsV3Mounter", func() {
 		mounts := nfsv3driver.NewNfsV3ConfigDetails()
 		mounts.ReadConf("sloppy_mount,allow_other,allow_root,multithread,default_permissions,fusenfs_uid,fusenfs_gid,username,password", "", []string{})
 
-		subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
+		subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 	})
 
 	Context("#Mount", func() {
@@ -106,7 +113,7 @@ var _ = Describe("NfsV3Mounter", func() {
 				mounts := nfsv3driver.NewNfsV3ConfigDetails()
 				mounts.ReadConf("sloppy_mount,allow_other,allow_root,multithread,default_permissions,fusenfs_uid,fusenfs_gid,username,password", "", []string{})
 
-				subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), fakeIdResolver)
+				subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, nfsv3driver.NewNfsV3Config(source, mounts), fakeIdResolver)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				fakeInvoker.InvokeReturns(nil, nil)
@@ -150,7 +157,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					mounts := nfsv3driver.NewNfsV3ConfigDetails()
 					mounts.ReadConf("sloppy_mount,allow_other,allow_root,multithread,default_permissions,fusenfs_uid,fusenfs_gid,username,password", "", []string{})
 
-					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 				})
 
 				It("should error", func() {
@@ -249,7 +256,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					mounts := nfsv3driver.NewNfsV3ConfigDetails()
 					mounts.ReadConf(mountAllow, mountDefault, []string{})
 
-					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 
 					fakeInvoker.InvokeReturns(nil, nil)
 
@@ -283,7 +290,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					mounts := nfsv3driver.NewNfsV3ConfigDetails()
 					mounts.ReadConf(mountAllow, mountDefault, []string{})
 
-					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 
 					fakeInvoker.InvokeReturns(nil, nil)
 
@@ -327,7 +334,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					mounts := nfsv3driver.NewNfsV3ConfigDetails()
 					mounts.ReadConf(mountAllow, mountDefault, []string{})
 
-					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 
 					fakeInvoker.InvokeReturns(nil, nil)
 
@@ -359,6 +366,28 @@ var _ = Describe("NfsV3Mounter", func() {
 		})
 		It("should pkill fuse-nfs", func() {
 			Expect(fakeInvoker.InvokeCallCount()).NotTo(BeZero())
+		})
+		Context("when stuff is in the directory", func() {
+			var fakeStuff *ioutil_fake.FakeFileInfo
+			BeforeEach(func() {
+				fakeStuff = &ioutil_fake.FakeFileInfo{}
+				fakeStuff.NameReturns("guidy-guid-guid")
+				fakeStuff.IsDirReturns(true)
+				fakeIoutil.ReadDirReturns([]os.FileInfo{fakeStuff}, nil)
+			})
+			It("should remove stuff", func() {
+				Expect(fakeOs.RemoveAllCallCount()).NotTo(BeZero())
+				path := fakeOs.RemoveAllArgsForCall(0)
+				Expect(path).To(Equal("/var/vcap/data/some/path/guidy-guid-guid"))
+			})
+			Context("when the stuff is not a directory", func() {
+				BeforeEach(func(){
+					fakeStuff.IsDirReturns(false)
+				})
+				It("should not remove the stuff", func() {
+					Expect(fakeOs.RemoveAllCallCount()).To(BeZero())
+				})
+			})
 		})
 	})
 })

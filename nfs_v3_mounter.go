@@ -13,16 +13,21 @@ import (
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
+	"code.cloudfoundry.org/goshims/osshim"
+	"code.cloudfoundry.org/goshims/ioutilshim"
+	"path/filepath"
 )
 
 type nfsV3Mounter struct {
 	invoker  invoker.Invoker
+	osutil osshim.Os
+	ioutil ioutilshim.Ioutil
 	config   Config
 	resolver IdResolver
 }
 
-func NewNfsV3Mounter(invoker invoker.Invoker, config *Config, resolver IdResolver) nfsdriver.Mounter {
-	return &nfsV3Mounter{invoker: invoker, config: *config, resolver: resolver}
+func NewNfsV3Mounter(invoker invoker.Invoker, osutil osshim.Os, ioutil ioutilshim.Ioutil, config *Config, resolver IdResolver) nfsdriver.Mounter {
+	return &nfsV3Mounter{invoker: invoker, osutil: osutil, ioutil: ioutil, config: *config, resolver: resolver}
 }
 
 func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, opts map[string]interface{}) error {
@@ -121,5 +126,19 @@ func (m *nfsV3Mounter) Check(env voldriver.Env, name, mountPoint string) bool {
 func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
 	output, err := m.invoker.Invoke(env, "pkill", []string{"-f", "fuse-nfs"})
 	env.Logger().Info("purge", lager.Data{"output": output, "err": err})
+
+	fileInfos, err := m.ioutil.ReadDir(path)
+	if err != nil {
+		env.Logger().Error("purge-readdir", err, lager.Data{"path": path})
+		return
+	}
+
+	for _, fileInfo := range fileInfos {
+		if fileInfo.IsDir() {
+			if err := m.osutil.RemoveAll(filepath.Join(path, fileInfo.Name())); err != nil {
+				env.Logger().Error("purge-cannot-remove-directory", err, lager.Data{"name": fileInfo.Name(), "path": path})
+			}
+		}
+	}
 }
 

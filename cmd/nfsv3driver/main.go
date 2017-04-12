@@ -160,6 +160,8 @@ func main() {
 
 	mounter := nfsv3driver.NewNfsV3Mounter(
 		invoker.NewRealInvoker(),
+		&osshim.OsShim{},
+		&ioutilshim.IoutilShim{},
 		nfsv3driver.NewNfsV3Config(source, mounts),
 		idResolver,
 	)
