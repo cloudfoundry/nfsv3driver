@@ -119,6 +119,7 @@ func (m *nfsV3Mounter) Check(env voldriver.Env, name, mountPoint string) bool {
 }
 
 func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
-	// this is a no-op for now
+	output, err := m.invoker.Invoke(env, "pkill", []string{"-f", "fuse-nfs"})
+	env.Logger().Info("purge", lager.Data{"output": output, "err": err})
 }
 

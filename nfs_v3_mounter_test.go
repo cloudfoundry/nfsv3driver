@@ -352,4 +352,13 @@ var _ = Describe("NfsV3Mounter", func() {
 			})
 		})
 	})
+
+	Context("#Purge", func() {
+		JustBeforeEach(func() {
+			subject.Purge(env, "/var/vcap/data/some/path")
+		})
+		It("should pkill fuse-nfs", func() {
+			Expect(fakeInvoker.InvokeCallCount()).NotTo(BeZero())
+		})
+	})
 })
