@@ -117,3 +117,8 @@ func (m *nfsV3Mounter) Check(env voldriver.Env, name, mountPoint string) bool {
 	}
 	return true
 }
+
+func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
+	// this is a no-op for now
+}
+
