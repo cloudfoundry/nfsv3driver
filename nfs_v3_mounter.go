@@ -124,12 +124,27 @@ func (m *nfsV3Mounter) Check(env voldriver.Env, name, mountPoint string) bool {
 }
 
 func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
-	output, err := m.invoker.Invoke(env, "pkill", []string{"-f", "fuse-nfs"})
-	env.Logger().Info("purge", lager.Data{"output": output, "err": err})
+	logger := env.Logger().Session("purge")
+	logger.Info("start")
+	defer logger.Info("end")
+
+	output, err := m.invoker.Invoke(env, "pkill", []string{"fuse-nfs"})
+	logger.Info("pkill", lager.Data{"output": output, "err": err})
+
+	for i := 0; i < 30 && err == nil; i++ {
+		logger.Info("waiting-for-kill")
+		time.Sleep(time.Millisecond * 100)
+		output, err = m.invoker.Invoke(env, "pgrep", []string{"-u", "cvcap", "fuse-nfs"})
+		logger.Info("pgrep", lager.Data{"output": output, "err": err})
+	}
+
+	if (err == nil) {
+		logger.Info("warning-fuse-nfs-not-terminated")
+	}
 
 	fileInfos, err := m.ioutil.ReadDir(path)
 	if err != nil {
-		env.Logger().Error("purge-readdir", err, lager.Data{"path": path})
+		env.Logger().Error("purge-readdir-failed", err, lager.Data{"path": path})
 		return
 	}
 

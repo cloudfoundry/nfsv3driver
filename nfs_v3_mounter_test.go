@@ -365,7 +365,11 @@ var _ = Describe("NfsV3Mounter", func() {
 			subject.Purge(env, "/var/vcap/data/some/path")
 		})
 		It("should pkill fuse-nfs", func() {
-			Expect(fakeInvoker.InvokeCallCount()).NotTo(BeZero())
+			Expect(fakeInvoker.InvokeCallCount()).To(Equal(31))
+			_, proc, _ := fakeInvoker.InvokeArgsForCall(0)
+			Expect(proc).To(Equal("pkill"))
+			_, proc, _ = fakeInvoker.InvokeArgsForCall(1)
+			Expect(proc).To(Equal("pgrep"))
 		})
 		Context("when stuff is in the directory", func() {
 			var fakeStuff *ioutil_fake.FakeFileInfo
