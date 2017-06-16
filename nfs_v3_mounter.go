@@ -101,6 +101,10 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 
 	logger.Debug("exec-mount", lager.Data{"params": strings.Join(mountOptions, ",")})
 	_, err := m.invoker.Invoke(env, "fuse-nfs", mountOptions)
+	if err != nil {
+		logger.Error("fuse-nfs-invocation-failed", err)
+		m.invoker.Invoke(env, "fusermount", []string{"-u", target})
+	}
 	return err
 }
 
