@@ -5,16 +5,23 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"time"
 
 	cf_http "code.cloudfoundry.org/cfhttp"
 	cf_debug_server "code.cloudfoundry.org/debugserver"
+	"code.cloudfoundry.org/nfsdriver"
+
+	"strconv"
 
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/ioutilshim"
+	"code.cloudfoundry.org/goshims/ldapshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/nfsdriver"
+	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/nfsv3driver"
+	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminhttp"
+	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminlocal"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
@@ -22,11 +29,6 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
-	"strconv"
-	"code.cloudfoundry.org/goshims/ldapshim"
-	"code.cloudfoundry.org/lager/lagerflags"
-	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminhttp"
-	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminlocal"
 )
 
 var atAddress = flag.String(
@@ -124,17 +126,29 @@ var mountFlagDefault = flag.String(
 	"This is a comma separted list of like params:value. This list specify default value of parameters. If parameters has default value and is not in allowed list, this default value become a forced value who's cannot be override",
 )
 
+var useMockMounter = flag.Bool(
+	"useMockMounter",
+	false,
+	"Whether to use a mock mounter for integration test",
+)
+
+var mockMountSeconds = flag.Int64(
+	"mockMountSeconds",
+	11,
+	"How many seconds it takes to mount simulated by mock mounter",
+)
+
 const fsType = "nfs4"
 const mountOptions = "vers=4.0,rsize=1048576,wsize=1048576,hard,intr,timeo=600,retrans=2,actimeo=0"
 
 // static variables pulled from the environment
 var (
-	ldapSvcUser string
-	ldapSvcPass string
+	ldapSvcUser  string
+	ldapSvcPass  string
 	ldapUserFqdn string
-	ldapHost string
-	ldapPort int
-	ldapProto string
+	ldapHost     string
+	ldapPort     int
+	ldapProto    string
 )
 
 func main() {
@@ -143,6 +157,7 @@ func main() {
 
 	var localDriverServer ifrit.Runner
 	var idResolver nfsv3driver.IdResolver
+	var mounter nfsdriver.Mounter
 
 	logger, logTap := newLogger()
 	logger.Info("start")
@@ -158,13 +173,17 @@ func main() {
 		idResolver = nfsv3driver.NewLdapIdResolver(ldapSvcUser, ldapSvcPass, ldapHost, ldapPort, ldapProto, ldapUserFqdn, &ldapshim.LdapShim{})
 	}
 
-	mounter := nfsv3driver.NewNfsV3Mounter(
-		invoker.NewRealInvoker(),
-		&osshim.OsShim{},
-		&ioutilshim.IoutilShim{},
-		nfsv3driver.NewNfsV3Config(source, mounts),
-		idResolver,
-	)
+	if *useMockMounter {
+		mounter = nfsv3driver.NewMockMounter(time.Duration(*mockMountSeconds)*time.Second, logger)
+	} else {
+		mounter = nfsv3driver.NewNfsV3Mounter(
+			invoker.NewRealInvoker(),
+			&osshim.OsShim{},
+			&ioutilshim.IoutilShim{},
+			nfsv3driver.NewNfsV3Config(source, mounts),
+			idResolver,
+		)
+	}
 
 	client := nfsdriver.NewNfsDriver(
 		logger,
@@ -301,7 +320,7 @@ func parseEnvironment() {
 	ldapPort, _ = strconv.Atoi(port)
 	ldapProto, _ = os.LookupEnv("LDAP_PROTO")
 
-	if (ldapProto == "") {
+	if ldapProto == "" {
 		ldapProto = "tcp"
 	}
 
@@ -309,4 +328,3 @@ func parseEnvironment() {
 		panic("LDAP is enabled but required LDAP parameters are not set.")
 	}
 }
-

@@ -1,14 +1,24 @@
 package main_test
 
 import (
+	"context"
 	"io/ioutil"
 	"net"
 	"os/exec"
+	"time"
+
+	"code.cloudfoundry.org/cfhttp"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/voldriver"
+	"code.cloudfoundry.org/voldriver/driverhttp"
+
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
-	"os"
 )
 
 var _ = Describe("Main", func() {
@@ -16,10 +26,12 @@ var _ = Describe("Main", func() {
 		session *gexec.Session
 		command *exec.Cmd
 		err     error
+		logger  lager.Logger
 	)
 
 	BeforeEach(func() {
 		command = exec.Command(driverPath)
+		logger = lagertest.NewTestLogger("test-nfs-driver")
 	})
 
 	JustBeforeEach(func() {
@@ -92,6 +104,47 @@ var _ = Describe("Main", func() {
 					_, err := net.Dial("tcp", "0.0.0.0:7595")
 					return err
 				}, 5).Should(HaveOccurred())
+			})
+		})
+
+		Context("received a slow mounting request", func() {
+			var (
+				driverUrl     string
+				volumeId      string
+				opts          map[string]interface{}
+				cfHttpTimeout time.Duration
+			)
+
+			BeforeEach(func() {
+				driverUrl = "http://127.0.0.1:7589"
+				volumeId = "fake-nfs"
+				opts = map[string]interface{}{"source": "127.0.0.1/var/vcap"}
+				command.Args = append(command.Args, "-useMockMounter")
+
+				cfHttpTimeout = 10 * time.Second
+				cfhttp.Initialize(cfHttpTimeout)
+			})
+
+			It("log it to warning", func() {
+				// Wait for the server
+				EventuallyWithOffset(1, func() error {
+					_, err := net.Dial("tcp", "0.0.0.0:7589")
+					return err
+				}, 5).ShouldNot(HaveOccurred())
+
+				client, err := driverhttp.NewRemoteClient(driverUrl, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				env := driverhttp.NewHttpDriverEnv(logger, context.TODO())
+
+				createRequest := voldriver.CreateRequest{Name: volumeId, Opts: opts}
+				createResponse := client.Create(env, createRequest)
+				Expect(createResponse.Err).Should(BeEmpty())
+
+				mountRequest := voldriver.MountRequest{Name: volumeId}
+				mountResponse := client.Mount(env, mountRequest)
+				Expect(mountResponse.Err).ShouldNot(BeEmpty())
+				Expect(session.Out).To(gbytes.Say("mount-duration-too-high"))
 			})
 		})
 
