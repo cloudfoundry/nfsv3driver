@@ -138,7 +138,7 @@ func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
 	for i := 0; i < 30 && err == nil; i++ {
 		logger.Info("waiting-for-kill")
 		time.Sleep(time.Millisecond * 100)
-		output, err = m.invoker.Invoke(env, "pgrep", []string{"-u", "cvcap", "fuse-nfs"})
+		output, err = m.invoker.Invoke(env, "pgrep", []string{"fuse-nfs"})
 		logger.Info("pgrep", lager.Data{"output": output, "err": err})
 	}
 
