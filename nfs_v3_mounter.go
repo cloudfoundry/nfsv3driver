@@ -26,6 +26,8 @@ type nfsV3Mounter struct {
 	resolver IdResolver
 }
 
+var PurgeTimeToSleep = time.Millisecond * 100
+
 func NewNfsV3Mounter(invoker invoker.Invoker, osutil osshim.Os, ioutil ioutilshim.Ioutil, config *Config, resolver IdResolver) nfsdriver.Mounter {
 	return &nfsV3Mounter{invoker: invoker, osutil: osutil, ioutil: ioutil, config: *config, resolver: resolver}
 }
@@ -137,7 +139,7 @@ func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
 
 	for i := 0; i < 30 && err == nil; i++ {
 		logger.Info("waiting-for-kill")
-		time.Sleep(time.Millisecond * 1)
+		time.Sleep(PurgeTimeToSleep)
 		output, err = m.invoker.Invoke(env, "pgrep", []string{"fuse-nfs"})
 		logger.Info("pgrep", lager.Data{"output": output, "err": err})
 	}

@@ -12,8 +12,10 @@ import (
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
+	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 )
@@ -38,20 +40,38 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 	logger.Info("mount-start")
 	defer logger.Info("mount-end")
 
-	if opts["experimental"] == nil {
+	if _, ok := opts["experimental"]; !ok {
 		return m.v3Mounter.Mount(env, remote, target, opts)
+	}
+
+	var uid, gid string
+	if data, ok := opts["uid"]; ok {
+		uid = uniformData(data)
+	} else {
+		return errors.New("required 'uid' option is missing")
+	}
+	if data, ok := opts["gid"]; ok {
+		gid = uniformData(data)
+	} else {
+		return errors.New("required 'gid' option is missing")
 	}
 
 	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
 	orig := syscall.Umask(000)
 	defer syscall.Umask(orig)
-	err := m.osshim.MkdirAll(intermediateMount, os.ModePerm);
+	err := m.osshim.MkdirAll(intermediateMount, os.ModePerm)
 	if err != nil {
 		logger.Error("mkdir-rootpath-failed", err)
 		return err
 	}
 
 	_, err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", m.defaultOpts, remote, intermediateMount})
+	if err != nil {
+		logger.Error("invoke-mount-failed", err)
+		return err
+	}
+
+	_, err = m.invoker.Invoke(env, "mapfs", []string{"-uid", uid, "-gid", gid, target, intermediateMount})
 	if err != nil {
 		logger.Error("invoke-mount-failed", err)
 		return err
@@ -65,14 +85,22 @@ func (m *mapfsMounter) Unmount(env voldriver.Env, target string) error {
 	logger.Info("unmount-start")
 	defer logger.Info("unmount-end")
 
-	var err error
-	_, err = m.osshim.Stat(target + "_mapfs")
-	if err == nil {
-		_, err = m.invoker.Invoke(env, "umount", []string{target})
-	} else {
-		err = m.v3Mounter.Unmount(env, target)
+	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
+	if _, e := m.osshim.Stat(intermediateMount); e != nil {
+		return m.v3Mounter.Unmount(env, target)
 	}
-	return err
+
+	if _, e := m.invoker.Invoke(env, "umount", []string{target}); e != nil {
+		return e
+	}
+	if _, e := m.invoker.Invoke(env, "umount", []string{intermediateMount}); e != nil {
+		return e
+	}
+	if e := m.osshim.RemoveAll(intermediateMount); e != nil {
+		return e
+	}
+
+	return nil
 }
 
 func (m *mapfsMounter) Check(env voldriver.Env, name, mountPoint string) bool {
@@ -101,7 +129,7 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 
 	for i := 0; i < 30 && err == nil; i++ {
 		logger.Info("waiting-for-kill")
-		time.Sleep(time.Millisecond * 1) // TODO!!!!!!
+		time.Sleep(PurgeTimeToSleep)
 		output, err = m.invoker.Invoke(env, "pgrep", []string{"mapfs"})
 		logger.Info("pgrep", lager.Data{"output": output, "err": err})
 	}
@@ -130,4 +158,20 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 
 	// TODO -- when we remove this, replace it with something that just deletes all the remaining directories
 	m.v3Mounter.Purge(env, path)
+}
+
+func uniformData(data interface{}) string {
+
+	switch data.(type) {
+	case int, int8, int16, int32, int64, float32, float64:
+		return fmt.Sprintf("%#v", data)
+
+	case string:
+		return data.(string)
+
+	case bool:
+		return strconv.FormatBool(data.(bool))
+	}
+
+	return ""
 }

@@ -44,6 +44,8 @@ var _ = Describe("MapfsMounter", func() {
 		env = driverhttp.NewHttpDriverEnv(logger, testContext)
 		opts = map[string]interface{}{}
 		opts["experimental"] = true
+		opts["uid"] = "2000"
+		opts["gid"] = "2000"
 
 		fakeInvoker = &voldriverfakes.FakeInvoker{}
 		fakeMounter = &nfsdriverfakes.FakeMounter{}
@@ -59,9 +61,9 @@ var _ = Describe("MapfsMounter", func() {
 		JustBeforeEach(func() {
 			err = subject.Mount(env, "source", "target", opts)
 		})
-		Context("when mount options dont specify experimental mounting", func() {
+		Context("when mount options don't specify experimental mounting", func() {
 			BeforeEach(func() {
-				opts["experimental"] = nil
+				delete(opts, "experimental")
 			})
 			It("should use the nfs_v3_mounter mounter", func() {
 				Expect(fakeMounter.MountCallCount()).To(Equal(1))
@@ -102,10 +104,63 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			It("should launch mapfs to mount the target", func() {
+				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 2))
 				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
 				Expect(cmd).To(Equal("mapfs"))
-				Expect(args[0]).To(Equal("target_mapfs"))
-				Expect(args[1]).To(Equal("target"))
+				Expect(args[0]).To(Equal("-uid"))
+				Expect(args[1]).To(Equal("2000"))
+				Expect(args[2]).To(Equal("-gid"))
+				Expect(args[3]).To(Equal("2000"))
+				Expect(args[4]).To(Equal("target"))
+				Expect(args[5]).To(Equal("target_mapfs"))
+			})
+		})
+		Context("when there is no uid", func() {
+			BeforeEach(func() {
+				delete(opts, "uid")
+			})
+			It("should error", func() {
+				Expect(err).ToNot(BeNil())
+			})
+		})
+		Context("when there is no gid", func() {
+			BeforeEach(func() {
+				delete(opts, "gid")
+			})
+			It("should error", func() {
+				Expect(err).ToNot(BeNil())
+			})
+		})
+		Context("when uid is an integer", func() {
+			BeforeEach(func() {
+				opts["uid"] = 2000
+			})
+			It("should not error", func() {
+				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 2))
+				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				Expect(cmd).To(Equal("mapfs"))
+				Expect(args[0]).To(Equal("-uid"))
+				Expect(args[1]).To(Equal("2000"))
+				Expect(args[2]).To(Equal("-gid"))
+				Expect(args[3]).To(Equal("2000"))
+				Expect(args[4]).To(Equal("target"))
+				Expect(args[5]).To(Equal("target_mapfs"))
+			})
+		})
+		Context("when gid is an integer", func() {
+			BeforeEach(func() {
+				opts["gid"] = 2000
+			})
+			It("should not error", func() {
+				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 2))
+				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				Expect(cmd).To(Equal("mapfs"))
+				Expect(args[0]).To(Equal("-uid"))
+				Expect(args[1]).To(Equal("2000"))
+				Expect(args[2]).To(Equal("-gid"))
+				Expect(args[3]).To(Equal("2000"))
+				Expect(args[4]).To(Equal("target"))
+				Expect(args[5]).To(Equal("target_mapfs"))
 			})
 		})
 
@@ -119,10 +174,6 @@ var _ = Describe("MapfsMounter", func() {
 			It("should return error", func() {
 				Expect(err).To(HaveOccurred())
 			})
-		})
-
-		Context("when mount is cancelled", func() {
-			// TODO: when we pick up the lager.Context
 		})
 	})
 
@@ -143,19 +194,22 @@ var _ = Describe("MapfsMounter", func() {
 		})
 
 		Context("when unmount succeeds", func() {
-
-			BeforeEach(func() {
-				fakeInvoker.InvokeReturns(nil, nil)
-			})
-
 			It("should return without error", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("should use the passed in variables", func() {
+			It("should invoke unmount on both the mapfs and target mountpoints", func() {
+				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">", 1))
 				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("umount"))
 				Expect(args[0]).To(Equal("target"))
+				_, cmd, args = fakeInvoker.InvokeArgsForCall(1)
+				Expect(cmd).To(Equal("umount"))
+				Expect(args[0]).To(Equal("target_mapfs"))
+			})
+			It("should delete the mapfs mount point", func() {
+				Expect(fakeOs.RemoveAllCallCount()).ToNot(BeZero())
+				Expect(fakeOs.RemoveAllArgsForCall(0)).To(Equal("target_mapfs"))
 			})
 		})
 
