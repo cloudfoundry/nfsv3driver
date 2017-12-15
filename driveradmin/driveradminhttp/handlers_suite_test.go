@@ -22,7 +22,7 @@ var tcpRunner *ginkgomon.Runner
 
 func TestDriver(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "EFS Volume Tools Remote Client and Handlers Suite")
+	RunSpecs(t, "Driver Admin API Handlers Suite")
 }
 
 // testing support types:

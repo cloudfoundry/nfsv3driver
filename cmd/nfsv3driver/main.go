@@ -138,8 +138,8 @@ var mockMountSeconds = flag.Int64(
 	"How many seconds it takes to mount simulated by mock mounter",
 )
 
-const fsType = "nfs4"
-const mountOptions = "vers=4.0,rsize=1048576,wsize=1048576,hard,intr,timeo=600,retrans=2,actimeo=0"
+const fsType = "nfs"
+const mountOptions = "vers=3,rsize=1048576,wsize=1048576,hard,intr,timeo=600,retrans=2,actimeo=0"
 
 // static variables pulled from the environment
 var (
@@ -157,7 +157,7 @@ func main() {
 
 	var localDriverServer ifrit.Runner
 	var idResolver nfsv3driver.IdResolver
-	var mounter nfsdriver.Mounter
+	var mounter,legacyMounter nfsdriver.Mounter
 
 	logger, logTap := newLogger()
 	logger.Info("start")
@@ -176,12 +176,20 @@ func main() {
 	if *useMockMounter {
 		mounter = nfsv3driver.NewMockMounter(time.Duration(*mockMountSeconds)*time.Second, logger)
 	} else {
-		mounter = nfsv3driver.NewNfsV3Mounter(
+		legacyMounter = nfsv3driver.NewNfsV3Mounter(
 			invoker.NewRealInvoker(),
 			&osshim.OsShim{},
 			&ioutilshim.IoutilShim{},
 			nfsv3driver.NewNfsV3Config(source, mounts),
 			idResolver,
+		)
+		mounter = nfsv3driver.NewMapfsMounter(
+			invoker.NewRealInvoker(),
+			legacyMounter,
+			&osshim.OsShim{},
+			&ioutilshim.IoutilShim{},
+			fsType,
+			mountOptions,
 		)
 	}
 

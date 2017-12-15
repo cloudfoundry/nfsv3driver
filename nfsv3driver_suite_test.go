@@ -15,7 +15,7 @@ func TestNfsV3Driver(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	// override sleep times so that the tests run quickly
-	nfsv3driver.PurgeTimeToSleep = time.Microsecond
 	return nil
-}, func([]byte) {})
+}, func([]byte) {
+	nfsv3driver.PurgeTimeToSleep = time.Microsecond
+})

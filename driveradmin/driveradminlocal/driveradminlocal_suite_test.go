@@ -9,5 +9,5 @@ import (
 
 func TestLocalDriver(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Efs Volume Tools Local Suite")
+	RunSpecs(t, "Driver Admin API Local Suite")
 }
