@@ -3,10 +3,10 @@ package nfsv3driver
 import (
 	"errors"
 
+	"code.cloudfoundry.org/goshims/ldapshim"
 	"code.cloudfoundry.org/voldriver"
 	"fmt"
 	"gopkg.in/ldap.v2"
-	"code.cloudfoundry.org/goshims/ldapshim"
 )
 
 //go:generate counterfeiter -o nfsdriverfakes/fake_id_resolver.go . IdResolver
@@ -15,16 +15,16 @@ type IdResolver interface {
 }
 
 type ldapIdResolver struct {
-	svcUser string
-	svcPass string
-	ldapHost string
-	ldapPort int
+	svcUser   string
+	svcPass   string
+	ldapHost  string
+	ldapPort  int
 	ldapProto string
-	ldapFqdn string // ldap domain to search for users .in, e.g. "cn=Users,dc=corp,dc=persi,dc=cf-app,dc=com"
-	ldap ldapshim.Ldap
+	ldapFqdn  string // ldap domain to search for users .in, e.g. "cn=Users,dc=corp,dc=persi,dc=cf-app,dc=com"
+	ldap      ldapshim.Ldap
 }
 
-func NewLdapIdResolver(	svcUser string, svcPass string, ldapHost string, ldapPort int, ldapProto string, ldapFqdn string, ldap ldapshim.Ldap) IdResolver {
+func NewLdapIdResolver(svcUser string, svcPass string, ldapHost string, ldapPort int, ldapProto string, ldapFqdn string, ldap ldapshim.Ldap) IdResolver {
 	return &ldapIdResolver{svcUser: svcUser, svcPass: svcPass, ldapHost: ldapHost, ldapPort: ldapPort, ldapProto: ldapProto, ldapFqdn: ldapFqdn, ldap: ldap}
 }
 

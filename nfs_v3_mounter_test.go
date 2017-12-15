@@ -4,20 +4,20 @@ import (
 	"context"
 	"fmt"
 
+	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
+	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/nfsdriver"
 	"code.cloudfoundry.org/nfsv3driver"
+	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/voldriverfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"strings"
-	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
-	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"os"
-	"code.cloudfoundry.org/goshims/osshim/os_fake"
+	"strings"
 )
 
 var _ = Describe("NfsV3Mounter", func() {
@@ -28,10 +28,10 @@ var _ = Describe("NfsV3Mounter", func() {
 		env         voldriver.Env
 		err         error
 
-		fakeInvoker *voldriverfakes.FakeInvoker
+		fakeInvoker    *voldriverfakes.FakeInvoker
 		fakeIdResolver *nfsdriverfakes.FakeIdResolver
-		fakeIoutil *ioutil_fake.FakeIoutil
-		fakeOs *os_fake.FakeOs
+		fakeIoutil     *ioutil_fake.FakeIoutil
+		fakeOs         *os_fake.FakeOs
 
 		subject nfsdriver.Mounter
 
@@ -75,12 +75,12 @@ var _ = Describe("NfsV3Mounter", func() {
 				Expect(strings.Join(args, " ")).To(ContainSubstring("-m target"))
 			})
 
-			Context("when mounting read only", func(){
-				BeforeEach(func(){
+			Context("when mounting read only", func() {
+				BeforeEach(func() {
 					opts["readonly"] = true
 				})
 
-				It("should include the -O flag", func(){
+				It("should include the -O flag", func() {
 					_, _, args := fakeInvoker.InvokeArgsForCall(0)
 					Expect(strings.Join(args, " ")).To(ContainSubstring("-O"))
 				})
@@ -385,7 +385,7 @@ var _ = Describe("NfsV3Mounter", func() {
 				Expect(path).To(Equal("/var/vcap/data/some/path/guidy-guid-guid"))
 			})
 			Context("when the stuff is not a directory", func() {
-				BeforeEach(func(){
+				BeforeEach(func() {
 					fakeStuff.IsDirReturns(false)
 				})
 				It("should not remove the stuff", func() {

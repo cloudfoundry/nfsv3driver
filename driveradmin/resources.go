@@ -7,7 +7,7 @@ import (
 
 const (
 	EvacuateRoute = "evacuate"
-	PingRoute = "ping"
+	PingRoute     = "ping"
 )
 
 var Routes = rata.Routes{
@@ -30,4 +30,3 @@ type ErrorResponse struct {
 type Drainable interface {
 	Drain(env voldriver.Env) error
 }
-

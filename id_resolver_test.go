@@ -78,7 +78,7 @@ var _ = Describe("IdResolverTest", func() {
 						}
 					}
 				})
-				It("should find the user and then fail", func(){
+				It("should find the user and then fail", func() {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("badness"))
 					Expect(ldapConnectionFake.SearchCallCount()).To(Equal(1))

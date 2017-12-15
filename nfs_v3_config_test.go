@@ -424,13 +424,13 @@ var _ = Describe("BrokerConfigDetails", func() {
 			BeforeEach(func() {
 				ClientShare = "nfs://1.2.3.4?err=true&test=err"
 				AbitraryConfig = map[string]interface{}{
-					"sloppy_mount": true,
-					"allow_other": true,
+					"sloppy_mount":         true,
+					"allow_other":          true,
 					"auto-traverse-mounts": true,
-					"dircache": 		false,
-					"missing":      true,
-					"wrong":        1234,
-					"search":       "notfound",
+					"dircache":             false,
+					"missing":              true,
+					"wrong":                1234,
+					"search":               "notfound",
 				}
 				IgnoreConfigKey = make([]string, 0)
 

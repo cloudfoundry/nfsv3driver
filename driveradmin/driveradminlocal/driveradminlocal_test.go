@@ -5,13 +5,13 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/nfsv3driver/driveradmin"
+	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminlocal"
+	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminlocal"
-	"code.cloudfoundry.org/nfsv3driver/driveradmin"
-	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
 )
 
 var _ = Describe("Driver Admin Local", func() {
@@ -53,13 +53,13 @@ var _ = Describe("Driver Admin Local", func() {
 					Expect(err.Err).To(BeEmpty())
 					Expect(fakeProcess.SignalCallCount()).NotTo(Equal(0))
 				})
-				Context("when there is a drainable server registered", func(){
+				Context("when there is a drainable server registered", func() {
 					var fakeDrainable *nfsdriverfakes.FakeDrainable
 					BeforeEach(func() {
 						fakeDrainable = &nfsdriverfakes.FakeDrainable{}
 						driverAdminLocal.RegisterDrainable(fakeDrainable)
 					})
-					It("should drain", func(){
+					It("should drain", func() {
 						Expect(fakeDrainable.DrainCallCount()).NotTo(Equal(0))
 					})
 				})

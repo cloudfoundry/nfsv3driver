@@ -1,16 +1,16 @@
 package driveradminhttp_test
 
 import (
-"fmt"
-"io"
+	"fmt"
+	"io"
 
-"github.com/tedsuo/ifrit"
-"github.com/tedsuo/ifrit/ginkgomon"
+	"github.com/tedsuo/ifrit"
+	"github.com/tedsuo/ifrit/ginkgomon"
 
-. "github.com/onsi/ginkgo"
-. "github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
-"testing"
+	"testing"
 )
 
 var debugServerAddress string
@@ -21,8 +21,8 @@ var fakedriverProcess ifrit.Process
 var tcpRunner *ginkgomon.Runner
 
 func TestDriver(t *testing.T) {
-RegisterFailHandler(Fail)
-RunSpecs(t, "EFS Volume Tools Remote Client and Handlers Suite")
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "EFS Volume Tools Remote Client and Handlers Suite")
 }
 
 // testing support types:
@@ -35,4 +35,3 @@ func (errCloser) Read(p []byte) (n int, err error) { return 0, fmt.Errorf("any")
 type stringCloser struct{ io.Reader }
 
 func (stringCloser) Close() error { return nil }
-

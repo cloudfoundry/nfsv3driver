@@ -9,7 +9,7 @@ import (
 
 type DriverAdminLocal struct {
 	serverProcess ifrit.Process
-	drainables []driveradmin.Drainable
+	drainables    []driveradmin.Drainable
 }
 
 func NewDriverAdminLocal() *DriverAdminLocal {
@@ -31,8 +31,8 @@ func (d *DriverAdminLocal) Evacuate(env voldriver.Env) driveradmin.ErrorResponse
 	logger.Info("start")
 	defer logger.Info("end")
 
-	if (d.serverProcess == nil) {
-		return driveradmin.ErrorResponse{Err:"unexpected error: server process not found"}
+	if d.serverProcess == nil {
+		return driveradmin.ErrorResponse{Err: "unexpected error: server process not found"}
 	}
 
 	for _, svr := range d.drainables {

@@ -8,20 +8,20 @@ import (
 
 	"strings"
 
+	"code.cloudfoundry.org/goshims/ioutilshim"
+	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/nfsdriver"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
-	"code.cloudfoundry.org/goshims/osshim"
-	"code.cloudfoundry.org/goshims/ioutilshim"
 	"path/filepath"
 )
 
 type nfsV3Mounter struct {
 	invoker  invoker.Invoker
-	osutil osshim.Os
-	ioutil ioutilshim.Ioutil
+	osutil   osshim.Os
+	ioutil   ioutilshim.Ioutil
 	config   Config
 	resolver IdResolver
 }
@@ -37,7 +37,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 
 	// TODO--refactor the config object so that we don't have to make a local copy just to keep
 	// TODO--it from leaking information between mounts.
-  tempConfig := m.config.Copy()
+	tempConfig := m.config.Copy()
 
 	if err := tempConfig.SetEntries(source, opts, []string{
 		"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
@@ -74,7 +74,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 		err = tempConfig.SetEntries(source, opts, []string{
 			"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
 		})
-	  if err != nil {
+		if err != nil {
 			return err
 		}
 	}
@@ -137,12 +137,12 @@ func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
 
 	for i := 0; i < 30 && err == nil; i++ {
 		logger.Info("waiting-for-kill")
-		time.Sleep(time.Millisecond * 100)
+		time.Sleep(time.Millisecond * 1)
 		output, err = m.invoker.Invoke(env, "pgrep", []string{"fuse-nfs"})
 		logger.Info("pgrep", lager.Data{"output": output, "err": err})
 	}
 
-	if (err == nil) {
+	if err == nil {
 		logger.Info("warning-fuse-nfs-not-terminated")
 	}
 
@@ -160,4 +160,3 @@ func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
 		}
 	}
 }
-
