@@ -58,8 +58,15 @@ var _ = Describe("MapfsMounter", func() {
 	})
 
 	Context("#Mount", func() {
+		var (
+			source, target string
+		)
+		BeforeEach(func() {
+			source = "source"
+			target = "target"
+		})
 		JustBeforeEach(func() {
-			err = subject.Mount(env, "source", "target", opts)
+			err = subject.Mount(env, source, target, opts)
 		})
 		Context("when mount options don't specify experimental mounting", func() {
 			BeforeEach(func() {
@@ -72,10 +79,6 @@ var _ = Describe("MapfsMounter", func() {
 		})
 
 		Context("when mount succeeds", func() {
-			BeforeEach(func() {
-				fakeInvoker.InvokeReturns(nil, nil)
-			})
-
 			It("should use the mapfs mounter", func() {
 				Expect(fakeMounter.MountCallCount()).To(Equal(0))
 				Expect(fakeInvoker.InvokeCallCount()).NotTo(BeZero())
@@ -95,6 +98,7 @@ var _ = Describe("MapfsMounter", func() {
 			It("should use the passed in variables", func() {
 				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
+				Expect(len(args)).To(BeNumerically(">", 5))
 				Expect(args[0]).To(Equal("-t"))
 				Expect(args[1]).To(Equal("my-fs"))
 				Expect(args[2]).To(Equal("-o"))
@@ -113,6 +117,17 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args[3]).To(Equal("2000"))
 				Expect(args[4]).To(Equal("target"))
 				Expect(args[5]).To(Equal("target_mapfs"))
+			})
+
+			Context("when the mount has a legacy format", func(){
+				BeforeEach(func(){
+					source = "nfs://server/some/share/path"
+				})
+				It("should rewrite the share to use standard nfs format", func(){
+					_, _, args := fakeInvoker.InvokeArgsForCall(0)
+					Expect(len(args)).To(BeNumerically(">", 4))
+					Expect(args[4]).To(Equal("server:/some/share/path"))
+				})
 			})
 		})
 		Context("when there is no uid", func() {

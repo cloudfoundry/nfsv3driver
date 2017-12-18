@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"regexp"
 )
 
 const MAPFS_DIRECTORY_SUFFIX = "_mapfs"
@@ -31,6 +32,11 @@ type mapfsMounter struct {
 	defaultOpts string
 }
 
+var legacyNfsSharePattern *regexp.Regexp
+
+func init() {
+	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.+)$")
+}
 func NewMapfsMounter(invoker invoker.Invoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, fstype, defaultOpts string) nfsdriver.Mounter {
 	return &mapfsMounter{invoker, v3Mounter, osshim, ioutilshim, fstype, defaultOpts}
 }
@@ -54,6 +60,12 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 		gid = uniformData(data)
 	} else {
 		return errors.New("required 'gid' option is missing")
+	}
+
+	// check for legacy URL formatted mounts and rewrite to standard nfs format as necessary
+	match := legacyNfsSharePattern.FindStringSubmatch(remote)
+  if len(match) > 2 {
+		remote = match[1] + ":" + match[2]
 	}
 
 	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
