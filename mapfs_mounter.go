@@ -69,6 +69,8 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 		remote = match[1] + ":" + match[2]
 	}
 
+	target = strings.TrimSuffix(target, "/")
+
 	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
 	orig := syscall.Umask(000)
 	defer syscall.Umask(orig)
@@ -97,6 +99,8 @@ func (m *mapfsMounter) Unmount(env voldriver.Env, target string) error {
 	logger := env.Logger().Session("unmount")
 	logger.Info("unmount-start")
 	defer logger.Info("unmount-end")
+
+	target = strings.TrimSuffix(target, "/")
 
 	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
 	if _, e := m.osshim.Stat(intermediateMount); e != nil {

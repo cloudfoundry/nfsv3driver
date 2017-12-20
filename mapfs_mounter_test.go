@@ -133,6 +133,18 @@ var _ = Describe("MapfsMounter", func() {
 					Expect(args[4]).To(Equal("server:/some/share/path"))
 				})
 			})
+
+			Context("when the target has a trailing slash", func(){
+				BeforeEach(func(){
+					target = "/some/target/"
+				})
+				It("should rewrite the target to remove the slash", func(){
+					Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
+					_, _, args, _ := fakeBgInvoker.InvokeArgsForCall(0)
+					Expect(args[4]).To(Equal("/some/target"))
+					Expect(args[5]).To(Equal("/some/target_mapfs"))
+				})
+			})
 		})
 		Context("when there is no uid", func() {
 			BeforeEach(func() {
@@ -197,8 +209,12 @@ var _ = Describe("MapfsMounter", func() {
 	})
 
 	Context("#Unmount", func() {
+		var target string
+		BeforeEach(func() {
+			target = "target"
+		})
 		JustBeforeEach(func() {
-			err = subject.Unmount(env, "target")
+			err = subject.Unmount(env, target)
 		})
 
 		Context("when mount is not a mapfs mount", func() {
@@ -226,10 +242,27 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(cmd).To(Equal("umount"))
 				Expect(args[0]).To(Equal("target_mapfs"))
 			})
+
 			It("should delete the mapfs mount point", func() {
 				Expect(fakeOs.RemoveAllCallCount()).ToNot(BeZero())
 				Expect(fakeOs.RemoveAllArgsForCall(0)).To(Equal("target_mapfs"))
 			})
+
+			Context("when the target has a trailing slash", func(){
+				BeforeEach(func(){
+					target = "/some/target/"
+				})
+				It("should rewrite the target to remove the slash", func(){
+					Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">", 1))
+					_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+					Expect(cmd).To(Equal("umount"))
+					Expect(args[0]).To(Equal("/some/target"))
+					_, cmd, args = fakeInvoker.InvokeArgsForCall(1)
+					Expect(cmd).To(Equal("umount"))
+					Expect(args[0]).To(Equal("/some/target_mapfs"))
+				})
+			})
+
 		})
 
 		Context("when unmount fails", func() {
