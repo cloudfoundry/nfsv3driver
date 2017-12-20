@@ -80,7 +80,12 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 		return err
 	}
 
-	_, err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", m.defaultOpts, remote, intermediateMount})
+	mountOptions := m.defaultOpts
+	if _, ok := opts["readonly"]; ok {
+		mountOptions = mountOptions + ",ro"
+	}
+
+	_, err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, intermediateMount})
 	if err != nil {
 		logger.Error("invoke-mount-failed", err)
 		return err

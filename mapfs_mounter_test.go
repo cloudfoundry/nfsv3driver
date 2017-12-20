@@ -123,6 +123,19 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(waitFor).To(Equal("Mounted!"))
 			})
 
+			Context("when the mount is readonly", func() {
+				BeforeEach(func(){
+					opts["readonly"] = true
+				})
+
+				It("should append 'ro' to the kernel mount options", func(){
+					_, _, args := fakeInvoker.InvokeArgsForCall(0)
+					Expect(len(args)).To(BeNumerically(">", 3))
+					Expect(args[2]).To(Equal("-o"))
+					Expect(args[3]).To(Equal("my-mount-options,ro"))
+				})
+			})
+
 			Context("when the mount has a legacy format", func(){
 				BeforeEach(func(){
 					source = "nfs://server/some/share/path"
