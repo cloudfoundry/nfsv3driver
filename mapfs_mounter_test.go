@@ -9,7 +9,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/nfsdriver"
-	"code.cloudfoundry.org/nfsdriver/nfsdriverfakes"
+	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
+	nfsfakes "code.cloudfoundry.org/nfsdriver/nfsdriverfakes"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
@@ -29,9 +30,10 @@ var _ = Describe("MapfsMounter", func() {
 		err         error
 
 		fakeInvoker *voldriverfakes.FakeInvoker
+		fakeBgInvoker *nfsdriverfakes.FakeBackgroundInvoker
 
 		subject     nfsdriver.Mounter
-		fakeMounter *nfsdriverfakes.FakeMounter
+		fakeMounter *nfsfakes.FakeMounter
 		fakeIoutil  *ioutil_fake.FakeIoutil
 		fakeOs      *os_fake.FakeOs
 
@@ -48,13 +50,14 @@ var _ = Describe("MapfsMounter", func() {
 		opts["gid"] = "2000"
 
 		fakeInvoker = &voldriverfakes.FakeInvoker{}
-		fakeMounter = &nfsdriverfakes.FakeMounter{}
+		fakeBgInvoker = &nfsdriverfakes.FakeBackgroundInvoker{}
+		fakeMounter = &nfsfakes.FakeMounter{}
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
 		fakeOs = &os_fake.FakeOs{}
 
 		fakeOs.StatReturns(nil, nil)
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options")
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options")
 	})
 
 	Context("#Mount", func() {
@@ -108,8 +111,8 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			It("should launch mapfs to mount the target", func() {
-				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 2))
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
+				_, cmd, args, waitFor := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mapfs"))
 				Expect(args[0]).To(Equal("-uid"))
 				Expect(args[1]).To(Equal("2000"))
@@ -117,6 +120,7 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args[3]).To(Equal("2000"))
 				Expect(args[4]).To(Equal("target"))
 				Expect(args[5]).To(Equal("target_mapfs"))
+				Expect(waitFor).To(Equal("Mounted!"))
 			})
 
 			Context("when the mount has a legacy format", func(){
@@ -151,8 +155,8 @@ var _ = Describe("MapfsMounter", func() {
 				opts["uid"] = 2000
 			})
 			It("should not error", func() {
-				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 2))
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
+				_, cmd, args, _ := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mapfs"))
 				Expect(args[0]).To(Equal("-uid"))
 				Expect(args[1]).To(Equal("2000"))
@@ -167,8 +171,8 @@ var _ = Describe("MapfsMounter", func() {
 				opts["gid"] = 2000
 			})
 			It("should not error", func() {
-				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 2))
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
+				_, cmd, args, _ := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mapfs"))
 				Expect(args[0]).To(Equal("-uid"))
 				Expect(args[1]).To(Equal("2000"))

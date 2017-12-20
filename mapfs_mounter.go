@@ -15,16 +15,17 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
-	"regexp"
 )
 
 const MAPFS_DIRECTORY_SUFFIX = "_mapfs"
 
 type mapfsMounter struct {
 	invoker     invoker.Invoker
+	backgroundInvoker BackgroundInvoker
 	v3Mounter   nfsdriver.Mounter
 	osshim      osshim.Os
 	ioutilshim  ioutilshim.Ioutil
@@ -37,8 +38,8 @@ var legacyNfsSharePattern *regexp.Regexp
 func init() {
 	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.+)$")
 }
-func NewMapfsMounter(invoker invoker.Invoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, fstype, defaultOpts string) nfsdriver.Mounter {
-	return &mapfsMounter{invoker, v3Mounter, osshim, ioutilshim, fstype, defaultOpts}
+func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, fstype, defaultOpts string) nfsdriver.Mounter {
+	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, fstype, defaultOpts}
 }
 
 func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -64,7 +65,7 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 
 	// check for legacy URL formatted mounts and rewrite to standard nfs format as necessary
 	match := legacyNfsSharePattern.FindStringSubmatch(remote)
-  if len(match) > 2 {
+	if len(match) > 2 {
 		remote = match[1] + ":" + match[2]
 	}
 
@@ -83,9 +84,9 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 		return err
 	}
 
-	_, err = m.invoker.Invoke(env, "mapfs", []string{"-uid", uid, "-gid", gid, target, intermediateMount})
+	err = m.backgroundInvoker.Invoke(env, "mapfs", []string{"-uid", uid, "-gid", gid, target, intermediateMount}, "Mounted!")
 	if err != nil {
-		logger.Error("invoke-mount-failed", err)
+		logger.Error("background-invoke-mount-failed", err)
 		return err
 	}
 
@@ -168,7 +169,8 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 		}
 	}
 
-	// TODO -- when we remove this, replace it with something that just deletes all the remaining directories
+	// TODO -- when we remove the legacy mounter, replace this with something that just deletes all the remaining
+	// TODO -- directories
 	m.v3Mounter.Purge(env, path)
 }
 

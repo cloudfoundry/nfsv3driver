@@ -29,6 +29,7 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
+	"code.cloudfoundry.org/goshims/execshim"
 )
 
 var atAddress = flag.String(
@@ -185,6 +186,7 @@ func main() {
 		)
 		mounter = nfsv3driver.NewMapfsMounter(
 			invoker.NewRealInvoker(),
+			nfsv3driver.NewBackgroundInvoker(&execshim.ExecShim{}),
 			legacyMounter,
 			&osshim.OsShim{},
 			&ioutilshim.IoutilShim{},
