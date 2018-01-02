@@ -9,6 +9,7 @@ import (
 	"errors"
 	"time"
 	"context"
+	"sync"
 )
 
 //go:generate counterfeiter -o nfsdriverfakes/fake_background_invoker.go . BackgroundInvoker
@@ -47,10 +48,13 @@ func (r *backgroundInvoker) Invoke(env voldriver.Env, executable string, cmdArgs
 		return nil
 	}
 
+	var mutex sync.Mutex
 	cancelled := false
   timer := time.AfterFunc(timeout, func(){
-		cancel()
+		mutex.Lock()
+		defer mutex.Unlock()
 		cancelled = true
+		cancel()
 	})
 
 	// wait for the process to report the string we are waiting for
@@ -64,7 +68,10 @@ func (r *backgroundInvoker) Invoke(env voldriver.Env, executable string, cmdArgs
 
 	err = scanner.Err()
 	if err == nil {
-		if (cancelled) {
+		mutex.Lock()
+		c := cancelled
+		mutex.Unlock()
+		if (c) {
 			err = errors.New("command timed out")
 		} else {
 			err = errors.New("command exited")
