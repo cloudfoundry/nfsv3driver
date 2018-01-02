@@ -112,7 +112,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should launch mapfs to mount the target", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-				_, cmd, args, waitFor := fakeBgInvoker.InvokeArgsForCall(0)
+				_, cmd, args, waitFor, _ := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mapfs"))
 				Expect(args[0]).To(Equal("-uid"))
 				Expect(args[1]).To(Equal("2000"))
@@ -153,7 +153,7 @@ var _ = Describe("MapfsMounter", func() {
 				})
 				It("should rewrite the target to remove the slash", func(){
 					Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-					_, _, args, _ := fakeBgInvoker.InvokeArgsForCall(0)
+					_, _, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
 					Expect(args[4]).To(Equal("/some/target"))
 					Expect(args[5]).To(Equal("/some/target_mapfs"))
 				})
@@ -181,7 +181,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 			It("should not error", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-				_, cmd, args, _ := fakeBgInvoker.InvokeArgsForCall(0)
+				_, cmd, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mapfs"))
 				Expect(args[0]).To(Equal("-uid"))
 				Expect(args[1]).To(Equal("2000"))
@@ -197,7 +197,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 			It("should not error", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-				_, cmd, args, _ := fakeBgInvoker.InvokeArgsForCall(0)
+				_, cmd, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mapfs"))
 				Expect(args[0]).To(Equal("-uid"))
 				Expect(args[1]).To(Equal("2000"))

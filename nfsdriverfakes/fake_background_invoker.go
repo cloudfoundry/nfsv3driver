@@ -3,19 +3,21 @@ package nfsdriverfakes
 
 import (
 	"sync"
+	"time"
 
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/voldriver"
 )
 
 type FakeBackgroundInvoker struct {
-	InvokeStub        func(env voldriver.Env, executable string, cmdArgs []string, waitFor string) error
+	InvokeStub        func(env voldriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error
 	invokeMutex       sync.RWMutex
 	invokeArgsForCall []struct {
 		env        voldriver.Env
 		executable string
 		cmdArgs    []string
 		waitFor    string
+		timeout    time.Duration
 	}
 	invokeReturns struct {
 		result1 error
@@ -27,7 +29,7 @@ type FakeBackgroundInvoker struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBackgroundInvoker) Invoke(env voldriver.Env, executable string, cmdArgs []string, waitFor string) error {
+func (fake *FakeBackgroundInvoker) Invoke(env voldriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error {
 	var cmdArgsCopy []string
 	if cmdArgs != nil {
 		cmdArgsCopy = make([]string, len(cmdArgs))
@@ -40,11 +42,12 @@ func (fake *FakeBackgroundInvoker) Invoke(env voldriver.Env, executable string, 
 		executable string
 		cmdArgs    []string
 		waitFor    string
-	}{env, executable, cmdArgsCopy, waitFor})
-	fake.recordInvocation("Invoke", []interface{}{env, executable, cmdArgsCopy, waitFor})
+		timeout    time.Duration
+	}{env, executable, cmdArgsCopy, waitFor, timeout})
+	fake.recordInvocation("Invoke", []interface{}{env, executable, cmdArgsCopy, waitFor, timeout})
 	fake.invokeMutex.Unlock()
 	if fake.InvokeStub != nil {
-		return fake.InvokeStub(env, executable, cmdArgs, waitFor)
+		return fake.InvokeStub(env, executable, cmdArgs, waitFor, timeout)
 	}
 	if specificReturn {
 		return ret.result1
@@ -58,10 +61,10 @@ func (fake *FakeBackgroundInvoker) InvokeCallCount() int {
 	return len(fake.invokeArgsForCall)
 }
 
-func (fake *FakeBackgroundInvoker) InvokeArgsForCall(i int) (voldriver.Env, string, []string, string) {
+func (fake *FakeBackgroundInvoker) InvokeArgsForCall(i int) (voldriver.Env, string, []string, string, time.Duration) {
 	fake.invokeMutex.RLock()
 	defer fake.invokeMutex.RUnlock()
-	return fake.invokeArgsForCall[i].env, fake.invokeArgsForCall[i].executable, fake.invokeArgsForCall[i].cmdArgs, fake.invokeArgsForCall[i].waitFor
+	return fake.invokeArgsForCall[i].env, fake.invokeArgsForCall[i].executable, fake.invokeArgsForCall[i].cmdArgs, fake.invokeArgsForCall[i].waitFor, fake.invokeArgsForCall[i].timeout
 }
 
 func (fake *FakeBackgroundInvoker) InvokeReturns(result1 error) {

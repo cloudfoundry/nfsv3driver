@@ -22,6 +22,7 @@ import (
 )
 
 const MAPFS_DIRECTORY_SUFFIX = "_mapfs"
+const MAPFS_MOUNT_TIMEOUT = time.Minute * 5
 
 type mapfsMounter struct {
 	invoker     invoker.Invoker
@@ -91,7 +92,7 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 		return err
 	}
 
-	err = m.backgroundInvoker.Invoke(env, "mapfs", []string{"-uid", uid, "-gid", gid, target, intermediateMount}, "Mounted!")
+	err = m.backgroundInvoker.Invoke(env, "mapfs", []string{"-uid", uid, "-gid", gid, target, intermediateMount}, "Mounted!", MAPFS_MOUNT_TIMEOUT)
 	if err != nil {
 		logger.Error("background-invoke-mount-failed", err)
 		return err
