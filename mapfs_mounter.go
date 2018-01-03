@@ -32,6 +32,7 @@ type mapfsMounter struct {
 	ioutilshim  ioutilshim.Ioutil
 	fstype      string
 	defaultOpts string
+	resolver IdResolver
 }
 
 var legacyNfsSharePattern *regexp.Regexp
@@ -39,8 +40,8 @@ var legacyNfsSharePattern *regexp.Regexp
 func init() {
 	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.+)$")
 }
-func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, fstype, defaultOpts string) nfsdriver.Mounter {
-	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, fstype, defaultOpts}
+func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, fstype, defaultOpts string, resolver IdResolver) nfsdriver.Mounter {
+	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, fstype, defaultOpts, resolver}
 }
 
 func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -51,6 +52,25 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 	if _, ok := opts["experimental"]; !ok {
 		return m.v3Mounter.Mount(env, remote, target, opts)
 	}
+
+	if username, ok := opts["username"]; ok {
+		if m.resolver == nil {
+			return errors.New("LDAP username is specified but LDAP is not configured")
+		}
+		password, ok := opts["password"]
+		if !ok {
+			return errors.New("LDAP username is specified but LDAP password is missing")
+		}
+
+		uid, gid, err := m.resolver.Resolve(env, username.(string), password.(string))
+		if err != nil {
+			return err
+		}
+
+		opts["uid"] = uid
+		opts["gid"] = gid
+	}
+
 
 	var uid, gid string
 	if data, ok := opts["uid"]; ok {

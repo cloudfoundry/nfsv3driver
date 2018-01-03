@@ -19,6 +19,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"os"
+	"strings"
 )
 
 var _ = Describe("MapfsMounter", func() {
@@ -31,6 +32,7 @@ var _ = Describe("MapfsMounter", func() {
 
 		fakeInvoker *voldriverfakes.FakeInvoker
 		fakeBgInvoker *nfsdriverfakes.FakeBackgroundInvoker
+		fakeIdResolver *nfsdriverfakes.FakeIdResolver
 
 		subject     nfsdriver.Mounter
 		fakeMounter *nfsfakes.FakeMounter
@@ -57,7 +59,7 @@ var _ = Describe("MapfsMounter", func() {
 
 		fakeOs.StatReturns(nil, nil)
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options")
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", nil)
 	})
 
 	Context("#Mount", func() {
@@ -207,7 +209,19 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args[5]).To(Equal("target_mapfs"))
 			})
 		})
+		Context("when idresolver isn't present but username is passed", func() {
+			BeforeEach(func() {
+				delete(opts, "uid")
+				delete(opts, "gid")
+				opts["username"] = "test-user"
+				opts["password"] = "test-pw"
+			})
 
+			It("should error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("LDAP is not configured"))
+			})
+		})
 		Context("when mount errors", func() {
 			BeforeEach(func() {
 				fakeInvoker.InvokeReturns([]byte("error"), fmt.Errorf("error"))
@@ -239,6 +253,46 @@ var _ = Describe("MapfsMounter", func() {
 			It("should remove the intermediary mountpoint", func() {
 				Expect(fakeOs.RemoveAllCallCount()).To(Equal(1))
 			})
+		})
+
+		Context("when username mapping is enabled", func() {
+			BeforeEach(func() {
+				fakeIdResolver = &nfsdriverfakes.FakeIdResolver{}
+
+				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", fakeIdResolver)
+				fakeIdResolver.ResolveReturns("100", "100", nil)
+
+				delete(opts, "uid")
+				delete(opts, "gid")
+				opts["username"] = "test-user"
+				opts["password"] = "test-pw"
+			})
+
+			It("does not show the credentials in the options", func() {
+				Expect(err).NotTo(HaveOccurred())
+				_, _, args,_ ,_ := fakeBgInvoker.InvokeArgsForCall(0)
+				Expect(strings.Join(args, " ")).To(Not(ContainSubstring("username")))
+				Expect(strings.Join(args, " ")).To(Not(ContainSubstring("password")))
+			})
+
+			It("shows gid and uid", func() {
+				Expect(err).NotTo(HaveOccurred())
+				_, _, args,_ ,_ := fakeBgInvoker.InvokeArgsForCall(0)
+				Expect(strings.Join(args, " ")).To(ContainSubstring("uid"))
+				Expect(strings.Join(args, " ")).To(ContainSubstring("gid"))
+			})
+
+			//Context("when uid and gid are passed", func() {
+			//	BeforeEach(func() {
+			//		opts["uid"] = "uid"
+			//		opts["gid"] = "gid"
+			//	})
+			//
+			//	It("should error", func() {
+			//		Expect(err).To(HaveOccurred())
+			//		Expect(err.Error()).To(ContainSubstring("Not allowed options"))
+			//	})
+			//})
 		})
 	})
 

@@ -192,6 +192,7 @@ func main() {
 			&ioutilshim.IoutilShim{},
 			fsType,
 			mountOptions,
+			idResolver,
 		)
 	}
 
