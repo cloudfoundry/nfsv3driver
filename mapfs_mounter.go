@@ -89,12 +89,15 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 	_, err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, intermediateMount})
 	if err != nil {
 		logger.Error("invoke-mount-failed", err)
+		m.osshim.RemoveAll(intermediateMount)
 		return err
 	}
 
 	err = m.backgroundInvoker.Invoke(env, "mapfs", []string{"-uid", uid, "-gid", gid, target, intermediateMount}, "Mounted!", MAPFS_MOUNT_TIMEOUT)
 	if err != nil {
 		logger.Error("background-invoke-mount-failed", err)
+		m.invoker.Invoke(env, "umount", []string{intermediateMount})
+		m.osshim.RemoveAll(intermediateMount)
 		return err
 	}
 

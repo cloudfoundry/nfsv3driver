@@ -211,12 +211,33 @@ var _ = Describe("MapfsMounter", func() {
 		Context("when mount errors", func() {
 			BeforeEach(func() {
 				fakeInvoker.InvokeReturns([]byte("error"), fmt.Errorf("error"))
-
-				err = subject.Mount(env, "source", "target", opts)
 			})
 
 			It("should return error", func() {
 				Expect(err).To(HaveOccurred())
+			})
+
+			It("should remove the intermediary mountpoint", func() {
+				Expect(fakeOs.RemoveAllCallCount()).To(Equal(1))
+			})
+		})
+		Context("when kernel mount succeeds, but mapfs mount fails", func() {
+			BeforeEach(func() {
+				fakeBgInvoker.InvokeReturns(fmt.Errorf("error"))
+			})
+
+			It("should return error", func() {
+				Expect(err).To(HaveOccurred())
+			})
+			It("should invoke unmount", func() {
+				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">", 1))
+				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				Expect(cmd).To(Equal("umount"))
+				Expect(len(args)).To(BeNumerically(">", 0))
+				Expect(args[0]).To(Equal("target_mapfs"))
+			})
+			It("should remove the intermediary mountpoint", func() {
+				Expect(fakeOs.RemoveAllCallCount()).To(Equal(1))
 			})
 		})
 	})
