@@ -177,11 +177,12 @@ func main() {
 	if *useMockMounter {
 		mounter = nfsv3driver.NewMockMounter(time.Duration(*mockMountSeconds)*time.Second, logger)
 	} else {
+		config := nfsv3driver.NewNfsV3Config(source, mounts)
 		legacyMounter = nfsv3driver.NewNfsV3Mounter(
 			invoker.NewRealInvoker(),
 			&osshim.OsShim{},
 			&ioutilshim.IoutilShim{},
-			nfsv3driver.NewNfsV3Config(source, mounts),
+			config,
 			idResolver,
 		)
 		mounter = nfsv3driver.NewMapfsMounter(
@@ -193,6 +194,7 @@ func main() {
 			fsType,
 			mountOptions,
 			idResolver,
+			config,
 		)
 	}
 
