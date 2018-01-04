@@ -9,9 +9,9 @@ import (
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/nfsdriver"
-	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
 	nfsfakes "code.cloudfoundry.org/nfsdriver/nfsdriverfakes"
 	"code.cloudfoundry.org/nfsv3driver"
+	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/voldriverfakes"
@@ -30,8 +30,8 @@ var _ = Describe("MapfsMounter", func() {
 		env         voldriver.Env
 		err         error
 
-		fakeInvoker *voldriverfakes.FakeInvoker
-		fakeBgInvoker *nfsdriverfakes.FakeBackgroundInvoker
+		fakeInvoker    *voldriverfakes.FakeInvoker
+		fakeBgInvoker  *nfsdriverfakes.FakeBackgroundInvoker
 		fakeIdResolver *nfsdriverfakes.FakeIdResolver
 
 		subject     nfsdriver.Mounter
@@ -39,7 +39,8 @@ var _ = Describe("MapfsMounter", func() {
 		fakeIoutil  *ioutil_fake.FakeIoutil
 		fakeOs      *os_fake.FakeOs
 
-		opts map[string]interface{}
+		opts           map[string]interface{}
+		sourceCfg, mountsCfg *nfsv3driver.ConfigDetails
 	)
 
 	BeforeEach(func() {
@@ -59,7 +60,13 @@ var _ = Describe("MapfsMounter", func() {
 
 		fakeOs.StatReturns(nil, nil)
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", nil)
+		sourceCfg = nfsv3driver.NewNfsV3ConfigDetails()
+		sourceCfg.ReadConf("", "", []string{})
+
+		mountsCfg = nfsv3driver.NewNfsV3ConfigDetails()
+		mountsCfg.ReadConf("uid,gid,dircache,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
+
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg))
 	})
 
 	Context("#Mount", func() {
@@ -104,33 +111,32 @@ var _ = Describe("MapfsMounter", func() {
 				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
 				Expect(len(args)).To(BeNumerically(">", 5))
-				Expect(args[0]).To(Equal("-t"))
-				Expect(args[1]).To(Equal("my-fs"))
-				Expect(args[2]).To(Equal("-o"))
-				Expect(args[3]).To(Equal("my-mount-options"))
-				Expect(args[4]).To(Equal("source"))
-				Expect(args[5]).To(Equal("target_mapfs"))
+				Expect(args).To(ContainElement("-t"))
+				Expect(args).To(ContainElement("my-fs"))
+				Expect(args).To(ContainElement("-o"))
+				Expect(args).To(ContainElement("my-mount-options"))
+				Expect(args).To(ContainElement("source"))
+				Expect(args).To(ContainElement("target_mapfs"))
 			})
 
 			It("should launch mapfs to mount the target", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
 				_, cmd, args, waitFor, _ := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mapfs"))
-				Expect(args[0]).To(Equal("-uid"))
-				Expect(args[1]).To(Equal("2000"))
-				Expect(args[2]).To(Equal("-gid"))
-				Expect(args[3]).To(Equal("2000"))
-				Expect(args[4]).To(Equal("target"))
-				Expect(args[5]).To(Equal("target_mapfs"))
+				Expect(args).To(ContainElement("-uid"))
+				Expect(args).To(ContainElement("2000"))
+				Expect(args).To(ContainElement("-gid"))
+				Expect(args).To(ContainElement("target"))
+				Expect(args).To(ContainElement("target_mapfs"))
 				Expect(waitFor).To(Equal("Mounted!"))
 			})
 
 			Context("when the mount is readonly", func() {
-				BeforeEach(func(){
+				BeforeEach(func() {
 					opts["readonly"] = true
 				})
 
-				It("should append 'ro' to the kernel mount options", func(){
+				It("should append 'ro' to the kernel mount options", func() {
 					_, _, args := fakeInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 3))
 					Expect(args[2]).To(Equal("-o"))
@@ -138,22 +144,22 @@ var _ = Describe("MapfsMounter", func() {
 				})
 			})
 
-			Context("when the mount has a legacy format", func(){
-				BeforeEach(func(){
+			Context("when the mount has a legacy format", func() {
+				BeforeEach(func() {
 					source = "nfs://server/some/share/path"
 				})
-				It("should rewrite the share to use standard nfs format", func(){
+				It("should rewrite the share to use standard nfs format", func() {
 					_, _, args := fakeInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 4))
 					Expect(args[4]).To(Equal("server:/some/share/path"))
 				})
 			})
 
-			Context("when the target has a trailing slash", func(){
-				BeforeEach(func(){
+			Context("when the target has a trailing slash", func() {
+				BeforeEach(func() {
 					target = "/some/target/"
 				})
-				It("should rewrite the target to remove the slash", func(){
+				It("should rewrite the target to remove the slash", func() {
 					Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
 					_, _, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
 					Expect(args[4]).To(Equal("/some/target"))
@@ -185,12 +191,11 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
 				_, cmd, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mapfs"))
-				Expect(args[0]).To(Equal("-uid"))
-				Expect(args[1]).To(Equal("2000"))
-				Expect(args[2]).To(Equal("-gid"))
-				Expect(args[3]).To(Equal("2000"))
-				Expect(args[4]).To(Equal("target"))
-				Expect(args[5]).To(Equal("target_mapfs"))
+				Expect(args).To(ContainElement("-uid"))
+				Expect(args).To(ContainElement("2000"))
+				Expect(args).To(ContainElement("-gid"))
+				Expect(args).To(ContainElement("target"))
+				Expect(args).To(ContainElement("target_mapfs"))
 			})
 		})
 		Context("when gid is an integer", func() {
@@ -201,12 +206,11 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
 				_, cmd, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mapfs"))
-				Expect(args[0]).To(Equal("-uid"))
-				Expect(args[1]).To(Equal("2000"))
-				Expect(args[2]).To(Equal("-gid"))
-				Expect(args[3]).To(Equal("2000"))
-				Expect(args[4]).To(Equal("target"))
-				Expect(args[5]).To(Equal("target_mapfs"))
+				Expect(args).To(ContainElement("-uid"))
+				Expect(args).To(ContainElement("2000"))
+				Expect(args).To(ContainElement("-gid"))
+				Expect(args).To(ContainElement("target"))
+				Expect(args).To(ContainElement("target_mapfs"))
 			})
 		})
 		Context("when idresolver isn't present but username is passed", func() {
@@ -259,7 +263,9 @@ var _ = Describe("MapfsMounter", func() {
 			BeforeEach(func() {
 				fakeIdResolver = &nfsdriverfakes.FakeIdResolver{}
 
-				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", fakeIdResolver)
+				mountsCfg.ReadConf("dircache,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
+
+				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg))
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				delete(opts, "uid")
@@ -270,29 +276,29 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("does not show the credentials in the options", func() {
 				Expect(err).NotTo(HaveOccurred())
-				_, _, args,_ ,_ := fakeBgInvoker.InvokeArgsForCall(0)
+				_, _, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(strings.Join(args, " ")).To(Not(ContainSubstring("username")))
 				Expect(strings.Join(args, " ")).To(Not(ContainSubstring("password")))
 			})
 
 			It("shows gid and uid", func() {
 				Expect(err).NotTo(HaveOccurred())
-				_, _, args,_ ,_ := fakeBgInvoker.InvokeArgsForCall(0)
-				Expect(strings.Join(args, " ")).To(ContainSubstring("uid"))
-				Expect(strings.Join(args, " ")).To(ContainSubstring("gid"))
+				_, _, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
+				Expect(strings.Join(args, " ")).To(ContainSubstring("-uid 100"))
+				Expect(strings.Join(args, " ")).To(ContainSubstring("-gid 100"))
 			})
 
-			//Context("when uid and gid are passed", func() {
-			//	BeforeEach(func() {
-			//		opts["uid"] = "uid"
-			//		opts["gid"] = "gid"
-			//	})
-			//
-			//	It("should error", func() {
-			//		Expect(err).To(HaveOccurred())
-			//		Expect(err.Error()).To(ContainSubstring("Not allowed options"))
-			//	})
-			//})
+			Context("when uid and gid are passed", func() {
+				BeforeEach(func() {
+					opts["uid"] = "100"
+					opts["gid"] = "100"
+				})
+
+				It("should error", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("Not allowed options"))
+				})
+			})
 		})
 	})
 
@@ -336,11 +342,11 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(fakeOs.RemoveAllArgsForCall(0)).To(Equal("target_mapfs"))
 			})
 
-			Context("when the target has a trailing slash", func(){
-				BeforeEach(func(){
+			Context("when the target has a trailing slash", func() {
+				BeforeEach(func() {
 					target = "/some/target/"
 				})
-				It("should rewrite the target to remove the slash", func(){
+				It("should rewrite the target to remove the slash", func() {
 					Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">", 1))
 					_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 					Expect(cmd).To(Equal("umount"))

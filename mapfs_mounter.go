@@ -16,7 +16,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"syscall"
 )
@@ -33,6 +32,7 @@ type mapfsMounter struct {
 	fstype      string
 	defaultOpts string
 	resolver IdResolver
+	config   Config
 }
 
 var legacyNfsSharePattern *regexp.Regexp
@@ -40,8 +40,8 @@ var legacyNfsSharePattern *regexp.Regexp
 func init() {
 	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.+)$")
 }
-func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, fstype, defaultOpts string, resolver IdResolver) nfsdriver.Mounter {
-	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, fstype, defaultOpts, resolver}
+func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, fstype, defaultOpts string, resolver IdResolver, config *Config) nfsdriver.Mounter {
+	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, fstype, defaultOpts, resolver, *config}
 }
 
 func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -51,6 +51,24 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 
 	if _, ok := opts["experimental"]; !ok {
 		return m.v3Mounter.Mount(env, remote, target, opts)
+	}
+
+	// TODO--refactor the config object so that we don't have to make a local copy just to keep
+	// TODO--it from leaking information between mounts.
+	tempConfig := m.config.Copy()
+
+	if err := tempConfig.SetEntries(remote, opts, []string{
+		"source", "mount", "readonly", "username", "password", "experimental",
+	}); err != nil {
+		logger.Debug("error-parse-entries", lager.Data{
+			"given_source":  remote,
+			"given_target":  target,
+			"given_options": opts,
+			"config_source": tempConfig.source,
+			"config_mounts": tempConfig.mount,
+			"config_sloppy": tempConfig.sloppyMount,
+		})
+		return err
 	}
 
 	if username, ok := opts["username"]; ok {
@@ -69,18 +87,18 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 
 		opts["uid"] = uid
 		opts["gid"] = gid
+		tempConfig.source.Allowed = append(tempConfig.source.Allowed, "uid", "gid")
+		if err := tempConfig.SetEntries(remote, opts, []string{
+			"source", "mount", "readonly", "username", "password", "experimental",
+		}); err != nil {
+			return err
+		}
 	}
 
-
-	var uid, gid string
-	if data, ok := opts["uid"]; ok {
-		uid = uniformData(data)
-	} else {
+	if _, ok := opts["uid"]; !ok {
 		return errors.New("required 'uid' option is missing")
 	}
-	if data, ok := opts["gid"]; ok {
-		gid = uniformData(data)
-	} else {
+	if _, ok := opts["gid"]; !ok {
 		return errors.New("required 'gid' option is missing")
 	}
 
@@ -113,7 +131,9 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 		return err
 	}
 
-	err = m.backgroundInvoker.Invoke(env, "mapfs", []string{"-uid", uid, "-gid", gid, target, intermediateMount}, "Mounted!", MAPFS_MOUNT_TIMEOUT)
+	args := tempConfig.MapfsOptions()
+	args = append(args, target, intermediateMount)
+	err = m.backgroundInvoker.Invoke(env, "mapfs", args, "Mounted!", MAPFS_MOUNT_TIMEOUT)
 	if err != nil {
 		logger.Error("background-invoke-mount-failed", err)
 		m.invoker.Invoke(env, "umount", []string{intermediateMount})
@@ -205,20 +225,4 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 	// TODO -- when we remove the legacy mounter, replace this with something that just deletes all the remaining
 	// TODO -- directories
 	m.v3Mounter.Purge(env, path)
-}
-
-func uniformData(data interface{}) string {
-
-	switch data.(type) {
-	case int, int8, int16, int32, int64, float32, float64:
-		return fmt.Sprintf("%#v", data)
-
-	case string:
-		return data.(string)
-
-	case bool:
-		return strconv.FormatBool(data.(bool))
-	}
-
-	return ""
 }

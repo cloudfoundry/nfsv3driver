@@ -81,7 +81,7 @@ func inMapInt(list map[string]interface{}, key string, val interface{}) bool {
 	return false
 }
 
-var _ = Describe("BrokerConfigDetails", func() {
+var _ = Describe("ConfigDetails", func() {
 	var (
 		logger lager.Logger
 
@@ -105,7 +105,7 @@ var _ = Describe("BrokerConfigDetails", func() {
 	)
 
 	BeforeEach(func() {
-		logger = lagertest.NewTestLogger("test-broker-config")
+		logger = lagertest.NewTestLogger("test-config")
 	})
 
 	Context("Given no mandatory and empty params", func() {
@@ -309,6 +309,14 @@ var _ = Describe("BrokerConfigDetails", func() {
 			BeforeEach(func() {
 				errorEntries = config.SetEntries(ClientShare, AbitraryConfig, IgnoreConfigKey)
 				logger.Debug("debug-config-updated", lager.Data{"config": config, "source": source, "mount": mounts})
+			})
+
+			It("should return a default mapfs mount", func() {
+				mapfsOpts := config.MapfsOptions()
+				Expect(mapfsOpts).To(ContainElement("-uid"))
+				Expect(mapfsOpts).To(ContainElement("1004"))
+				Expect(mapfsOpts).To(ContainElement("-gid"))
+				Expect(mapfsOpts).To(ContainElement("1002"))
 			})
 
 			It("should return nil result on setting end users'entries", func() {
