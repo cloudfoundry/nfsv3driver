@@ -64,7 +64,7 @@ var _ = Describe("MapfsMounter", func() {
 		sourceCfg.ReadConf("", "", []string{})
 
 		mountsCfg = nfsv3driver.NewNfsV3ConfigDetails()
-		mountsCfg.ReadConf("uid,gid,dircache,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
+		mountsCfg.ReadConf("uid,gid,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
 		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg))
 	})
@@ -164,6 +164,20 @@ var _ = Describe("MapfsMounter", func() {
 					_, _, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
 					Expect(args[4]).To(Equal("/some/target"))
 					Expect(args[5]).To(Equal("/some/target_mapfs"))
+				})
+			})
+
+			Context("when other options are specified", func(){
+				BeforeEach(func(){
+					opts["auto_cache"] = true
+					opts["fsname"] = "zanzibar"
+				})
+				It("should include those options on the mapfs invoke call", func() {
+					Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
+					_, _, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
+					Expect(args).To(ContainElement("-auto_cache"))
+					Expect(args).To(ContainElement("-fsname"))
+					Expect(args).To(ContainElement("zanzibar"))
 				})
 			})
 		})

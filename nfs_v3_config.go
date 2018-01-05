@@ -153,7 +153,12 @@ func (m *Config) MapfsOptions() []string {
 	} else if gid, ok := config["nfs_gid"]; ok {
 		ret = append(ret, "-gid", m.mount.uniformData(gid, false))
 	}
-
+	if _, ok := config["auto_cache"]; ok {
+		ret = append(ret, "-auto_cache")
+	}
+	if fsname, ok := config["fsname"]; ok {
+		ret = append(ret, "-fsname", m.mount.uniformData(fsname, false))
+	}
 	return ret
 }
 
