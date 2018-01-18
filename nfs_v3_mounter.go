@@ -55,6 +55,15 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 		return err
 	}
 
+	logger.Debug("TODO-remove-me-parse-entries", lager.Data{
+		"given_source":  source,
+		"given_target":  target,
+		"given_options": opts,
+		"config_source": tempConfig.source,
+		"config_mounts": tempConfig.mount,
+		"config_sloppy": tempConfig.sloppyMount,
+	})
+
 	if username, ok := opts["username"]; ok {
 		if m.resolver == nil {
 			return errors.New("LDAP username is specified but LDAP is not configured")
