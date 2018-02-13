@@ -13,6 +13,7 @@ import (
 
 	"strconv"
 
+	"code.cloudfoundry.org/goshims/execshim"
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/ldapshim"
@@ -29,7 +30,6 @@ import (
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
-	"code.cloudfoundry.org/goshims/execshim"
 )
 
 var atAddress = flag.String(
@@ -150,6 +150,7 @@ var (
 	ldapHost     string
 	ldapPort     int
 	ldapProto    string
+	ldapTimeout  int
 )
 
 func main() {
@@ -158,7 +159,7 @@ func main() {
 
 	var localDriverServer ifrit.Runner
 	var idResolver nfsv3driver.IdResolver
-	var mounter,legacyMounter nfsdriver.Mounter
+	var mounter, legacyMounter nfsdriver.Mounter
 
 	logger, logTap := newLogger()
 	logger.Info("start")
@@ -171,7 +172,7 @@ func main() {
 	mounts.ReadConf(*mountFlagAllowed, *mountFlagDefault, []string{})
 
 	if ldapHost != "" {
-		idResolver = nfsv3driver.NewLdapIdResolver(ldapSvcUser, ldapSvcPass, ldapHost, ldapPort, ldapProto, ldapUserFqdn, &ldapshim.LdapShim{})
+		idResolver = nfsv3driver.NewLdapIdResolver(ldapSvcUser, ldapSvcPass, ldapHost, ldapPort, ldapProto, ldapUserFqdn, &ldapshim.LdapShim{}, time.Duration(ldapTimeout)*time.Second)
 	}
 
 	if *useMockMounter {
@@ -332,6 +333,8 @@ func parseEnvironment() {
 	port, _ := os.LookupEnv("LDAP_PORT")
 	ldapPort, _ = strconv.Atoi(port)
 	ldapProto, _ = os.LookupEnv("LDAP_PROTO")
+	timeout, _ := os.LookupEnv("LDAP_TIMEOUT")
+	ldapTimeout, _ = strconv.Atoi(timeout)
 
 	if ldapProto == "" {
 		ldapProto = "tcp"
@@ -339,5 +342,14 @@ func parseEnvironment() {
 
 	if ldapHost != "" && (ldapSvcUser == "" || ldapSvcPass == "" || ldapUserFqdn == "" || ldapPort == 0) {
 		panic("LDAP is enabled but required LDAP parameters are not set.")
+	}
+
+	if ldapTimeout < 0 {
+		panic("LDAP_TIMEOUT is set to negtive value")
+	}
+
+	// if ldapTimeout is not set, use default value
+	if ldapTimeout == 0 {
+		ldapTimeout = 120
 	}
 }

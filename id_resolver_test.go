@@ -2,6 +2,7 @@ package nfsv3driver_test
 
 import (
 	"errors"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,6 +25,7 @@ var _ = Describe("IdResolverTest", func() {
 	var uid string
 	var gid string
 	var err error
+	var ldapTimeout time.Duration
 
 	Context("when the connection is successful", func() {
 
@@ -34,8 +36,9 @@ var _ = Describe("IdResolverTest", func() {
 			logger := lagertest.NewTestLogger("nfs-mounter")
 			testContext := context.TODO()
 			env = driverhttp.NewHttpDriverEnv(logger, testContext)
+			ldapTimeout = 120 * time.Second
 
-			ldapIdResolver = nfsv3driver.NewLdapIdResolver("svcuser", "svcpw", "host", 111, "tcp", "cn=Users,dc=test,dc=com", ldapFake)
+			ldapIdResolver = nfsv3driver.NewLdapIdResolver("svcuser", "svcpw", "host", 111, "tcp", "cn=Users,dc=test,dc=com", ldapFake, ldapTimeout)
 		})
 
 		JustBeforeEach(func() {
@@ -57,6 +60,10 @@ var _ = Describe("IdResolverTest", func() {
 				}
 
 				ldapConnectionFake.SearchReturns(result, nil)
+			})
+
+			It("set timeout for connection", func() {
+				Expect(ldapConnectionFake.SetTimeoutCallCount()).To(Equal(1))
 			})
 
 			It("does not error", func() {

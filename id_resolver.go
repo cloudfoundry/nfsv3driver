@@ -2,10 +2,12 @@ package nfsv3driver
 
 import (
 	"errors"
+	"time"
+
+	"fmt"
 
 	"code.cloudfoundry.org/goshims/ldapshim"
 	"code.cloudfoundry.org/voldriver"
-	"fmt"
 	"gopkg.in/ldap.v2"
 )
 
@@ -15,17 +17,18 @@ type IdResolver interface {
 }
 
 type ldapIdResolver struct {
-	svcUser   string
-	svcPass   string
-	ldapHost  string
-	ldapPort  int
-	ldapProto string
-	ldapFqdn  string // ldap domain to search for users .in, e.g. "cn=Users,dc=corp,dc=persi,dc=cf-app,dc=com"
-	ldap      ldapshim.Ldap
+	svcUser     string
+	svcPass     string
+	ldapHost    string
+	ldapPort    int
+	ldapProto   string
+	ldapFqdn    string // ldap domain to search for users .in, e.g. "cn=Users,dc=corp,dc=persi,dc=cf-app,dc=com"
+	ldap        ldapshim.Ldap
+	ldapTimeout time.Duration
 }
 
-func NewLdapIdResolver(svcUser string, svcPass string, ldapHost string, ldapPort int, ldapProto string, ldapFqdn string, ldap ldapshim.Ldap) IdResolver {
-	return &ldapIdResolver{svcUser: svcUser, svcPass: svcPass, ldapHost: ldapHost, ldapPort: ldapPort, ldapProto: ldapProto, ldapFqdn: ldapFqdn, ldap: ldap}
+func NewLdapIdResolver(svcUser string, svcPass string, ldapHost string, ldapPort int, ldapProto string, ldapFqdn string, ldap ldapshim.Ldap, ldapTimeout time.Duration) IdResolver {
+	return &ldapIdResolver{svcUser: svcUser, svcPass: svcPass, ldapHost: ldapHost, ldapPort: ldapPort, ldapProto: ldapProto, ldapFqdn: ldapFqdn, ldap: ldap, ldapTimeout: ldapTimeout}
 }
 
 func (d *ldapIdResolver) Resolve(env voldriver.Env, username string, password string) (uid string, gid string, err error) {
@@ -33,6 +36,8 @@ func (d *ldapIdResolver) Resolve(env voldriver.Env, username string, password st
 	if err != nil {
 		return "", "", err
 	}
+
+	l.SetTimeout(d.ldapTimeout)
 	defer l.Close()
 
 	// First bind with a read only user

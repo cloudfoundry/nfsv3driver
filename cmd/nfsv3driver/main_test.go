@@ -107,6 +107,26 @@ var _ = Describe("Main", func() {
 			})
 		})
 
+		Context("given LDAP_TIMEOUT are set in the the environment", func() {
+			BeforeEach(func() {
+				os.Setenv("LDAP_SVC_USER", "user")
+				os.Setenv("LDAP_SVC_PASS", "password")
+				os.Setenv("LDAP_USER_FQDN", "cn=Users,dc=corp,dc=testdomain,dc=com")
+				os.Setenv("LDAP_HOST", "ldap.testdomain.com")
+				os.Setenv("LDAP_PORT", "389")
+				os.Setenv("LDAP_PROTO", "tcp")
+				os.Setenv("LDAP_TIMEOUT", "60")
+				command.Args = append(command.Args, "-listenAddr=0.0.0.0:7593")
+				command.Args = append(command.Args, "-adminAddr=0.0.0.0:7594")
+			})
+			It("listens on tcp/7589 by default", func() {
+				EventuallyWithOffset(1, func() error {
+					_, err := net.Dial("tcp", "0.0.0.0:7593")
+					return err
+				}, 5).ShouldNot(HaveOccurred())
+			})
+		})
+
 		Context("received a slow mounting request", func() {
 			var (
 				driverUrl     string
