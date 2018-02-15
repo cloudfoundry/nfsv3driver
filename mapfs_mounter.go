@@ -5,6 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"errors"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+	"syscall"
+
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
@@ -12,27 +19,21 @@ import (
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
-	"errors"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-	"syscall"
 )
 
 const MAPFS_DIRECTORY_SUFFIX = "_mapfs"
 const MAPFS_MOUNT_TIMEOUT = time.Minute * 5
 
 type mapfsMounter struct {
-	invoker     invoker.Invoker
+	invoker           invoker.Invoker
 	backgroundInvoker BackgroundInvoker
-	v3Mounter   nfsdriver.Mounter
-	osshim      osshim.Os
-	ioutilshim  ioutilshim.Ioutil
-	fstype      string
-	defaultOpts string
-	resolver IdResolver
-	config   Config
+	v3Mounter         nfsdriver.Mounter
+	osshim            osshim.Os
+	ioutilshim        ioutilshim.Ioutil
+	fstype            string
+	defaultOpts       string
+	resolver          IdResolver
+	config            Config
 }
 
 var legacyNfsSharePattern *regexp.Regexp
@@ -58,7 +59,7 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 	tempConfig := m.config.Copy()
 
 	if err := tempConfig.SetEntries(remote, opts, []string{
-		"source", "mount", "readonly", "username", "password", "experimental",
+		"source", "mount", "readonly", "username", "password", "experimental", "version",
 	}); err != nil {
 		logger.Debug("error-parse-entries", lager.Data{
 			"given_source":  remote,
@@ -122,6 +123,12 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 	mountOptions := m.defaultOpts
 	if _, ok := opts["readonly"]; ok {
 		mountOptions = mountOptions + ",ro"
+	}
+
+	if _, ok := opts["version"]; ok {
+		mountOptions = mountOptions + ",vers=" + opts["version"].(string)
+	} else {
+		mountOptions = mountOptions + ",vers=3"
 	}
 
 	_, err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, intermediateMount})

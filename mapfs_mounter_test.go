@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"errors"
+	"os"
+	"strings"
+
 	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/lager"
@@ -15,11 +19,8 @@ import (
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/voldriverfakes"
-	"errors"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"os"
-	"strings"
 )
 
 var _ = Describe("MapfsMounter", func() {
@@ -39,7 +40,7 @@ var _ = Describe("MapfsMounter", func() {
 		fakeIoutil  *ioutil_fake.FakeIoutil
 		fakeOs      *os_fake.FakeOs
 
-		opts           map[string]interface{}
+		opts                 map[string]interface{}
 		sourceCfg, mountsCfg *nfsv3driver.ConfigDetails
 	)
 
@@ -90,6 +91,25 @@ var _ = Describe("MapfsMounter", func() {
 			})
 		})
 
+		Context("when version is specified", func() {
+			BeforeEach(func() {
+				opts["version"] = "4.1"
+			})
+
+			It("should use version specified", func() {
+				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+				Expect(cmd).To(Equal("mount"))
+				Expect(len(args)).To(BeNumerically(">", 5))
+				Expect(args).To(ContainElement("-t"))
+				Expect(args).To(ContainElement("my-fs"))
+				Expect(args).To(ContainElement("-o"))
+				Expect(args).To(ContainElement("my-mount-options,vers=4.1"))
+				Expect(args).To(ContainElement("source"))
+				Expect(args).To(ContainElement("target_mapfs"))
+			})
+
+		})
+
 		Context("when mount succeeds", func() {
 			It("should use the mapfs mounter", func() {
 				Expect(fakeMounter.MountCallCount()).To(Equal(0))
@@ -114,7 +134,7 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args).To(ContainElement("-t"))
 				Expect(args).To(ContainElement("my-fs"))
 				Expect(args).To(ContainElement("-o"))
-				Expect(args).To(ContainElement("my-mount-options"))
+				Expect(args).To(ContainElement("my-mount-options,vers=3"))
 				Expect(args).To(ContainElement("source"))
 				Expect(args).To(ContainElement("target_mapfs"))
 			})
@@ -140,7 +160,7 @@ var _ = Describe("MapfsMounter", func() {
 					_, _, args := fakeInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 3))
 					Expect(args[2]).To(Equal("-o"))
-					Expect(args[3]).To(Equal("my-mount-options,ro"))
+					Expect(args[3]).To(Equal("my-mount-options,ro,vers=3"))
 				})
 			})
 
@@ -167,8 +187,8 @@ var _ = Describe("MapfsMounter", func() {
 				})
 			})
 
-			Context("when other options are specified", func(){
-				BeforeEach(func(){
+			Context("when other options are specified", func() {
+				BeforeEach(func() {
 					opts["auto_cache"] = true
 					opts["fsname"] = "zanzibar"
 				})
