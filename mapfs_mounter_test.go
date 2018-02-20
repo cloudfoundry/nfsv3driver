@@ -175,6 +175,17 @@ var _ = Describe("MapfsMounter", func() {
 				})
 			})
 
+			Context("when the mount has a legacy format without subdirectory", func() {
+				BeforeEach(func() {
+					source = "nfs://server/"
+				})
+				It("should rewrite the share to use standard nfs format", func() {
+					_, _, args := fakeInvoker.InvokeArgsForCall(0)
+					Expect(len(args)).To(BeNumerically(">", 4))
+					Expect(args[4]).To(Equal("server:/"))
+				})
+			})
+
 			Context("when the target has a trailing slash", func() {
 				BeforeEach(func() {
 					target = "/some/target/"

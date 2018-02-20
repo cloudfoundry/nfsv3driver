@@ -39,7 +39,7 @@ type mapfsMounter struct {
 var legacyNfsSharePattern *regexp.Regexp
 
 func init() {
-	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.+)$")
+	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.*)$")
 }
 func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, fstype, defaultOpts string, resolver IdResolver, config *Config) nfsdriver.Mounter {
 	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, fstype, defaultOpts, resolver, *config}
