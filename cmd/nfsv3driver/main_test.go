@@ -84,6 +84,14 @@ var _ = Describe("Main", func() {
 				command.Args = append(command.Args, "-listenAddr=0.0.0.0:7593")
 				command.Args = append(command.Args, "-adminAddr=0.0.0.0:7594")
 			})
+			AfterEach(func() {
+				os.Unsetenv("LDAP_SVC_USER")
+				os.Unsetenv("LDAP_SVC_PASS")
+				os.Unsetenv("LDAP_USER_FQDN")
+				os.Unsetenv("LDAP_HOST")
+				os.Unsetenv("LDAP_PORT")
+				os.Unsetenv("LDAP_PROTO")
+			})
 			It("listens on tcp/7589 by default", func() {
 				EventuallyWithOffset(1, func() error {
 					_, err := net.Dial("tcp", "0.0.0.0:7593")
@@ -98,6 +106,11 @@ var _ = Describe("Main", func() {
 				os.Setenv("LDAP_PROTO", "tcp")
 				command.Args = append(command.Args, "-listenAddr=0.0.0.0:7595")
 				command.Args = append(command.Args, "-adminAddr=0.0.0.0:7596")
+			})
+			AfterEach(func() {
+				os.Unsetenv("LDAP_HOST")
+				os.Unsetenv("LDAP_PORT")
+				os.Unsetenv("LDAP_PROTO")
 			})
 			It("fails to start", func() {
 				EventuallyWithOffset(1, func() error {

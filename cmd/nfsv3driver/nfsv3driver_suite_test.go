@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/onsi/ginkgo/config"
 
 	"testing"
 )
@@ -16,6 +17,9 @@ func TestNfsV3Driver(t *testing.T) {
 var driverPath string
 
 var _ = BeforeSuite(func() {
+	// this test suite shares an os environment and therefore cannot run in parallel
+	Expect(config.GinkgoConfig.ParallelTotal).To(Equal(1))
+
 	var err error
 	driverPath, err = Build("code.cloudfoundry.org/nfsv3driver/cmd/nfsv3driver")
 	Expect(err).ToNot(HaveOccurred())
