@@ -8,6 +8,8 @@ import (
 
 	"strings"
 
+	"path/filepath"
+
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
@@ -15,7 +17,6 @@ import (
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
-	"path/filepath"
 )
 
 type nfsV3Mounter struct {
@@ -27,6 +28,13 @@ type nfsV3Mounter struct {
 }
 
 var PurgeTimeToSleep = time.Millisecond * 100
+
+func makeErrorSafe(e error) error {
+	if e == nil {
+		return nil
+	}
+	return voldriver.SafeError{SafeDescription: e.Error()}
+}
 
 func NewNfsV3Mounter(invoker invoker.Invoker, osutil osshim.Os, ioutil ioutilshim.Ioutil, config *Config, resolver IdResolver) nfsdriver.Mounter {
 	return &nfsV3Mounter{invoker: invoker, osutil: osutil, ioutil: ioutil, config: *config, resolver: resolver}
@@ -52,25 +60,16 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 			"config_mounts": tempConfig.mount,
 			"config_sloppy": tempConfig.sloppyMount,
 		})
-		return err
+		return makeErrorSafe(err)
 	}
-
-	logger.Debug("TODO-remove-me-parse-entries", lager.Data{
-		"given_source":  source,
-		"given_target":  target,
-		"given_options": opts,
-		"config_source": tempConfig.source,
-		"config_mounts": tempConfig.mount,
-		"config_sloppy": tempConfig.sloppyMount,
-	})
 
 	if username, ok := opts["username"]; ok {
 		if m.resolver == nil {
-			return errors.New("LDAP username is specified but LDAP is not configured")
+			return makeErrorSafe(errors.New("LDAP username is specified but LDAP is not configured"))
 		}
 		password, ok := opts["password"]
 		if !ok {
-			return errors.New("LDAP username is specified but LDAP password is missing")
+			return makeErrorSafe(errors.New("LDAP username is specified but LDAP password is missing"))
 		}
 
 		tempConfig.source.Allowed = append(tempConfig.source.Allowed, "uid", "gid")
@@ -86,7 +85,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 			"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
 		})
 		if err != nil {
-			return err
+			return makeErrorSafe(err)
 		}
 	}
 
@@ -115,12 +114,14 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	if err != nil {
 		logger.Error("fuse-nfs-invocation-failed", err)
 		m.invoker.Invoke(env, "fusermount", []string{"-u", target})
+		err = makeErrorSafe(err)
 	}
 	return err
 }
 
 func (m *nfsV3Mounter) Unmount(env voldriver.Env, target string) error {
 	_, err := m.invoker.Invoke(env, "fusermount", []string{"-u", target})
+	err = makeErrorSafe(err)
 	return err
 }
 

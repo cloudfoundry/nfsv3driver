@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"os"
+	"strings"
+
 	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/lager"
@@ -16,8 +19,6 @@ import (
 	"code.cloudfoundry.org/voldriver/voldriverfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"os"
-	"strings"
 )
 
 var _ = Describe("NfsV3Mounter", func() {
@@ -96,6 +97,8 @@ var _ = Describe("NfsV3Mounter", func() {
 
 			It("should return without error", func() {
 				Expect(err).To(HaveOccurred())
+				_, ok := err.(voldriver.SafeError)
+				Expect(ok).To(BeTrue())
 			})
 		})
 
@@ -147,6 +150,8 @@ var _ = Describe("NfsV3Mounter", func() {
 				It("should error", func() {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Not allowed options"))
+					_, ok := err.(voldriver.SafeError)
+					Expect(ok).To(BeTrue())
 				})
 			})
 			Context("when idresolver isn't present but username is passed", func() {
@@ -163,6 +168,8 @@ var _ = Describe("NfsV3Mounter", func() {
 				It("should error", func() {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("LDAP is not configured"))
+					_, ok := err.(voldriver.SafeError)
+					Expect(ok).To(BeTrue())
 				})
 			})
 		})
@@ -196,6 +203,8 @@ var _ = Describe("NfsV3Mounter", func() {
 
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
+				_, ok := err.(voldriver.SafeError)
+				Expect(ok).To(BeTrue())
 			})
 		})
 	})
