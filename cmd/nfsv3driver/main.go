@@ -57,6 +57,12 @@ var transport = flag.String(
 	"Transport protocol to transmit HTTP over",
 )
 
+var mapfsPath = flag.String(
+	"mapfsPath",
+	"/var/vcap/packages/mapfs/bin/mapfs",
+	"Path to the mapfs binary",
+)
+
 var mountDir = flag.String(
 	"mountDir",
 	"/tmp/volumes",
@@ -197,6 +203,7 @@ func main() {
 			mountOptions,
 			idResolver,
 			config,
+			*mapfsPath,
 		)
 	}
 
@@ -219,12 +226,12 @@ func main() {
 	}
 
 	servers := grouper.Members{
-		{"localdriver-server", localDriverServer},
+		{Name: "localdriver-server", Runner: localDriverServer},
 	}
 
 	if dbgAddr := cf_debug_server.DebugAddress(flag.CommandLine); dbgAddr != "" {
 		servers = append(grouper.Members{
-			{"debug-server", cf_debug_server.Runner(dbgAddr, logTap)},
+			{Name: "debug-server", Runner: cf_debug_server.Runner(dbgAddr, logTap)},
 		}, servers...)
 	}
 
@@ -234,7 +241,7 @@ func main() {
 	adminServer := http_server.New(*adminAddress, adminHandler)
 
 	servers = append(grouper.Members{
-		{"driveradmin", adminServer},
+		{Name: "driveradmin", Runner: adminServer},
 	}, servers...)
 
 	process := ifrit.Invoke(processRunnerFor(servers))

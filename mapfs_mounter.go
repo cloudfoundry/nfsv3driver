@@ -34,6 +34,7 @@ type mapfsMounter struct {
 	defaultOpts       string
 	resolver          IdResolver
 	config            Config
+	mapfsPath         string
 }
 
 var legacyNfsSharePattern *regexp.Regexp
@@ -41,8 +42,8 @@ var legacyNfsSharePattern *regexp.Regexp
 func init() {
 	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.*)$")
 }
-func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, fstype, defaultOpts string, resolver IdResolver, config *Config) nfsdriver.Mounter {
-	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, fstype, defaultOpts, resolver, *config}
+func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, fstype, defaultOpts string, resolver IdResolver, config *Config, mapfsPath string) nfsdriver.Mounter {
+	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, fstype, defaultOpts, resolver, *config, mapfsPath}
 }
 
 func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -140,7 +141,7 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 
 	args := tempConfig.MapfsOptions()
 	args = append(args, target, intermediateMount)
-	err = m.backgroundInvoker.Invoke(env, "mapfs", args, "Mounted!", MAPFS_MOUNT_TIMEOUT)
+	err = m.backgroundInvoker.Invoke(env, m.mapfsPath, args, "Mounted!", MAPFS_MOUNT_TIMEOUT)
 	if err != nil {
 		logger.Error("background-invoke-mount-failed", err)
 		m.invoker.Invoke(env, "umount", []string{intermediateMount})

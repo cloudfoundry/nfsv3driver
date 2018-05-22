@@ -42,10 +42,12 @@ var _ = Describe("MapfsMounter", func() {
 
 		opts                 map[string]interface{}
 		sourceCfg, mountsCfg *nfsv3driver.ConfigDetails
+		mapfsPath            string
 	)
 
 	BeforeEach(func() {
 		logger = lagertest.NewTestLogger("mapfs-mounter")
+		mapfsPath = "/var/vcap/packages/mapfs/bin/mapfs"
 		testContext = context.TODO()
 		env = driverhttp.NewHttpDriverEnv(logger, testContext)
 		opts = map[string]interface{}{}
@@ -67,7 +69,7 @@ var _ = Describe("MapfsMounter", func() {
 		mountsCfg = nfsv3driver.NewNfsV3ConfigDetails()
 		mountsCfg.ReadConf("uid,gid,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg))
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 	})
 
 	Context("#Mount", func() {
@@ -142,7 +144,7 @@ var _ = Describe("MapfsMounter", func() {
 			It("should launch mapfs to mount the target", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
 				_, cmd, args, waitFor, _ := fakeBgInvoker.InvokeArgsForCall(0)
-				Expect(cmd).To(Equal("mapfs"))
+				Expect(cmd).To(Equal(mapfsPath))
 				Expect(args).To(ContainElement("-uid"))
 				Expect(args).To(ContainElement("2000"))
 				Expect(args).To(ContainElement("-gid"))
@@ -235,7 +237,7 @@ var _ = Describe("MapfsMounter", func() {
 			It("should not error", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
 				_, cmd, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
-				Expect(cmd).To(Equal("mapfs"))
+				Expect(cmd).To(Equal(mapfsPath))
 				Expect(args).To(ContainElement("-uid"))
 				Expect(args).To(ContainElement("2000"))
 				Expect(args).To(ContainElement("-gid"))
@@ -250,7 +252,7 @@ var _ = Describe("MapfsMounter", func() {
 			It("should not error", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
 				_, cmd, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
-				Expect(cmd).To(Equal("mapfs"))
+				Expect(cmd).To(Equal(mapfsPath))
 				Expect(args).To(ContainElement("-uid"))
 				Expect(args).To(ContainElement("2000"))
 				Expect(args).To(ContainElement("-gid"))
@@ -310,7 +312,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				mountsCfg.ReadConf("dircache,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg))
+				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				delete(opts, "uid")
