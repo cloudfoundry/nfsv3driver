@@ -58,14 +58,27 @@ var _ = Describe("Main", func() {
 			}, 5).ShouldNot(HaveOccurred())
 		})
 
-		Context("in another context", func() {
+		It("listens on tcp/7590 for admin reqs by default", func() {
+			EventuallyWithOffset(1, func() error {
+				_, err := net.Dial("tcp", "0.0.0.0:7590")
+				return err
+			}, 5).ShouldNot(HaveOccurred())
+		})
+
+		Context("when command line arguments are provided", func() {
 			BeforeEach(func() {
 				command.Args = append(command.Args, "-listenAddr=0.0.0.0:7591")
 				command.Args = append(command.Args, "-adminAddr=0.0.0.0:7592")
 			})
 
-			It("listens on tcp/7590 for admin reqs by default", func() {
+			It("listens on provided arguments", func() {
+				EventuallyWithOffset(1, func() error {
+					_, err := net.Dial("tcp", "0.0.0.0:7591")
+					return err
+				}, 5).ShouldNot(HaveOccurred())
+			})
 
+			It("listens on provided arguments", func() {
 				EventuallyWithOffset(1, func() error {
 					_, err := net.Dial("tcp", "0.0.0.0:7592")
 					return err
@@ -79,11 +92,13 @@ var _ = Describe("Main", func() {
 				os.Setenv("LDAP_SVC_PASS", "password")
 				os.Setenv("LDAP_USER_FQDN", "cn=Users,dc=corp,dc=testdomain,dc=com")
 				os.Setenv("LDAP_HOST", "ldap.testdomain.com")
-				os.Setenv("LDAP_PORT", "389")
+				os.Setenv("LDAP_PORT", "7593")
 				os.Setenv("LDAP_PROTO", "tcp")
+
 				command.Args = append(command.Args, "-listenAddr=0.0.0.0:7593")
 				command.Args = append(command.Args, "-adminAddr=0.0.0.0:7594")
 			})
+
 			AfterEach(func() {
 				os.Unsetenv("LDAP_SVC_USER")
 				os.Unsetenv("LDAP_SVC_PASS")
@@ -92,13 +107,15 @@ var _ = Describe("Main", func() {
 				os.Unsetenv("LDAP_PORT")
 				os.Unsetenv("LDAP_PROTO")
 			})
-			It("listens on tcp/7589 by default", func() {
+
+			It("listens on provided arguments", func() {
 				EventuallyWithOffset(1, func() error {
 					_, err := net.Dial("tcp", "0.0.0.0:7593")
 					return err
 				}, 5).ShouldNot(HaveOccurred())
 			})
 		})
+
 		Context("given incomplete LDAP arguments set in the environment", func() {
 			BeforeEach(func() {
 				os.Setenv("LDAP_HOST", "ldap.testdomain.com")
@@ -107,11 +124,13 @@ var _ = Describe("Main", func() {
 				command.Args = append(command.Args, "-listenAddr=0.0.0.0:7595")
 				command.Args = append(command.Args, "-adminAddr=0.0.0.0:7596")
 			})
+
 			AfterEach(func() {
 				os.Unsetenv("LDAP_HOST")
 				os.Unsetenv("LDAP_PORT")
 				os.Unsetenv("LDAP_PROTO")
 			})
+
 			It("fails to start", func() {
 				EventuallyWithOffset(1, func() error {
 					_, err := net.Dial("tcp", "0.0.0.0:7595")
@@ -180,6 +199,5 @@ var _ = Describe("Main", func() {
 				Expect(session.Out).To(gbytes.Say("mount-duration-too-high"))
 			})
 		})
-
 	})
 })

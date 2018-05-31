@@ -156,6 +156,7 @@ var (
 	ldapUserFqdn string
 	ldapHost     string
 	ldapPort     int
+	ldapCACert   string
 	ldapProto    string
 	ldapTimeout  int
 )
@@ -179,7 +180,17 @@ func main() {
 	mounts.ReadConf(*mountFlagAllowed, *mountFlagDefault, []string{})
 
 	if ldapHost != "" {
-		idResolver = nfsv3driver.NewLdapIdResolver(ldapSvcUser, ldapSvcPass, ldapHost, ldapPort, ldapProto, ldapUserFqdn, &ldapshim.LdapShim{}, time.Duration(ldapTimeout)*time.Second)
+		idResolver = nfsv3driver.NewLdapIdResolver(
+			ldapSvcUser,
+			ldapSvcPass,
+			ldapHost,
+			ldapPort,
+			ldapProto,
+			ldapUserFqdn,
+			ldapCACert,
+			&ldapshim.LdapShim{},
+			time.Duration(ldapTimeout)*time.Second,
+		)
 	}
 
 	if *useMockMounter {
@@ -341,6 +352,7 @@ func parseEnvironment() {
 	ldapHost, _ = os.LookupEnv("LDAP_HOST")
 	port, _ := os.LookupEnv("LDAP_PORT")
 	ldapPort, _ = strconv.Atoi(port)
+	ldapCACert, _ = os.LookupEnv("LDAP_CA_CERT")
 	ldapProto, _ = os.LookupEnv("LDAP_PROTO")
 	timeout, _ := os.LookupEnv("LDAP_TIMEOUT")
 	ldapTimeout, _ = strconv.Atoi(timeout)

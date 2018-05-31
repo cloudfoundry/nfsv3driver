@@ -1,6 +1,8 @@
 package nfsv3driver
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"time"
 
@@ -23,16 +25,50 @@ type ldapIdResolver struct {
 	ldapPort    int
 	ldapProto   string
 	ldapFqdn    string // ldap domain to search for users .in, e.g. "cn=Users,dc=corp,dc=persi,dc=cf-app,dc=com"
+	ldapCACert  string
 	ldap        ldapshim.Ldap
 	ldapTimeout time.Duration
 }
 
-func NewLdapIdResolver(svcUser string, svcPass string, ldapHost string, ldapPort int, ldapProto string, ldapFqdn string, ldap ldapshim.Ldap, ldapTimeout time.Duration) IdResolver {
-	return &ldapIdResolver{svcUser: svcUser, svcPass: svcPass, ldapHost: ldapHost, ldapPort: ldapPort, ldapProto: ldapProto, ldapFqdn: ldapFqdn, ldap: ldap, ldapTimeout: ldapTimeout}
+func NewLdapIdResolver(
+	svcUser string,
+	svcPass string,
+	ldapHost string,
+	ldapPort int,
+	ldapProto string,
+	ldapFqdn string,
+	ldapCACert string,
+	ldap ldapshim.Ldap,
+	ldapTimeout time.Duration,
+) IdResolver {
+	return &ldapIdResolver{
+		svcUser:     svcUser,
+		svcPass:     svcPass,
+		ldapHost:    ldapHost,
+		ldapPort:    ldapPort,
+		ldapProto:   ldapProto,
+		ldapFqdn:    ldapFqdn,
+		ldapCACert:  ldapCACert,
+		ldap:        ldap,
+		ldapTimeout: ldapTimeout,
+	}
 }
 
 func (d *ldapIdResolver) Resolve(env voldriver.Env, username string, password string) (uid string, gid string, err error) {
-	l, err := d.ldap.Dial(d.ldapProto, fmt.Sprintf("%s:%d", d.ldapHost, d.ldapPort))
+	addr := fmt.Sprintf("%s:%d", d.ldapHost, d.ldapPort)
+
+	var l ldapshim.LdapConnection
+	if d.ldapCACert != "" {
+		roots := x509.NewCertPool()
+		ok := roots.AppendCertsFromPEM([]byte(d.ldapCACert))
+		if !ok {
+			return "", "", errors.New("Failed to load CA certificate")
+		}
+
+		l, err = d.ldap.DialTLS(d.ldapProto, addr, &tls.Config{RootCAs: roots})
+	} else {
+		l, err = d.ldap.Dial(d.ldapProto, addr)
+	}
 	if err != nil {
 		return "", "", err
 	}
