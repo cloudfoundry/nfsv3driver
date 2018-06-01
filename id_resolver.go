@@ -65,7 +65,10 @@ func (d *ldapIdResolver) Resolve(env voldriver.Env, username string, password st
 			return "", "", errors.New("Failed to load CA certificate")
 		}
 
-		l, err = d.ldap.DialTLS(d.ldapProto, addr, &tls.Config{RootCAs: roots})
+		l, err = d.ldap.DialTLS(d.ldapProto, addr, &tls.Config{
+			ServerName: d.ldapHost,
+			RootCAs:    roots,
+		})
 	} else {
 		l, err = d.ldap.Dial(d.ldapProto, addr)
 	}

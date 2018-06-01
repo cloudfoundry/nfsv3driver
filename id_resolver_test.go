@@ -86,6 +86,7 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 				protocol, addr, config := ldapFake.DialTLSArgsForCall(0)
 				Expect(protocol).To(Equal("tcp"))
 				Expect(addr).To(Equal("host:111"))
+				Expect(config.ServerName).To(Equal("host"))
 				Expect(config.RootCAs.Subjects()).To(HaveLen(1))
 				Expect(string(config.RootCAs.Subjects()[0])).To(ContainSubstring("Acme Co"))
 			})
