@@ -113,14 +113,14 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	_, err := m.invoker.Invoke(env, "fuse-nfs", mountOptions)
 	if err != nil {
 		logger.Error("fuse-nfs-invocation-failed", err)
-		m.invoker.Invoke(env, "fusermount", []string{"-u", target})
+		m.invoker.Invoke(env, "umount", []string{target})
 		err = makeErrorSafe(err)
 	}
 	return err
 }
 
 func (m *nfsV3Mounter) Unmount(env voldriver.Env, target string) error {
-	_, err := m.invoker.Invoke(env, "fusermount", []string{"-u", target})
+	_, err := m.invoker.Invoke(env, "umount", []string{target})
 	err = makeErrorSafe(err)
 	return err
 }
@@ -166,7 +166,8 @@ func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
 
 	for _, fileInfo := range fileInfos {
 		if fileInfo.IsDir() {
-			if err := m.osutil.RemoveAll(filepath.Join(path, fileInfo.Name())); err != nil {
+			m.invoker.Invoke(env, "umount", []string{"-f", filepath.Join(path, fileInfo.Name())})
+			if err := m.osutil.Remove(filepath.Join(path, fileInfo.Name())); err != nil {
 				env.Logger().Error("purge-cannot-remove-directory", err, lager.Data{"name": fileInfo.Name(), "path": path})
 			}
 		}

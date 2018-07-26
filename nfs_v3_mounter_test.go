@@ -190,8 +190,8 @@ var _ = Describe("NfsV3Mounter", func() {
 
 			It("should use the passed in variables", func() {
 				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
-				Expect(cmd).To(Equal("fusermount"))
-				Expect(strings.Join(args, " ")).To(ContainSubstring("-u target"))
+				Expect(cmd).To(Equal("umount"))
+				Expect(strings.Join(args, " ")).To(ContainSubstring("target"))
 			})
 		})
 
@@ -389,8 +389,8 @@ var _ = Describe("NfsV3Mounter", func() {
 				fakeIoutil.ReadDirReturns([]os.FileInfo{fakeStuff}, nil)
 			})
 			It("should remove stuff", func() {
-				Expect(fakeOs.RemoveAllCallCount()).NotTo(BeZero())
-				path := fakeOs.RemoveAllArgsForCall(0)
+				Expect(fakeOs.RemoveCallCount()).NotTo(BeZero())
+				path := fakeOs.RemoveArgsForCall(0)
 				Expect(path).To(Equal("/var/vcap/data/some/path/guidy-guid-guid"))
 			})
 			Context("when the stuff is not a directory", func() {
