@@ -140,7 +140,7 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 		if err != nil {
 			logger.Error("background-invoke-mount-failed", err)
 			m.invoker.Invoke(env, "umount", []string{intermediateMount})
-			m.osshim.RemoveAll(intermediateMount)
+			m.osshim.Remove(intermediateMount)
 			return err
 		}
 	}
@@ -217,11 +217,11 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 
 			m.invoker.Invoke(env, "umount", []string{"-f", filepath.Join(path, realMountpoint)})
 
-			if err := m.osshim.RemoveAll(filepath.Join(path, realMountpoint)); err != nil {
+			if err := m.osshim.Remove(filepath.Join(path, realMountpoint)); err != nil {
 				env.Logger().Error("purge-cannot-remove-directory", err, lager.Data{"name": realMountpoint, "path": path})
 			}
 
-			if err := m.osshim.RemoveAll(filepath.Join(path, fileInfo.Name())); err != nil {
+			if err := m.osshim.Remove(filepath.Join(path, fileInfo.Name())); err != nil {
 				env.Logger().Error("purge-cannot-remove-directory", err, lager.Data{"name": fileInfo.Name(), "path": path})
 			}
 		}

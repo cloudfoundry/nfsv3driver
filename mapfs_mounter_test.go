@@ -291,7 +291,7 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args[0]).To(Equal("target_mapfs"))
 			})
 			It("should remove the intermediary mountpoint", func() {
-				Expect(fakeOs.RemoveAllCallCount()).To(Equal(1))
+				Expect(fakeOs.RemoveCallCount()).To(Equal(1))
 			})
 		})
 
@@ -481,10 +481,10 @@ var _ = Describe("MapfsMounter", func() {
 					Expect(args[1]).To(Equal("/foo/foo/foo/mount_one"))
 				})
 				It("should remove both the mountpoints", func() {
-					Expect(fakeOs.RemoveAllCallCount()).To(BeNumerically(">=", 2))
-					path := fakeOs.RemoveAllArgsForCall(0)
+					Expect(fakeOs.RemoveCallCount()).To(BeNumerically(">=", 2))
+					path := fakeOs.RemoveArgsForCall(0)
 					Expect(path).To(Equal("/foo/foo/foo/mount_one"))
-					path = fakeOs.RemoveAllArgsForCall(1)
+					path = fakeOs.RemoveArgsForCall(1)
 					Expect(path).To(Equal("/foo/foo/foo/mount_one_mapfs"))
 				})
 			})
