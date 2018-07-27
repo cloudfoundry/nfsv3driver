@@ -80,9 +80,9 @@ var _ = Describe("NfsV3Mounter", func() {
 					opts["readonly"] = true
 				})
 
-				It("should include the -O flag", func() {
+				It("should not include the -O flag, since garden handles readonly mounts", func() {
 					_, _, args := fakeInvoker.InvokeArgsForCall(0)
-					Expect(strings.Join(args, " ")).To(ContainSubstring("-O"))
+					Expect(strings.Join(args, " ")).NotTo(ContainSubstring("-O"))
 				})
 			})
 		})

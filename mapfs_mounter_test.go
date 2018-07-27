@@ -66,7 +66,7 @@ var _ = Describe("MapfsMounter", func() {
 		mountsCfg = nfsv3driver.NewNfsV3ConfigDetails()
 		mountsCfg.ReadConf("uid,gid,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg))
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg))
 	})
 
 	Context("#Mount", func() {
@@ -114,7 +114,7 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args).To(ContainElement("-t"))
 				Expect(args).To(ContainElement("my-fs"))
 				Expect(args).To(ContainElement("-o"))
-				Expect(args).To(ContainElement("my-mount-options"))
+				Expect(args).To(ContainElement("my-mount-options,timeo=600,retrans=2,actimeo=0"))
 				Expect(args).To(ContainElement("source"))
 				Expect(args).To(ContainElement("target_mapfs"))
 			})
@@ -136,11 +136,17 @@ var _ = Describe("MapfsMounter", func() {
 					opts["readonly"] = true
 				})
 
-				It("should append 'ro' to the kernel mount options", func() {
+				It("should not append 'ro' to the kernel mount options, since garden manages the ro mount", func() {
 					_, _, args := fakeInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 3))
 					Expect(args[2]).To(Equal("-o"))
-					Expect(args[3]).To(Equal("my-mount-options,ro"))
+					Expect(args[3]).NotTo(ContainSubstring(",ro"))
+				})
+				It("should not append 'actimeo=0' to the kernel mount options", func() {
+					_, _, args := fakeInvoker.InvokeArgsForCall(0)
+					Expect(len(args)).To(BeNumerically(">", 3))
+					Expect(args[2]).To(Equal("-o"))
+					Expect(args[3]).NotTo(ContainSubstring("actimeo=0"))
 				})
 			})
 
@@ -185,8 +191,24 @@ var _ = Describe("MapfsMounter", func() {
 			BeforeEach(func() {
 				delete(opts, "uid")
 			})
-			It("should error", func() {
-				Expect(err).ToNot(BeNil())
+
+			It("should create an intermediary mount point", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(fakeOs.MkdirAllCallCount()).NotTo(BeZero())
+				dirName, _ := fakeOs.MkdirAllArgsForCall(0)
+				Expect(dirName).To(Equal("target_mapfs"))
+			})
+
+			It("should mount directly to the target", func() {
+				Expect(err).NotTo(HaveOccurred())
+				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+				Expect(cmd).To(Equal("mount"))
+				Expect(args).To(ContainElement("source"))
+				Expect(args).To(ContainElement("target"))
+			})
+
+			It("should not launch mapfs", func() {
+				Expect(fakeBgInvoker.InvokeCallCount()).To(Equal(0))
 			})
 		})
 		Context("when there is no gid", func() {
@@ -352,8 +374,8 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			It("should delete the mapfs mount point", func() {
-				Expect(fakeOs.RemoveAllCallCount()).ToNot(BeZero())
-				Expect(fakeOs.RemoveAllArgsForCall(0)).To(Equal("target_mapfs"))
+				Expect(fakeOs.RemoveCallCount()).ToNot(BeZero())
+				Expect(fakeOs.RemoveArgsForCall(0)).To(Equal("target_mapfs"))
 			})
 
 			Context("when the target has a trailing slash", func() {
@@ -380,6 +402,22 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
+			})
+		})
+		Context("when unmount of the intermediate mount fails", func() {
+			BeforeEach(func() {
+				fakeInvoker.InvokeStub = func(_ voldriver.Env, _ string, args []string) ([]byte, error) {
+					for _, arg := range args {
+						if arg == "target_mapfs" {
+							return []byte("error"), fmt.Errorf("mapfs umount error")
+						}
+					}
+					return nil, nil
+				}
+			})
+
+			It("should not return an error", func() {
+				Expect(err).NotTo(HaveOccurred())
 			})
 		})
 	})
