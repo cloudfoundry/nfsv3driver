@@ -97,10 +97,9 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 		}
 	}
 
-	if _, ok := opts["uid"]; !ok {
-		return errors.New("required 'uid' option is missing")
-	}
-	if _, ok := opts["gid"]; !ok {
+	_, uidok := opts["uid"]
+	_, gidok := opts["gid"]
+	if uidok && !gidok {
 		return errors.New("required 'gid' option is missing")
 	}
 
@@ -117,13 +116,13 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 	defer syscall.Umask(orig)
 	err := m.osshim.MkdirAll(intermediateMount, os.ModePerm)
 	if err != nil {
-		logger.Error("mkdir-rootpath-failed", err)
+		logger.Error("mkdir-intermediate-failed", err)
 		return err
 	}
 
 	mountOptions := m.defaultOpts
 	if _, ok := opts["readonly"]; ok {
-		mountOptions = mountOptions + ",ro"
+		mountOptions = strings.Replace(mountOptions, ",actimeo=0", "", -1)
 	}
 
 	if _, ok := opts["version"]; ok {
@@ -132,21 +131,26 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 		mountOptions = mountOptions + ",vers=3"
 	}
 
-	_, err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, intermediateMount})
+	t := intermediateMount
+	if !uidok { t = target }
+
+	_, err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t})
 	if err != nil {
 		logger.Error("invoke-mount-failed", err)
 		m.osshim.RemoveAll(intermediateMount)
 		return err
 	}
 
-	args := tempConfig.MapfsOptions()
-	args = append(args, target, intermediateMount)
-	err = m.backgroundInvoker.Invoke(env, m.mapfsPath, args, "Mounted!", MAPFS_MOUNT_TIMEOUT)
-	if err != nil {
-		logger.Error("background-invoke-mount-failed", err)
-		m.invoker.Invoke(env, "umount", []string{intermediateMount})
-		m.osshim.Remove(intermediateMount)
-		return err
+	if uidok {
+		args := tempConfig.MapfsOptions()
+		args = append(args, target, intermediateMount)
+		err = m.backgroundInvoker.Invoke(env, m.mapfsPath, args, "Mounted!", MAPFS_MOUNT_TIMEOUT)
+		if err != nil {
+			logger.Error("background-invoke-mount-failed", err)
+			m.invoker.Invoke(env, "umount", []string{intermediateMount})
+			m.osshim.Remove(intermediateMount)
+			return err
+		}
 	}
 
 	return nil
@@ -168,7 +172,8 @@ func (m *mapfsMounter) Unmount(env voldriver.Env, target string) error {
 		return e
 	}
 	if _, e := m.invoker.Invoke(env, "umount", []string{intermediateMount}); e != nil {
-		return e
+		// this error may be benign since mounts without uid don't actually use this directory
+		logger.Error("warning-umount-intermediate-failed", e)
 	}
 	if e := m.osshim.Remove(intermediateMount); e != nil {
 		return e
