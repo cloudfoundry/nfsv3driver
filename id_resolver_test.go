@@ -29,7 +29,6 @@ var _ = Describe("IdResolverTest", func() {
 	var ldapTimeout time.Duration
 
 	Context("when the connection is successful", func() {
-
 		BeforeEach(func() {
 			ldapFake = &ldap_fake.FakeLdap{}
 			ldapConnectionFake = &ldap_fake.FakeLdapConnection{}
@@ -151,6 +150,32 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 					Expect(ldapConnectionFake.SearchCallCount()).To(Equal(1))
 					Expect(uid).To(BeEmpty())
 				})
+			})
+		})
+
+		Context("when search does not return GID", func() {
+			BeforeEach(func() {
+				entry := &ldap.Entry{
+					DN: "foo",
+					Attributes: []*ldap.EntryAttribute{
+						&ldap.EntryAttribute{Name: "uidNumber", Values: []string{"100"}},
+					},
+				}
+
+				result := &ldap.SearchResult{
+					Entries: []*ldap.Entry{entry},
+				}
+
+				ldapConnectionFake.SearchReturns(result, nil)
+			})
+
+			It("does not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("sets GID same as UID", func() {
+				Expect(uid).To(Equal("100"))
+				Expect(gid).To(Equal("100"))
 			})
 		})
 

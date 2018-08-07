@@ -110,6 +110,9 @@ func (d *ldapIdResolver) Resolve(env voldriver.Env, username string, password st
 
 	uid = sr.Entries[0].GetAttributeValue("uidNumber")
 	gid = sr.Entries[0].GetAttributeValue("gidNumber")
+	if gid == "" {
+		gid = uid
+	}
 
 	// Bind as the user to verify their password
 	err = l.Bind(userdn, password)
