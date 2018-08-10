@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"errors"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -70,20 +69,21 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 			"config_mounts": tempConfig.mount,
 			"config_sloppy": tempConfig.sloppyMount,
 		})
-		return err
+		return voldriver.SafeError{SafeDescription: err.Error()}
 	}
 
 	if username, ok := opts["username"]; ok {
 		if m.resolver == nil {
-			return errors.New("LDAP username is specified but LDAP is not configured")
+			return voldriver.SafeError{SafeDescription: "LDAP username is specified but LDAP is not configured"}
 		}
 		password, ok := opts["password"]
 		if !ok {
-			return errors.New("LDAP username is specified but LDAP password is missing")
+			return voldriver.SafeError{SafeDescription: "LDAP username is specified but LDAP password is missing"}
 		}
 
 		uid, gid, err := m.resolver.Resolve(env, username.(string), password.(string))
 		if err != nil {
+			// this error is not wrapped in SafeError since it might contain sensitive information
 			return err
 		}
 
@@ -93,14 +93,14 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 		if err := tempConfig.SetEntries(remote, opts, []string{
 			"source", "mount", "readonly", "username", "password", "experimental",
 		}); err != nil {
-			return err
+			return voldriver.SafeError{SafeDescription: err.Error()}
 		}
 	}
 
 	_, uidok := opts["uid"]
 	_, gidok := opts["gid"]
 	if uidok && !gidok {
-		return errors.New("required 'gid' option is missing")
+		return voldriver.SafeError{SafeDescription: "required 'gid' option is missing"}
 	}
 
 	// check for legacy URL formatted mounts and rewrite to standard nfs format as necessary
@@ -117,7 +117,7 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 	err := m.osshim.MkdirAll(intermediateMount, os.ModePerm)
 	if err != nil {
 		logger.Error("mkdir-intermediate-failed", err)
-		return err
+		return voldriver.SafeError{SafeDescription: err.Error()}
 	}
 
 	mountOptions := m.defaultOpts
@@ -132,13 +132,15 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 	}
 
 	t := intermediateMount
-	if !uidok { t = target }
+	if !uidok {
+		t = target
+	}
 
 	_, err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t})
 	if err != nil {
 		logger.Error("invoke-mount-failed", err)
 		m.osshim.RemoveAll(intermediateMount)
-		return err
+		return voldriver.SafeError{SafeDescription: err.Error()}
 	}
 
 	if uidok {
@@ -149,7 +151,7 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 			logger.Error("background-invoke-mount-failed", err)
 			m.invoker.Invoke(env, "umount", []string{intermediateMount})
 			m.osshim.Remove(intermediateMount)
-			return err
+			return voldriver.SafeError{SafeDescription: err.Error()}
 		}
 	}
 
@@ -169,14 +171,14 @@ func (m *mapfsMounter) Unmount(env voldriver.Env, target string) error {
 	}
 
 	if _, e := m.invoker.Invoke(env, "umount", []string{target}); e != nil {
-		return e
+		return voldriver.SafeError{SafeDescription: e.Error()}
 	}
 	if _, e := m.invoker.Invoke(env, "umount", []string{intermediateMount}); e != nil {
 		// this error may be benign since mounts without uid don't actually use this directory
 		logger.Error("warning-umount-intermediate-failed", e)
 	}
 	if e := m.osshim.Remove(intermediateMount); e != nil {
-		return e
+		return voldriver.SafeError{SafeDescription: e.Error()}
 	}
 
 	return nil
