@@ -2,7 +2,6 @@ package nfsv3driver
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -29,13 +28,6 @@ type nfsV3Mounter struct {
 
 var PurgeTimeToSleep = time.Millisecond * 100
 
-func makeErrorSafe(e error) error {
-	if e == nil {
-		return nil
-	}
-	return voldriver.SafeError{SafeDescription: e.Error()}
-}
-
 func NewNfsV3Mounter(invoker invoker.Invoker, osutil osshim.Os, ioutil ioutilshim.Ioutil, config *Config, resolver IdResolver) nfsdriver.Mounter {
 	return &nfsV3Mounter{invoker: invoker, osutil: osutil, ioutil: ioutil, config: *config, resolver: resolver}
 }
@@ -60,22 +52,23 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 			"config_mounts": tempConfig.mount,
 			"config_sloppy": tempConfig.sloppyMount,
 		})
-		return makeErrorSafe(err)
+		return voldriver.SafeError{SafeDescription: err.Error()}
 	}
 
 	if username, ok := opts["username"]; ok {
 		if m.resolver == nil {
-			return makeErrorSafe(errors.New("LDAP username is specified but LDAP is not configured"))
+			return voldriver.SafeError{SafeDescription: "LDAP username is specified but LDAP is not configured"}
 		}
 		password, ok := opts["password"]
 		if !ok {
-			return makeErrorSafe(errors.New("LDAP username is specified but LDAP password is missing"))
+			return voldriver.SafeError{SafeDescription: "LDAP username is specified but LDAP password is missing"}
 		}
 
 		tempConfig.source.Allowed = append(tempConfig.source.Allowed, "uid", "gid")
 
 		uid, gid, err := m.resolver.Resolve(env, username.(string), password.(string))
 		if err != nil {
+			// this error is not wrapped in SafeError since it might contain sensitive information
 			return err
 		}
 
@@ -85,7 +78,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 			"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
 		})
 		if err != nil {
-			return makeErrorSafe(err)
+			return voldriver.SafeError{SafeDescription: err.Error()}
 		}
 	}
 
@@ -110,15 +103,17 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	if err != nil {
 		logger.Error("fuse-nfs-invocation-failed", err)
 		m.invoker.Invoke(env, "umount", []string{target})
-		err = makeErrorSafe(err)
+		return voldriver.SafeError{SafeDescription: err.Error()}
 	}
-	return err
+	return nil
 }
 
 func (m *nfsV3Mounter) Unmount(env voldriver.Env, target string) error {
 	_, err := m.invoker.Invoke(env, "umount", []string{target})
-	err = makeErrorSafe(err)
-	return err
+	if err != nil {
+		return voldriver.SafeError{SafeDescription: err.Error()}
+	}
+	return nil
 }
 
 func (m *nfsV3Mounter) Check(env voldriver.Env, name, mountPoint string) bool {
