@@ -131,6 +131,18 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(waitFor).To(Equal("Mounted!"))
 			})
 
+			Context("when mkdir fails", func() {
+				BeforeEach(func() {
+					fakeOs.MkdirAllReturns(errors.New("failed-to-create-dir"))
+				})
+
+				It("should return an error", func() {
+					Expect(err).To(HaveOccurred())
+					_, ok := err.(voldriver.SafeError)
+					Expect(ok).To(BeTrue())
+				})
+			})
+
 			Context("when the mount is readonly", func() {
 				BeforeEach(func() {
 					opts["readonly"] = true
@@ -216,7 +228,9 @@ var _ = Describe("MapfsMounter", func() {
 				delete(opts, "gid")
 			})
 			It("should error", func() {
-				Expect(err).ToNot(BeNil())
+				Expect(err).To(HaveOccurred())
+				_, ok := err.(voldriver.SafeError)
+				Expect(ok).To(BeTrue())
 			})
 		})
 		Context("when uid is an integer", func() {
@@ -259,6 +273,8 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should error", func() {
 				Expect(err).To(HaveOccurred())
+				_, ok := err.(voldriver.SafeError)
+				Expect(ok).To(BeTrue())
 				Expect(err.Error()).To(ContainSubstring("LDAP is not configured"))
 			})
 		})
@@ -269,6 +285,8 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should return error", func() {
 				Expect(err).To(HaveOccurred())
+				_, ok := err.(voldriver.SafeError)
+				Expect(ok).To(BeTrue())
 			})
 
 			It("should remove the intermediary mountpoint", func() {
@@ -282,6 +300,8 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should return error", func() {
 				Expect(err).To(HaveOccurred())
+				_, ok := err.(voldriver.SafeError)
+				Expect(ok).To(BeTrue())
 			})
 			It("should invoke unmount", func() {
 				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">", 1))
@@ -324,6 +344,19 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(strings.Join(args, " ")).To(ContainSubstring("-gid 100"))
 			})
 
+			Context("when username is passed but password is not passed", func() {
+				BeforeEach(func() {
+					delete(opts, "password")
+				})
+
+				It("should error", func() {
+					Expect(err).To(HaveOccurred())
+					_, ok := err.(voldriver.SafeError)
+					Expect(ok).To(BeTrue())
+					Expect(err.Error()).To(ContainSubstring("LDAP password is missing"))
+				})
+			})
+
 			Context("when uid and gid are passed", func() {
 				BeforeEach(func() {
 					opts["uid"] = "100"
@@ -332,6 +365,8 @@ var _ = Describe("MapfsMounter", func() {
 
 				It("should error", func() {
 					Expect(err).To(HaveOccurred())
+					_, ok := err.(voldriver.SafeError)
+					Expect(ok).To(BeTrue())
 					Expect(err.Error()).To(ContainSubstring("Not allowed options"))
 				})
 			})
@@ -402,6 +437,8 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
+				_, ok := err.(voldriver.SafeError)
+				Expect(ok).To(BeTrue())
 			})
 		})
 		Context("when unmount of the intermediate mount fails", func() {
@@ -418,6 +455,18 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should not return an error", func() {
 				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when remove fails", func() {
+			BeforeEach(func() {
+				fakeOs.RemoveReturns(errors.New("failed-to-remove-dir"))
+			})
+
+			It("should return an error", func() {
+				Expect(err).To(HaveOccurred())
+				_, ok := err.(voldriver.SafeError)
+				Expect(ok).To(BeTrue())
 			})
 		})
 	})
