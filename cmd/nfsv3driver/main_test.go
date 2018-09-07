@@ -173,7 +173,7 @@ var _ = Describe("Main", func() {
 				opts = map[string]interface{}{"source": "127.0.0.1/var/vcap"}
 				command.Args = append(command.Args, "-useMockMounter")
 
-				cfHttpTimeout = 10 * time.Second
+				cfHttpTimeout = 12 * time.Second
 				cfhttp.Initialize(cfHttpTimeout)
 			})
 
@@ -191,11 +191,11 @@ var _ = Describe("Main", func() {
 
 				createRequest := voldriver.CreateRequest{Name: volumeId, Opts: opts}
 				createResponse := client.Create(env, createRequest)
-				Expect(createResponse.Err).Should(BeEmpty())
+				Expect(createResponse.Err).To(BeEmpty())
 
 				mountRequest := voldriver.MountRequest{Name: volumeId}
 				mountResponse := client.Mount(env, mountRequest)
-				Expect(mountResponse.Err).ShouldNot(BeEmpty())
+				Expect(mountResponse.Err).To(BeEmpty())
 				Expect(session.Out).To(gbytes.Say("mount-duration-too-high"))
 			})
 		})
