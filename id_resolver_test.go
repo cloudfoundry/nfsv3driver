@@ -179,6 +179,33 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 			})
 		})
 
+		Context("when search returns empty GID", func() {
+			BeforeEach(func() {
+				entry := &ldap.Entry{
+					DN: "foo",
+					Attributes: []*ldap.EntryAttribute{
+						&ldap.EntryAttribute{Name: "uidNumber", Values: []string{"100"}},
+						&ldap.EntryAttribute{Name: "gidNumber", Values: []string{""}},
+					},
+				}
+
+				result := &ldap.SearchResult{
+					Entries: []*ldap.Entry{entry},
+				}
+
+				ldapConnectionFake.SearchReturns(result, nil)
+			})
+
+			It("does not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("sets GID same as UID", func() {
+				Expect(uid).To(Equal("100"))
+				Expect(gid).To(Equal("100"))
+			})
+		})
+
 		Context("when the search returns empty", func() {
 			BeforeEach(func() {
 				result := &ldap.SearchResult{Entries: []*ldap.Entry{}}
