@@ -231,6 +231,8 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 				env.Logger().Error("purge-cannot-remove-directory", err, lager.Data{"name": realMountpoint, "path": path})
 			}
 
+			m.invoker.Invoke(env, "umount", []string{"-f", filepath.Join(path, fileInfo.Name())})
+
 			if err := m.osshim.Remove(filepath.Join(path, fileInfo.Name())); err != nil {
 				env.Logger().Error("purge-cannot-remove-directory", err, lager.Data{"name": fileInfo.Name(), "path": path})
 			}

@@ -555,12 +555,16 @@ var _ = Describe("MapfsMounter", func() {
 
 					fakeIoutil.ReadDirReturns([]os.FileInfo{fakeMapfsDir}, nil)
 				})
-				It("should unmount the mapfs mount", func() {
-					Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-					_, cmd, args := fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 1)
+				It("should unmount both the mounts", func() {
+					Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 2))
+					_, cmd, args := fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 2)
 					Expect(cmd).To(Equal("umount"))
 					Expect(args[0]).To(Equal("-f"))
 					Expect(args[1]).To(Equal("/foo/foo/foo/mount_one"))
+					_, cmd, args = fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 1)
+					Expect(cmd).To(Equal("umount"))
+					Expect(args[0]).To(Equal("-f"))
+					Expect(args[1]).To(Equal("/foo/foo/foo/mount_one_mapfs"))
 				})
 				It("should remove both the mountpoints", func() {
 					Expect(fakeOs.RemoveCallCount()).To(BeNumerically(">=", 2))
