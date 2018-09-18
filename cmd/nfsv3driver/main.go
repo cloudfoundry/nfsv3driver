@@ -66,13 +66,13 @@ var mapfsPath = flag.String(
 var mountDir = flag.String(
 	"mountDir",
 	"/tmp/volumes",
-	"Path to directory where fake volumes are created",
+	"Path to directory where NFS v3 volumes are created",
 )
 
 var requireSSL = flag.Bool(
 	"requireSSL",
 	false,
-	"whether the fake driver should require ssl-secured communication",
+	"whether the NFS v3 driver should require ssl-secured communication",
 )
 
 var caFile = flag.String(
@@ -144,6 +144,12 @@ var mockMountSeconds = flag.Int64(
 	"mockMountSeconds",
 	11,
 	"How many seconds it takes to mount simulated by mock mounter",
+)
+
+var uniqueVolumeIds = flag.Bool(
+	"uniqueVolumeIds",
+	false,
+	"whether the NFS v3 driver should opt-in to unique volumes",
 )
 
 const fsType = "nfs"
@@ -229,9 +235,9 @@ func main() {
 	)
 
 	if *transport == "tcp" {
-		localDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, false)
+		localDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, false, false)
 	} else if *transport == "tcp-json" {
-		localDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, true)
+		localDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, true, *uniqueVolumeIds)
 	} else {
 		localDriverServer = createNfsDriverUnixServer(logger, client, *atAddress)
 	}
@@ -279,11 +285,11 @@ func processRunnerFor(servers grouper.Members) ifrit.Runner {
 	return sigmon.New(grouper.NewOrdered(os.Interrupt, servers))
 }
 
-func createNfsDriverServer(logger lager.Logger, client voldriver.Driver, atAddress, driversPath string, jsonSpec bool) ifrit.Runner {
+func createNfsDriverServer(logger lager.Logger, client voldriver.Driver, atAddress, driversPath string, jsonSpec bool, uniqueVolumeIds bool) ifrit.Runner {
 	advertisedUrl := "http://" + atAddress
 	logger.Info("writing-spec-file", lager.Data{"location": driversPath, "name": "nfsv3driver", "address": advertisedUrl})
 	if jsonSpec {
-		driverJsonSpec := voldriver.DriverSpec{Name: "nfsv3driver", Address: advertisedUrl}
+		driverJsonSpec := voldriver.DriverSpec{Name: "nfsv3driver", Address: advertisedUrl, UniqueVolumeIds: uniqueVolumeIds}
 
 		if *requireSSL {
 			absCaFile, err := filepath.Abs(*caFile)

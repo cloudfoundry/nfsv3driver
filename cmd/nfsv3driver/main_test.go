@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"code.cloudfoundry.org/cfhttp"
@@ -25,7 +26,6 @@ var _ = Describe("Main", func() {
 	var (
 		session *gexec.Session
 		command *exec.Cmd
-		err     error
 		logger  lager.Logger
 	)
 
@@ -35,6 +35,7 @@ var _ = Describe("Main", func() {
 	})
 
 	JustBeforeEach(func() {
+		var err error
 		session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 		Expect(err).ToNot(HaveOccurred())
 	})
@@ -44,11 +45,15 @@ var _ = Describe("Main", func() {
 	})
 
 	Context("with a driver path", func() {
+		var dir string
+
 		BeforeEach(func() {
-			dir, err := ioutil.TempDir("", "driversPath")
+			var err error
+			dir, err = ioutil.TempDir("", "driversPath")
 			Expect(err).ToNot(HaveOccurred())
 
 			command.Args = append(command.Args, "-driversPath="+dir)
+			command.Args = append(command.Args, "-transport=tcp-json")
 		})
 
 		It("listens on tcp/7589 by default", func() {
@@ -56,6 +61,17 @@ var _ = Describe("Main", func() {
 				_, err := net.Dial("tcp", "0.0.0.0:7589")
 				return err
 			}, 5).ShouldNot(HaveOccurred())
+
+			specFile := filepath.Join(dir, "nfsv3driver.json")
+			specFileContents, err := ioutil.ReadFile(specFile)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(string(specFileContents)).To(MatchJSON(`{
+				"Name": "nfsv3driver",
+				"Addr": "http://127.0.0.1:7589",
+				"TLSConfig": null,
+				"UniqueVolumeIds": false
+			}`))
 		})
 
 		It("listens on tcp/7590 for admin reqs by default", func() {
@@ -156,6 +172,30 @@ var _ = Describe("Main", func() {
 					_, err := net.Dial("tcp", "0.0.0.0:7593")
 					return err
 				}, 5).ShouldNot(HaveOccurred())
+			})
+		})
+
+		Context("with unique volume IDs enabled", func() {
+			BeforeEach(func() {
+				command.Args = append(command.Args, "-uniqueVolumeIds")
+			})
+
+			It("sets the uniqueVolumeIds flag in the spec file", func() {
+				specFile := filepath.Join(dir, "nfsv3driver.json")
+				Eventually(func() error {
+					_, err := os.Stat(specFile)
+					return err
+				}, 5).ShouldNot(HaveOccurred())
+
+				specFileContents, err := ioutil.ReadFile(specFile)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(string(specFileContents)).To(MatchJSON(`{
+					"Name": "nfsv3driver",
+					"Addr": "http://127.0.0.1:7589",
+					"TLSConfig": null,
+					"UniqueVolumeIds": true
+				}`))
 			})
 		})
 
