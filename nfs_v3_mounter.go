@@ -109,7 +109,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 }
 
 func (m *nfsV3Mounter) Unmount(env voldriver.Env, target string) error {
-	_, err := m.invoker.Invoke(env, "umount", []string{target})
+	_, err := m.invoker.Invoke(env, "umount", []string{"-l", target})
 	if err != nil {
 		return voldriver.SafeError{SafeDescription: err.Error()}
 	}

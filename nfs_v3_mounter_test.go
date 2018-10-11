@@ -177,7 +177,6 @@ var _ = Describe("NfsV3Mounter", func() {
 
 	Context("#Unmount", func() {
 		Context("when mount succeeds", func() {
-
 			BeforeEach(func() {
 				fakeInvoker.InvokeReturns(nil, nil)
 
@@ -189,9 +188,13 @@ var _ = Describe("NfsV3Mounter", func() {
 			})
 
 			It("should use the passed in variables", func() {
+				Expect(fakeInvoker.InvokeCallCount()).To(Equal(1))
+
 				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("umount"))
-				Expect(strings.Join(args, " ")).To(ContainSubstring("target"))
+				Expect(len(args)).To(Equal(2))
+				Expect(args[0]).To(Equal("-l"))
+				Expect(args[1]).To(Equal("target"))
 			})
 		})
 
