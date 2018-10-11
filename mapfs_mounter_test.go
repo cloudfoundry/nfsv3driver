@@ -411,6 +411,7 @@ var _ = Describe("MapfsMounter", func() {
 		BeforeEach(func() {
 			target = "target"
 		})
+
 		JustBeforeEach(func() {
 			err = subject.Unmount(env, target)
 		})
@@ -432,13 +433,19 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			It("should invoke unmount on both the mapfs and target mountpoints", func() {
-				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">", 1))
+				Expect(fakeInvoker.InvokeCallCount()).To(Equal(2))
+
 				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("umount"))
-				Expect(args[0]).To(Equal("target"))
+				Expect(len(args)).To(Equal(2))
+				Expect(args[0]).To(Equal("-l"))
+				Expect(args[1]).To(Equal("target"))
+
 				_, cmd, args = fakeInvoker.InvokeArgsForCall(1)
 				Expect(cmd).To(Equal("umount"))
-				Expect(args[0]).To(Equal("target_mapfs"))
+				Expect(len(args)).To(Equal(2))
+				Expect(args[0]).To(Equal("-l"))
+				Expect(args[1]).To(Equal("target_mapfs"))
 			})
 
 			It("should delete the mapfs mount point", func() {
@@ -450,17 +457,23 @@ var _ = Describe("MapfsMounter", func() {
 				BeforeEach(func() {
 					target = "/some/target/"
 				})
+
 				It("should rewrite the target to remove the slash", func() {
-					Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">", 1))
+					Expect(fakeInvoker.InvokeCallCount()).To(Equal(2))
+
 					_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 					Expect(cmd).To(Equal("umount"))
-					Expect(args[0]).To(Equal("/some/target"))
+					Expect(len(args)).To(Equal(2))
+					Expect(args[0]).To(Equal("-l"))
+					Expect(args[1]).To(Equal("/some/target"))
+
 					_, cmd, args = fakeInvoker.InvokeArgsForCall(1)
 					Expect(cmd).To(Equal("umount"))
-					Expect(args[0]).To(Equal("/some/target_mapfs"))
+					Expect(len(args)).To(Equal(2))
+					Expect(args[0]).To(Equal("-l"))
+					Expect(args[1]).To(Equal("/some/target_mapfs"))
 				})
 			})
-
 		})
 
 		Context("when unmount fails", func() {
@@ -474,6 +487,7 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(ok).To(BeTrue())
 			})
 		})
+
 		Context("when unmount of the intermediate mount fails", func() {
 			BeforeEach(func() {
 				fakeInvoker.InvokeStub = func(_ voldriver.Env, _ string, args []string) ([]byte, error) {

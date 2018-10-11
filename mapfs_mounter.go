@@ -164,19 +164,21 @@ func (m *mapfsMounter) Unmount(env voldriver.Env, target string) error {
 	defer logger.Info("unmount-end")
 
 	target = strings.TrimSuffix(target, "/")
-
 	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
+
 	if _, e := m.osshim.Stat(intermediateMount); e != nil {
 		return m.v3Mounter.Unmount(env, target)
 	}
 
-	if _, e := m.invoker.Invoke(env, "umount", []string{target}); e != nil {
+	if _, e := m.invoker.Invoke(env, "umount", []string{"-l", target}); e != nil {
 		return voldriver.SafeError{SafeDescription: e.Error()}
 	}
-	if _, e := m.invoker.Invoke(env, "umount", []string{intermediateMount}); e != nil {
+
+	if _, e := m.invoker.Invoke(env, "umount", []string{"-l", intermediateMount}); e != nil {
 		// this error may be benign since mounts without uid don't actually use this directory
 		logger.Error("warning-umount-intermediate-failed", e)
 	}
+
 	if e := m.osshim.Remove(intermediateMount); e != nil {
 		return voldriver.SafeError{SafeDescription: e.Error()}
 	}
