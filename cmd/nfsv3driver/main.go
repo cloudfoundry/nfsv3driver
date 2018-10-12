@@ -14,6 +14,7 @@ import (
 
 	"strconv"
 
+	"code.cloudfoundry.org/goshims/bufioshim"
 	"code.cloudfoundry.org/goshims/execshim"
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/ioutilshim"
@@ -207,6 +208,7 @@ func main() {
 			invoker.NewRealInvoker(),
 			&osshim.OsShim{},
 			&ioutilshim.IoutilShim{},
+			&bufioshim.BufioShim{},
 			config,
 			idResolver,
 		)
@@ -216,6 +218,7 @@ func main() {
 			legacyMounter,
 			&osshim.OsShim{},
 			&ioutilshim.IoutilShim{},
+			&bufioshim.BufioShim{},
 			fsType,
 			mountOptions,
 			idResolver,

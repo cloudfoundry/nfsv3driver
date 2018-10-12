@@ -3,14 +3,14 @@ package nfsv3driver
 import (
 	"context"
 	"fmt"
-	"time"
-
+	"io"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
+	"time"
 
+	"code.cloudfoundry.org/goshims/bufioshim"
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
@@ -29,6 +29,7 @@ type mapfsMounter struct {
 	v3Mounter         nfsdriver.Mounter
 	osshim            osshim.Os
 	ioutilshim        ioutilshim.Ioutil
+	bufioshim         bufioshim.Bufio
 	fstype            string
 	defaultOpts       string
 	resolver          IdResolver
@@ -41,8 +42,9 @@ var legacyNfsSharePattern *regexp.Regexp
 func init() {
 	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.*)$")
 }
-func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, fstype, defaultOpts string, resolver IdResolver, config *Config, mapfsPath string) nfsdriver.Mounter {
-	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, fstype, defaultOpts, resolver, *config, mapfsPath}
+
+func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, bufioshim bufioshim.Bufio, fstype, defaultOpts string, resolver IdResolver, config *Config, mapfsPath string) nfsdriver.Mounter {
+	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, bufioshim, fstype, defaultOpts, resolver, *config, mapfsPath}
 }
 
 func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -196,7 +198,7 @@ func (m *mapfsMounter) Check(env voldriver.Env, name, mountPoint string) bool {
 	_, err := m.invoker.Invoke(env, "mountpoint", []string{"-q", mountPoint})
 
 	if err != nil {
-		env.Logger().Info(fmt.Sprintf("unable to verify volume %s (%s)", name, err.Error()))
+		logger.Info(fmt.Sprintf("unable to verify volume %s (%s)", name, err.Error()))
 		return false
 	}
 	return true
@@ -217,28 +219,63 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 		logger.Info("pgrep", lager.Data{"output": output, "err": err})
 	}
 
-	fileInfos, err := m.ioutilshim.ReadDir(path)
+	file, err := m.osshim.Open("/proc/mounts")
 	if err != nil {
-		env.Logger().Error("purge-readdir-failed", err, lager.Data{"path": path})
+		logger.Error("open-proc-mounts-failed", err, lager.Data{"path": path})
 		return
 	}
 
-	for _, fileInfo := range fileInfos {
-		if fileInfo.IsDir() && strings.HasSuffix(fileInfo.Name(), "_mapfs") {
-			realMountpoint := strings.TrimSuffix(fileInfo.Name(), "_mapfs")
+	reader := m.bufioshim.NewReader(file)
+	var (
+		line    string
+		readErr error
+	)
 
-			m.invoker.Invoke(env, "umount", []string{"-f", filepath.Join(path, realMountpoint)})
-
-			if err := m.osshim.Remove(filepath.Join(path, realMountpoint)); err != nil {
-				env.Logger().Error("purge-cannot-remove-directory", err, lager.Data{"name": realMountpoint, "path": path})
-			}
-
-			m.invoker.Invoke(env, "umount", []string{"-f", filepath.Join(path, fileInfo.Name())})
-
-			if err := m.osshim.Remove(filepath.Join(path, fileInfo.Name())); err != nil {
-				env.Logger().Error("purge-cannot-remove-directory", err, lager.Data{"name": fileInfo.Name(), "path": path})
-			}
+	for {
+		line, readErr = reader.ReadString('\n')
+		if readErr != nil {
+			break
 		}
+
+		parts := strings.Split(line, " ")
+		if len(parts) < 2 {
+			continue
+		}
+
+		mountDir := parts[1]
+
+		if !strings.HasPrefix(mountDir, path) {
+			continue
+		}
+
+		if !strings.HasSuffix(mountDir, MAPFS_DIRECTORY_SUFFIX) {
+			continue
+		}
+
+		realMountpoint := strings.TrimSuffix(mountDir, MAPFS_DIRECTORY_SUFFIX)
+
+		_, err = m.invoker.Invoke(env, "umount", []string{"-l", "-f", realMountpoint})
+		if err != nil {
+			logger.Error("warning-umount-intermediate-failed", err)
+		}
+
+		if err := m.osshim.Remove(realMountpoint); err != nil {
+			logger.Error("purge-cannot-remove-directory", err, lager.Data{"name": realMountpoint, "path": path})
+		}
+
+		_, err = m.invoker.Invoke(env, "umount", []string{"-l", "-f", mountDir})
+		if err != nil {
+			logger.Error("warning-umount-mapfs-failed", err)
+		}
+
+		if err := m.osshim.Remove(mountDir); err != nil {
+			logger.Error("purge-cannot-remove-directory", err, lager.Data{"name": mountDir, "path": path})
+		}
+	}
+
+	if readErr != io.EOF {
+		logger.Error("read-proc-mounts-failed", err, lager.Data{"path": path})
+		return
 	}
 
 	// TODO -- when we remove the legacy mounter, replace this with something that just deletes all the remaining

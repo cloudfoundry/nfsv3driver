@@ -3,11 +3,13 @@ package nfsv3driver_test
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"errors"
 	"os"
 	"strings"
 
+	"code.cloudfoundry.org/goshims/bufioshim/bufio_fake"
 	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/lager"
@@ -39,6 +41,7 @@ var _ = Describe("MapfsMounter", func() {
 		fakeMounter *nfsfakes.FakeMounter
 		fakeIoutil  *ioutil_fake.FakeIoutil
 		fakeOs      *os_fake.FakeOs
+		fakeBufio   *bufio_fake.FakeBufio
 
 		opts                 map[string]interface{}
 		sourceCfg, mountsCfg *nfsv3driver.ConfigDetails
@@ -60,6 +63,7 @@ var _ = Describe("MapfsMounter", func() {
 		fakeMounter = &nfsfakes.FakeMounter{}
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
 		fakeOs = &os_fake.FakeOs{}
+		fakeBufio = &bufio_fake.FakeBufio{}
 
 		fakeOs.StatReturns(nil, nil)
 
@@ -69,7 +73,7 @@ var _ = Describe("MapfsMounter", func() {
 		mountsCfg = nfsv3driver.NewNfsV3ConfigDetails()
 		mountsCfg.ReadConf("uid,gid,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeBufio, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 	})
 
 	Context("#Mount", func() {
@@ -354,7 +358,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				mountsCfg.ReadConf("dircache,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeBufio, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				delete(opts, "uid")
@@ -549,49 +553,74 @@ var _ = Describe("MapfsMounter", func() {
 
 	Context("#Purge", func() {
 		Context("when Purge succeeds", func() {
+			var (
+				fakeProcMountsFile *os_fake.FakeFile
+			)
+
+			BeforeEach(func() {
+				fakeProcMountsFile = &os_fake.FakeFile{}
+
+				fakeOs.OpenReturns(fakeProcMountsFile, nil)
+
+				fakeProcMountsReader := &bufio_fake.FakeReader{}
+				fakeProcMountsReader.ReadStringReturnsOnCall(0, "nfsserver:/export/dir /foo/foo/foo/mount_one_mapfs nfs options 0 0\n", nil)
+				fakeProcMountsReader.ReadStringReturnsOnCall(1, "nfsserver:/export/dir /foo/bar/baz/mount_one_mapfs nfs options 0 0\n", nil)
+				fakeProcMountsReader.ReadStringReturnsOnCall(2, "nfsserver:/export/dir /foo/foo/foo/mount_one nfs options 0 0\n", nil)
+				fakeProcMountsReader.ReadStringReturnsOnCall(3, "", nil)
+				fakeProcMountsReader.ReadStringReturnsOnCall(4, "", io.EOF)
+
+				fakeBufio.NewReaderReturns(fakeProcMountsReader)
+			})
+
 			JustBeforeEach(func() {
 				subject.Purge(env, "/foo/foo/foo")
 			})
+
 			It("kills the mapfs mount processes", func() {
-				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 2))
+				Expect(fakeInvoker.InvokeCallCount()).To(Equal(33))
+
 				_, proc, args := fakeInvoker.InvokeArgsForCall(0)
 				Expect(proc).To(Equal("pkill"))
 				Expect(args[0]).To(Equal("mapfs"))
+
 				_, proc, args = fakeInvoker.InvokeArgsForCall(1)
 				Expect(proc).To(Equal("pgrep"))
 				Expect(args[0]).To(Equal("mapfs"))
 			})
-			Context("when there are mapfs mounts", func() {
-				BeforeEach(func() {
-					fakeMapfsDir := &ioutil_fake.FakeFileInfo{}
-					fakeMapfsDir.NameReturns("mount_one_mapfs")
-					fakeMapfsDir.IsDirReturns(true)
 
-					fakeIoutil.ReadDirReturns([]os.FileInfo{fakeMapfsDir}, nil)
-				})
+			Context("when there are mapfs mounts", func() {
 				It("should unmount both the mounts", func() {
-					Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 2))
+					Expect(fakeInvoker.InvokeCallCount()).To(Equal(33))
+
 					_, cmd, args := fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 2)
 					Expect(cmd).To(Equal("umount"))
-					Expect(args[0]).To(Equal("-f"))
-					Expect(args[1]).To(Equal("/foo/foo/foo/mount_one"))
+					Expect(len(args)).To(Equal(3))
+					Expect(args[0]).To(Equal("-l"))
+					Expect(args[1]).To(Equal("-f"))
+					Expect(args[2]).To(Equal("/foo/foo/foo/mount_one"))
+
 					_, cmd, args = fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 1)
 					Expect(cmd).To(Equal("umount"))
-					Expect(args[0]).To(Equal("-f"))
-					Expect(args[1]).To(Equal("/foo/foo/foo/mount_one_mapfs"))
+					Expect(len(args)).To(Equal(3))
+					Expect(args[0]).To(Equal("-l"))
+					Expect(args[1]).To(Equal("-f"))
+					Expect(args[2]).To(Equal("/foo/foo/foo/mount_one_mapfs"))
 				})
+
 				It("should remove both the mountpoints", func() {
-					Expect(fakeOs.RemoveCallCount()).To(BeNumerically(">=", 2))
+					Expect(fakeOs.RemoveCallCount()).To(Equal(2))
+
 					path := fakeOs.RemoveArgsForCall(0)
 					Expect(path).To(Equal("/foo/foo/foo/mount_one"))
+
 					path = fakeOs.RemoveArgsForCall(1)
 					Expect(path).To(Equal("/foo/foo/foo/mount_one_mapfs"))
 				})
 			})
+
 			It("eventually calls purge on the v3 mounter", func() {
 				Expect(fakeMounter.PurgeCallCount()).To(Equal(1))
 			})
 		})
-
 	})
 })
