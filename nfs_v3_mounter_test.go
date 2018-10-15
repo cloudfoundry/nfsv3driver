@@ -3,16 +3,14 @@ package nfsv3driver_test
 import (
 	"context"
 	"fmt"
-	"io"
-
 	"strings"
 
-	"code.cloudfoundry.org/goshims/bufioshim/bufio_fake"
 	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/nfsdriver"
+	nfsfakes "code.cloudfoundry.org/nfsdriver/nfsdriverfakes"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
 	"code.cloudfoundry.org/voldriver"
@@ -30,11 +28,11 @@ var _ = Describe("NfsV3Mounter", func() {
 		env         voldriver.Env
 		err         error
 
-		fakeInvoker    *voldriverfakes.FakeInvoker
-		fakeIdResolver *nfsdriverfakes.FakeIdResolver
-		fakeIoutil     *ioutil_fake.FakeIoutil
-		fakeOs         *os_fake.FakeOs
-		fakeBufio      *bufio_fake.FakeBufio
+		fakeInvoker          *voldriverfakes.FakeInvoker
+		fakeIdResolver       *nfsdriverfakes.FakeIdResolver
+		fakeIoutil           *ioutil_fake.FakeIoutil
+		fakeOs               *os_fake.FakeOs
+		fakeProcMountChecker *nfsfakes.FakeProcMountChecker
 
 		subject nfsdriver.Mounter
 
@@ -50,7 +48,8 @@ var _ = Describe("NfsV3Mounter", func() {
 		fakeInvoker = &voldriverfakes.FakeInvoker{}
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
 		fakeOs = &os_fake.FakeOs{}
-		fakeBufio = &bufio_fake.FakeBufio{}
+		fakeProcMountChecker = &nfsfakes.FakeProcMountChecker{}
+		fakeProcMountChecker.ExistsReturns(true, nil)
 
 		source := nfsv3driver.NewNfsV3ConfigDetails()
 		source.ReadConf("uid,gid", "", []string{})
@@ -58,7 +57,7 @@ var _ = Describe("NfsV3Mounter", func() {
 		mounts := nfsv3driver.NewNfsV3ConfigDetails()
 		mounts.ReadConf("sloppy_mount,allow_other,allow_root,multithread,default_permissions,fusenfs_uid,fusenfs_gid,username,password", "", []string{})
 
-		subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeBufio, nfsv3driver.NewNfsV3Config(source, mounts), nil)
+		subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeProcMountChecker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 	})
 
 	Context("#Mount", func() {
@@ -119,7 +118,7 @@ var _ = Describe("NfsV3Mounter", func() {
 				mounts := nfsv3driver.NewNfsV3ConfigDetails()
 				mounts.ReadConf("sloppy_mount,allow_other,allow_root,multithread,default_permissions,fusenfs_uid,fusenfs_gid,username,password", "", []string{})
 
-				subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeBufio, nfsv3driver.NewNfsV3Config(source, mounts), fakeIdResolver)
+				subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeProcMountChecker, nfsv3driver.NewNfsV3Config(source, mounts), fakeIdResolver)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				fakeInvoker.InvokeReturns(nil, nil)
@@ -165,7 +164,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					mounts := nfsv3driver.NewNfsV3ConfigDetails()
 					mounts.ReadConf("sloppy_mount,allow_other,allow_root,multithread,default_permissions,fusenfs_uid,fusenfs_gid,username,password", "", []string{})
 
-					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeBufio, nfsv3driver.NewNfsV3Config(source, mounts), nil)
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeProcMountChecker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 				})
 
 				It("should error", func() {
@@ -271,7 +270,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					mounts := nfsv3driver.NewNfsV3ConfigDetails()
 					mounts.ReadConf(mountAllow, mountDefault, []string{})
 
-					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeBufio, nfsv3driver.NewNfsV3Config(source, mounts), nil)
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeProcMountChecker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 
 					fakeInvoker.InvokeReturns(nil, nil)
 
@@ -305,7 +304,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					mounts := nfsv3driver.NewNfsV3ConfigDetails()
 					mounts.ReadConf(mountAllow, mountDefault, []string{})
 
-					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeBufio, nfsv3driver.NewNfsV3Config(source, mounts), nil)
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeProcMountChecker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 
 					fakeInvoker.InvokeReturns(nil, nil)
 
@@ -349,7 +348,7 @@ var _ = Describe("NfsV3Mounter", func() {
 					mounts := nfsv3driver.NewNfsV3ConfigDetails()
 					mounts.ReadConf(mountAllow, mountDefault, []string{})
 
-					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeBufio, nfsv3driver.NewNfsV3Config(source, mounts), nil)
+					subject = nfsv3driver.NewNfsV3Mounter(fakeInvoker, fakeOs, fakeIoutil, fakeProcMountChecker, nfsv3driver.NewNfsV3Config(source, mounts), nil)
 
 					fakeInvoker.InvokeReturns(nil, nil)
 
@@ -377,22 +376,8 @@ var _ = Describe("NfsV3Mounter", func() {
 
 	Context("#Purge", func() {
 		Context("when Purge succeeds", func() {
-			var (
-				fakeProcMountsFile *os_fake.FakeFile
-			)
-
 			BeforeEach(func() {
-				fakeProcMountsFile = &os_fake.FakeFile{}
-
-				fakeOs.OpenReturns(fakeProcMountsFile, nil)
-
-				fakeProcMountsReader := &bufio_fake.FakeReader{}
-				fakeProcMountsReader.ReadStringReturnsOnCall(0, "nfsserver:/export/dir /var/vcap/data/some/path/guidy-guid-guid nfs options 0 0\n", nil)
-				fakeProcMountsReader.ReadStringReturnsOnCall(1, "nfsserver:/export/dir /var/vcap/data/other/path/guidy-guid-guid nfs options 0 0\n", nil)
-				fakeProcMountsReader.ReadStringReturnsOnCall(2, "", nil)
-				fakeProcMountsReader.ReadStringReturnsOnCall(3, "", io.EOF)
-
-				fakeBufio.NewReaderReturns(fakeProcMountsReader)
+				fakeProcMountChecker.ListReturns([]string{"/var/vcap/data/some/path/guidy-guid-guid"}, nil)
 			})
 
 			JustBeforeEach(func() {
@@ -415,7 +400,7 @@ var _ = Describe("NfsV3Mounter", func() {
 				It("should unmount the mounts", func() {
 					Expect(fakeInvoker.InvokeCallCount()).To(Equal(32))
 
-					_, proc, args := fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 1)
+					_, proc, args := fakeInvoker.InvokeArgsForCall(31)
 					Expect(proc).To(Equal("umount"))
 					Expect(len(args)).To(Equal(3))
 					Expect(args[0]).To(Equal("-l"))

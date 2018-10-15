@@ -3,33 +3,32 @@ package nfsv3driver
 import (
 	"context"
 	"fmt"
-	"io"
 	"strings"
 	"time"
 
-	"code.cloudfoundry.org/goshims/bufioshim"
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/nfsdriver"
+	"code.cloudfoundry.org/nfsdriver/procmounts"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
 )
 
 type nfsV3Mounter struct {
-	invoker  invoker.Invoker
-	osutil   osshim.Os
-	ioutil   ioutilshim.Ioutil
-	bufio    bufioshim.Bufio
-	config   Config
-	resolver IdResolver
+	invoker          invoker.Invoker
+	osutil           osshim.Os
+	ioutil           ioutilshim.Ioutil
+	procMountChecker procmounts.ProcMountChecker
+	config           Config
+	resolver         IdResolver
 }
 
 var PurgeTimeToSleep = time.Millisecond * 100
 
-func NewNfsV3Mounter(invoker invoker.Invoker, osutil osshim.Os, ioutil ioutilshim.Ioutil, bufio bufioshim.Bufio, config *Config, resolver IdResolver) nfsdriver.Mounter {
-	return &nfsV3Mounter{invoker: invoker, osutil: osutil, ioutil: ioutil, bufio: bufio, config: *config, resolver: resolver}
+func NewNfsV3Mounter(invoker invoker.Invoker, osutil osshim.Os, ioutil ioutilshim.Ioutil, procMountChecker procmounts.ProcMountChecker, config *Config, resolver IdResolver) nfsdriver.Mounter {
+	return &nfsV3Mounter{invoker: invoker, osutil: osutil, ioutil: ioutil, procMountChecker: procMountChecker, config: *config, resolver: resolver}
 }
 
 func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, opts map[string]interface{}) error {
@@ -153,35 +152,13 @@ func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
 		logger.Info("warning-fuse-nfs-not-terminated")
 	}
 
-	file, err := m.osutil.Open("/proc/mounts")
+	mounts, err := m.procMountChecker.List("^" + path + ".*")
 	if err != nil {
-		logger.Error("open-proc-mounts-failed", err, lager.Data{"path": path})
+		logger.Error("list-proc-mounts-failed", err, lager.Data{"path": path})
 		return
 	}
 
-	reader := m.bufio.NewReader(file)
-	var (
-		line    string
-		readErr error
-	)
-
-	for {
-		line, readErr = reader.ReadString('\n')
-		if readErr != nil {
-			break
-		}
-
-		parts := strings.Split(line, " ")
-		if len(parts) < 2 {
-			continue
-		}
-
-		mountDir := parts[1]
-
-		if !strings.HasPrefix(mountDir, path) {
-			continue
-		}
-
+	for _, mountDir := range mounts {
 		_, err = m.invoker.Invoke(env, "umount", []string{"-l", "-f", mountDir})
 		if err != nil {
 			logger.Error("warning-umount-failed", err)
@@ -190,10 +167,5 @@ func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
 		if err := m.osutil.Remove(mountDir); err != nil {
 			logger.Error("purge-cannot-remove-directory", err, lager.Data{"name": mountDir, "path": path})
 		}
-	}
-
-	if readErr != io.EOF {
-		logger.Error("read-proc-mounts-failed", err, lager.Data{"path": path})
-		return
 	}
 }
