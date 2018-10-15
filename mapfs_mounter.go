@@ -3,18 +3,17 @@ package nfsv3driver
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"regexp"
 	"strings"
 	"syscall"
 	"time"
 
-	"code.cloudfoundry.org/goshims/bufioshim"
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/nfsdriver"
+	"code.cloudfoundry.org/nfsdriver/procmounts"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
@@ -29,7 +28,7 @@ type mapfsMounter struct {
 	v3Mounter         nfsdriver.Mounter
 	osshim            osshim.Os
 	ioutilshim        ioutilshim.Ioutil
-	bufioshim         bufioshim.Bufio
+	procMountChecker  procmounts.ProcMountChecker
 	fstype            string
 	defaultOpts       string
 	resolver          IdResolver
@@ -43,8 +42,8 @@ func init() {
 	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.*)$")
 }
 
-func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, bufioshim bufioshim.Bufio, fstype, defaultOpts string, resolver IdResolver, config *Config, mapfsPath string) nfsdriver.Mounter {
-	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, bufioshim, fstype, defaultOpts, resolver, *config, mapfsPath}
+func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, procMountChecker procmounts.ProcMountChecker, fstype, defaultOpts string, resolver IdResolver, config *Config, mapfsPath string) nfsdriver.Mounter {
+	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, procMountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
 }
 
 func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -168,7 +167,12 @@ func (m *mapfsMounter) Unmount(env voldriver.Env, target string) error {
 	target = strings.TrimSuffix(target, "/")
 	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
 
-	if _, e := m.osshim.Stat(intermediateMount); e != nil {
+	exists, e := m.procMountChecker.Exists(intermediateMount)
+	if e != nil {
+		return voldriver.SafeError{SafeDescription: e.Error()}
+	}
+
+	if !exists {
 		return m.v3Mounter.Unmount(env, target)
 	}
 
@@ -219,39 +223,13 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 		logger.Info("pgrep", lager.Data{"output": output, "err": err})
 	}
 
-	file, err := m.osshim.Open("/proc/mounts")
+	mounts, err := m.procMountChecker.List("^" + path + ".*" + MAPFS_DIRECTORY_SUFFIX + "$")
 	if err != nil {
-		logger.Error("open-proc-mounts-failed", err, lager.Data{"path": path})
+		logger.Error("check-proc-mounts-failed", err, lager.Data{"path": path})
 		return
 	}
 
-	reader := m.bufioshim.NewReader(file)
-	var (
-		line    string
-		readErr error
-	)
-
-	for {
-		line, readErr = reader.ReadString('\n')
-		if readErr != nil {
-			break
-		}
-
-		parts := strings.Split(line, " ")
-		if len(parts) < 2 {
-			continue
-		}
-
-		mountDir := parts[1]
-
-		if !strings.HasPrefix(mountDir, path) {
-			continue
-		}
-
-		if !strings.HasSuffix(mountDir, MAPFS_DIRECTORY_SUFFIX) {
-			continue
-		}
-
+	for _, mountDir := range mounts {
 		realMountpoint := strings.TrimSuffix(mountDir, MAPFS_DIRECTORY_SUFFIX)
 
 		_, err = m.invoker.Invoke(env, "umount", []string{"-l", "-f", realMountpoint})
@@ -271,11 +249,6 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 		if err := m.osshim.Remove(mountDir); err != nil {
 			logger.Error("purge-cannot-remove-directory", err, lager.Data{"name": mountDir, "path": path})
 		}
-	}
-
-	if readErr != io.EOF {
-		logger.Error("read-proc-mounts-failed", err, lager.Data{"path": path})
-		return
 	}
 
 	// TODO -- when we remove the legacy mounter, replace this with something that just deletes all the remaining

@@ -2,14 +2,11 @@ package nfsv3driver_test
 
 import (
 	"context"
-	"fmt"
-	"io"
-
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
-	"code.cloudfoundry.org/goshims/bufioshim/bufio_fake"
 	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/lager"
@@ -37,11 +34,11 @@ var _ = Describe("MapfsMounter", func() {
 		fakeBgInvoker  *nfsdriverfakes.FakeBackgroundInvoker
 		fakeIdResolver *nfsdriverfakes.FakeIdResolver
 
-		subject     nfsdriver.Mounter
-		fakeMounter *nfsfakes.FakeMounter
-		fakeIoutil  *ioutil_fake.FakeIoutil
-		fakeOs      *os_fake.FakeOs
-		fakeBufio   *bufio_fake.FakeBufio
+		subject              nfsdriver.Mounter
+		fakeMounter          *nfsfakes.FakeMounter
+		fakeIoutil           *ioutil_fake.FakeIoutil
+		fakeOs               *os_fake.FakeOs
+		fakeProcMountChecker *nfsfakes.FakeProcMountChecker
 
 		opts                 map[string]interface{}
 		sourceCfg, mountsCfg *nfsv3driver.ConfigDetails
@@ -63,7 +60,8 @@ var _ = Describe("MapfsMounter", func() {
 		fakeMounter = &nfsfakes.FakeMounter{}
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
 		fakeOs = &os_fake.FakeOs{}
-		fakeBufio = &bufio_fake.FakeBufio{}
+		fakeProcMountChecker = &nfsfakes.FakeProcMountChecker{}
+		fakeProcMountChecker.ExistsReturns(true, nil)
 
 		fakeOs.StatReturns(nil, nil)
 
@@ -73,7 +71,7 @@ var _ = Describe("MapfsMounter", func() {
 		mountsCfg = nfsv3driver.NewNfsV3ConfigDetails()
 		mountsCfg.ReadConf("uid,gid,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeBufio, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeProcMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 	})
 
 	Context("#Mount", func() {
@@ -358,7 +356,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				mountsCfg.ReadConf("dircache,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeBufio, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeProcMountChecker, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				delete(opts, "uid")
@@ -422,12 +420,25 @@ var _ = Describe("MapfsMounter", func() {
 
 		Context("when mount is not a mapfs mount", func() {
 			BeforeEach(func() {
-				fakeOs.StatReturns(nil, errors.New("badness"))
+				fakeProcMountChecker.ExistsReturns(false, nil)
 			})
 
 			It("should use the nfs_v3_mounter mounter", func() {
 				Expect(fakeMounter.UnmountCallCount()).To(Equal(1))
 				Expect(fakeInvoker.InvokeCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when /proc/mounts cannot be checked", func() {
+			BeforeEach(func() {
+				fakeProcMountChecker.ExistsReturns(false, errors.New("check failed"))
+			})
+
+			It("should return a SafeError", func() {
+				Expect(err).To(HaveOccurred())
+				safeerr, ok := err.(voldriver.SafeError)
+				Expect(ok).To(BeTrue())
+				Expect(safeerr).To(MatchError("check failed"))
 			})
 		})
 
@@ -553,23 +564,8 @@ var _ = Describe("MapfsMounter", func() {
 
 	Context("#Purge", func() {
 		Context("when Purge succeeds", func() {
-			var (
-				fakeProcMountsFile *os_fake.FakeFile
-			)
-
 			BeforeEach(func() {
-				fakeProcMountsFile = &os_fake.FakeFile{}
-
-				fakeOs.OpenReturns(fakeProcMountsFile, nil)
-
-				fakeProcMountsReader := &bufio_fake.FakeReader{}
-				fakeProcMountsReader.ReadStringReturnsOnCall(0, "nfsserver:/export/dir /foo/foo/foo/mount_one_mapfs nfs options 0 0\n", nil)
-				fakeProcMountsReader.ReadStringReturnsOnCall(1, "nfsserver:/export/dir /foo/bar/baz/mount_one_mapfs nfs options 0 0\n", nil)
-				fakeProcMountsReader.ReadStringReturnsOnCall(2, "nfsserver:/export/dir /foo/foo/foo/mount_one nfs options 0 0\n", nil)
-				fakeProcMountsReader.ReadStringReturnsOnCall(3, "", nil)
-				fakeProcMountsReader.ReadStringReturnsOnCall(4, "", io.EOF)
-
-				fakeBufio.NewReaderReturns(fakeProcMountsReader)
+				fakeProcMountChecker.ListReturns([]string{"/foo/foo/foo/mount_one_mapfs"}, nil)
 			})
 
 			JustBeforeEach(func() {
