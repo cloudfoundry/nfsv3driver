@@ -207,7 +207,7 @@ func main() {
 			invoker.NewRealInvoker(),
 			&osshim.OsShim{},
 			&ioutilshim.IoutilShim{},
-			&bufioshim.BufioShim{},
+			procmounts.NewChecker(&bufioshim.BufioShim{}, &osshim.OsShim{}),
 			config,
 			idResolver,
 		)
