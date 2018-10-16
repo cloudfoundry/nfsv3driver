@@ -164,8 +164,12 @@ func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
 			logger.Error("warning-umount-failed", err)
 		}
 
+		logger.Info("unmount-successful", lager.Data{"path": mountDir})
+
 		if err := m.osutil.Remove(mountDir); err != nil {
 			logger.Error("purge-cannot-remove-directory", err, lager.Data{"name": mountDir, "path": path})
 		}
+
+		logger.Info("remove-directory-successful", lager.Data{"path": mountDir})
 	}
 }

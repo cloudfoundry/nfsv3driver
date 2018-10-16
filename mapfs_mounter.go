@@ -229,6 +229,8 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 		return
 	}
 
+	logger.Info("mount-directory-list", lager.Data{"mounts": mounts})
+
 	for _, mountDir := range mounts {
 		realMountpoint := strings.TrimSuffix(mountDir, MAPFS_DIRECTORY_SUFFIX)
 
@@ -237,18 +239,26 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 			logger.Error("warning-umount-intermediate-failed", err)
 		}
 
+		logger.Info("unmount-successful", lager.Data{"path": realMountpoint})
+
 		if err := m.osshim.Remove(realMountpoint); err != nil {
 			logger.Error("purge-cannot-remove-directory", err, lager.Data{"name": realMountpoint, "path": path})
 		}
+
+		logger.Info("remove-directory-successful", lager.Data{"path": realMountpoint})
 
 		_, err = m.invoker.Invoke(env, "umount", []string{"-l", "-f", mountDir})
 		if err != nil {
 			logger.Error("warning-umount-mapfs-failed", err)
 		}
 
+		logger.Info("unmount-successful", lager.Data{"path": mountDir})
+
 		if err := m.osshim.Remove(mountDir); err != nil {
 			logger.Error("purge-cannot-remove-directory", err, lager.Data{"name": mountDir, "path": path})
 		}
+
+		logger.Info("remove-directory-successful", lager.Data{"path": mountDir})
 	}
 
 	// TODO -- when we remove the legacy mounter, replace this with something that just deletes all the remaining
