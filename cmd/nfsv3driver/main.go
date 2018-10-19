@@ -175,7 +175,7 @@ func main() {
 	var idResolver nfsv3driver.IdResolver
 	var mounter, legacyMounter nfsdriver.Mounter
 
-	logger, logTap := newLogger()
+	logger, logSink := newLogger()
 	logger.Info("start")
 	defer logger.Info("end")
 
@@ -251,7 +251,7 @@ func main() {
 
 	if dbgAddr := cf_debug_server.DebugAddress(flag.CommandLine); dbgAddr != "" {
 		servers = append(grouper.Members{
-			{Name: "debug-server", Runner: cf_debug_server.Runner(dbgAddr, logTap)},
+			{Name: "debug-server", Runner: cf_debug_server.Runner(dbgAddr, logSink)},
 		}, servers...)
 	}
 
@@ -340,12 +340,10 @@ func createNfsDriverUnixServer(logger lager.Logger, client voldriver.Driver, atA
 }
 
 func newLogger() (lager.Logger, *lager.ReconfigurableSink) {
-	sink, err := lager.NewRedactingWriterSink(os.Stdout, lager.DEBUG, nil, nil)
-	if err != nil {
-		panic(err)
-	}
-	logger, reconfigurableSink := lagerflags.NewFromSink("nfs-driver-server", sink)
-	return logger, reconfigurableSink
+	lagerConfig := lagerflags.ConfigFromFlags()
+	lagerConfig.RedactSecrets = true
+
+	return lagerflags.NewFromConfig("nfs-driver-server", lagerConfig)
 }
 
 func parseCommandLine() {
