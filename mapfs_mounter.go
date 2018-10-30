@@ -13,7 +13,7 @@ import (
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/nfsdriver"
-	"code.cloudfoundry.org/nfsdriver/procmounts"
+	"code.cloudfoundry.org/nfsdriver/mountchecker"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
@@ -28,7 +28,7 @@ type mapfsMounter struct {
 	v3Mounter         nfsdriver.Mounter
 	osshim            osshim.Os
 	ioutilshim        ioutilshim.Ioutil
-	procMountChecker  procmounts.ProcMountChecker
+	mountChecker      mountchecker.MountChecker
 	fstype            string
 	defaultOpts       string
 	resolver          IdResolver
@@ -42,8 +42,8 @@ func init() {
 	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.*)$")
 }
 
-func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, procMountChecker procmounts.ProcMountChecker, fstype, defaultOpts string, resolver IdResolver, config *Config, mapfsPath string) nfsdriver.Mounter {
-	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, procMountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
+func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, mountChecker mountchecker.MountChecker, fstype, defaultOpts string, resolver IdResolver, config *Config, mapfsPath string) nfsdriver.Mounter {
+	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
 }
 
 func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -167,7 +167,7 @@ func (m *mapfsMounter) Unmount(env voldriver.Env, target string) error {
 	target = strings.TrimSuffix(target, "/")
 	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
 
-	exists, e := m.procMountChecker.Exists(intermediateMount)
+	exists, e := m.mountChecker.Exists(intermediateMount)
 	if e != nil {
 		return voldriver.SafeError{SafeDescription: e.Error()}
 	}
@@ -223,7 +223,7 @@ func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
 		logger.Info("pgrep", lager.Data{"output": output, "err": err})
 	}
 
-	mounts, err := m.procMountChecker.List("^" + path + ".*" + MAPFS_DIRECTORY_SUFFIX + "$")
+	mounts, err := m.mountChecker.List("^" + path + ".*" + MAPFS_DIRECTORY_SUFFIX + "$")
 	if err != nil {
 		logger.Error("check-proc-mounts-failed", err, lager.Data{"path": path})
 		return

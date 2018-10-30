@@ -10,25 +10,25 @@ import (
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/nfsdriver"
-	"code.cloudfoundry.org/nfsdriver/procmounts"
+	"code.cloudfoundry.org/nfsdriver/mountchecker"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
 )
 
 type nfsV3Mounter struct {
-	invoker          invoker.Invoker
-	osutil           osshim.Os
-	ioutil           ioutilshim.Ioutil
-	procMountChecker procmounts.ProcMountChecker
-	config           Config
-	resolver         IdResolver
+	invoker      invoker.Invoker
+	osutil       osshim.Os
+	ioutil       ioutilshim.Ioutil
+	mountChecker mountchecker.MountChecker
+	config       Config
+	resolver     IdResolver
 }
 
 var PurgeTimeToSleep = time.Millisecond * 100
 
-func NewNfsV3Mounter(invoker invoker.Invoker, osutil osshim.Os, ioutil ioutilshim.Ioutil, procMountChecker procmounts.ProcMountChecker, config *Config, resolver IdResolver) nfsdriver.Mounter {
-	return &nfsV3Mounter{invoker: invoker, osutil: osutil, ioutil: ioutil, procMountChecker: procMountChecker, config: *config, resolver: resolver}
+func NewNfsV3Mounter(invoker invoker.Invoker, osutil osshim.Os, ioutil ioutilshim.Ioutil, mountChecker mountchecker.MountChecker, config *Config, resolver IdResolver) nfsdriver.Mounter {
+	return &nfsV3Mounter{invoker: invoker, osutil: osutil, ioutil: ioutil, mountChecker: mountChecker, config: *config, resolver: resolver}
 }
 
 func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, opts map[string]interface{}) error {
@@ -152,7 +152,7 @@ func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
 		logger.Info("warning-fuse-nfs-not-terminated")
 	}
 
-	mounts, err := m.procMountChecker.List("^" + path + ".*")
+	mounts, err := m.mountChecker.List("^" + path + ".*")
 	if err != nil {
 		logger.Error("list-proc-mounts-failed", err, lager.Data{"path": path})
 		return

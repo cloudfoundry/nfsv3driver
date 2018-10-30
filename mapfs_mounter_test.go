@@ -34,11 +34,11 @@ var _ = Describe("MapfsMounter", func() {
 		fakeBgInvoker  *nfsdriverfakes.FakeBackgroundInvoker
 		fakeIdResolver *nfsdriverfakes.FakeIdResolver
 
-		subject              nfsdriver.Mounter
-		fakeMounter          *nfsfakes.FakeMounter
-		fakeIoutil           *ioutil_fake.FakeIoutil
-		fakeOs               *os_fake.FakeOs
-		fakeProcMountChecker *nfsfakes.FakeProcMountChecker
+		subject          nfsdriver.Mounter
+		fakeMounter      *nfsfakes.FakeMounter
+		fakeIoutil       *ioutil_fake.FakeIoutil
+		fakeOs           *os_fake.FakeOs
+		fakeMountChecker *nfsfakes.FakeMountChecker
 
 		opts                 map[string]interface{}
 		sourceCfg, mountsCfg *nfsv3driver.ConfigDetails
@@ -60,8 +60,8 @@ var _ = Describe("MapfsMounter", func() {
 		fakeMounter = &nfsfakes.FakeMounter{}
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
 		fakeOs = &os_fake.FakeOs{}
-		fakeProcMountChecker = &nfsfakes.FakeProcMountChecker{}
-		fakeProcMountChecker.ExistsReturns(true, nil)
+		fakeMountChecker = &nfsfakes.FakeMountChecker{}
+		fakeMountChecker.ExistsReturns(true, nil)
 
 		fakeOs.StatReturns(nil, nil)
 
@@ -71,7 +71,7 @@ var _ = Describe("MapfsMounter", func() {
 		mountsCfg = nfsv3driver.NewNfsV3ConfigDetails()
 		mountsCfg.ReadConf("uid,gid,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeProcMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 	})
 
 	Context("#Mount", func() {
@@ -356,7 +356,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				mountsCfg.ReadConf("dircache,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeProcMountChecker, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				delete(opts, "uid")
@@ -420,7 +420,7 @@ var _ = Describe("MapfsMounter", func() {
 
 		Context("when mount is not a mapfs mount", func() {
 			BeforeEach(func() {
-				fakeProcMountChecker.ExistsReturns(false, nil)
+				fakeMountChecker.ExistsReturns(false, nil)
 			})
 
 			It("should use the nfs_v3_mounter mounter", func() {
@@ -431,7 +431,7 @@ var _ = Describe("MapfsMounter", func() {
 
 		Context("when /proc/mounts cannot be checked", func() {
 			BeforeEach(func() {
-				fakeProcMountChecker.ExistsReturns(false, errors.New("check failed"))
+				fakeMountChecker.ExistsReturns(false, errors.New("check failed"))
 			})
 
 			It("should return a SafeError", func() {
@@ -565,7 +565,7 @@ var _ = Describe("MapfsMounter", func() {
 	Context("#Purge", func() {
 		Context("when Purge succeeds", func() {
 			BeforeEach(func() {
-				fakeProcMountChecker.ListReturns([]string{"/foo/foo/foo/mount_one_mapfs"}, nil)
+				fakeMountChecker.ListReturns([]string{"/foo/foo/foo/mount_one_mapfs"}, nil)
 			})
 
 			JustBeforeEach(func() {
