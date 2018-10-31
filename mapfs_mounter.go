@@ -12,11 +12,11 @@ import (
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/nfsdriver"
-	"code.cloudfoundry.org/nfsdriver/mountchecker"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
+	"code.cloudfoundry.org/volumedriver"
+	"code.cloudfoundry.org/volumedriver/mountchecker"
 )
 
 const MAPFS_DIRECTORY_SUFFIX = "_mapfs"
@@ -25,7 +25,7 @@ const MAPFS_MOUNT_TIMEOUT = time.Minute * 5
 type mapfsMounter struct {
 	invoker           invoker.Invoker
 	backgroundInvoker BackgroundInvoker
-	v3Mounter         nfsdriver.Mounter
+	v3Mounter         volumedriver.Mounter
 	osshim            osshim.Os
 	ioutilshim        ioutilshim.Ioutil
 	mountChecker      mountchecker.MountChecker
@@ -42,7 +42,7 @@ func init() {
 	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.*)$")
 }
 
-func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter nfsdriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, mountChecker mountchecker.MountChecker, fstype, defaultOpts string, resolver IdResolver, config *Config, mapfsPath string) nfsdriver.Mounter {
+func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter volumedriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, mountChecker mountchecker.MountChecker, fstype, defaultOpts string, resolver IdResolver, config *Config, mapfsPath string) volumedriver.Mounter {
 	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
 }
 

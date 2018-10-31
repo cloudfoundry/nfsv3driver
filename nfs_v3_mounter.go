@@ -9,11 +9,11 @@ import (
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/nfsdriver"
-	"code.cloudfoundry.org/nfsdriver/mountchecker"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
+	"code.cloudfoundry.org/volumedriver"
+	"code.cloudfoundry.org/volumedriver/mountchecker"
 )
 
 type nfsV3Mounter struct {
@@ -27,7 +27,7 @@ type nfsV3Mounter struct {
 
 var PurgeTimeToSleep = time.Millisecond * 100
 
-func NewNfsV3Mounter(invoker invoker.Invoker, osutil osshim.Os, ioutil ioutilshim.Ioutil, mountChecker mountchecker.MountChecker, config *Config, resolver IdResolver) nfsdriver.Mounter {
+func NewNfsV3Mounter(invoker invoker.Invoker, osutil osshim.Os, ioutil ioutilshim.Ioutil, mountChecker mountchecker.MountChecker, config *Config, resolver IdResolver) volumedriver.Mounter {
 	return &nfsV3Mounter{invoker: invoker, osutil: osutil, ioutil: ioutil, mountChecker: mountChecker, config: *config, resolver: resolver}
 }
 

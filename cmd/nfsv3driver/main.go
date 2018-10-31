@@ -18,15 +18,15 @@ import (
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
-	"code.cloudfoundry.org/nfsdriver"
-	"code.cloudfoundry.org/nfsdriver/mountchecker"
-	"code.cloudfoundry.org/nfsdriver/oshelper"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminhttp"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminlocal"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/invoker"
+	"code.cloudfoundry.org/volumedriver"
+	"code.cloudfoundry.org/volumedriver/mountchecker"
+	"code.cloudfoundry.org/volumedriver/oshelper"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
 	"github.com/tedsuo/ifrit/http_server"
@@ -173,7 +173,7 @@ func main() {
 
 	var localDriverServer ifrit.Runner
 	var idResolver nfsv3driver.IdResolver
-	var mounter, legacyMounter nfsdriver.Mounter
+	var mounter, legacyMounter volumedriver.Mounter
 
 	logger, logSink := newLogger()
 	logger.Info("start")
@@ -226,7 +226,7 @@ func main() {
 		)
 	}
 
-	client := nfsdriver.NewNfsDriver(
+	client := volumedriver.NewVolumeDriver(
 		logger,
 		&osshim.OsShim{},
 		&filepathshim.FilepathShim{},

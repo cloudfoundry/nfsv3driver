@@ -9,13 +9,13 @@ import (
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"code.cloudfoundry.org/nfsdriver"
-	nfsfakes "code.cloudfoundry.org/nfsdriver/nfsdriverfakes"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
 	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/voldriver/voldriverfakes"
+	"code.cloudfoundry.org/volumedriver"
+	nfsfakes "code.cloudfoundry.org/volumedriver/volumedriverfakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -34,7 +34,7 @@ var _ = Describe("NfsV3Mounter", func() {
 		fakeOs           *os_fake.FakeOs
 		fakeMountChecker *nfsfakes.FakeMountChecker
 
-		subject nfsdriver.Mounter
+		subject volumedriver.Mounter
 
 		opts map[string]interface{}
 	)
