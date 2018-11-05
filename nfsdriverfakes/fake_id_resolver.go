@@ -4,15 +4,15 @@ package nfsdriverfakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/nfsv3driver"
-	"code.cloudfoundry.org/voldriver"
 )
 
 type FakeIdResolver struct {
-	ResolveStub        func(env voldriver.Env, username string, password string) (uid string, gid string, err error)
+	ResolveStub        func(env dockerdriver.Env, username string, password string) (uid string, gid string, err error)
 	resolveMutex       sync.RWMutex
 	resolveArgsForCall []struct {
-		env      voldriver.Env
+		env      dockerdriver.Env
 		username string
 		password string
 	}
@@ -30,11 +30,11 @@ type FakeIdResolver struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeIdResolver) Resolve(env voldriver.Env, username string, password string) (uid string, gid string, err error) {
+func (fake *FakeIdResolver) Resolve(env dockerdriver.Env, username string, password string) (uid string, gid string, err error) {
 	fake.resolveMutex.Lock()
 	ret, specificReturn := fake.resolveReturnsOnCall[len(fake.resolveArgsForCall)]
 	fake.resolveArgsForCall = append(fake.resolveArgsForCall, struct {
-		env      voldriver.Env
+		env      dockerdriver.Env
 		username string
 		password string
 	}{env, username, password})
@@ -55,7 +55,7 @@ func (fake *FakeIdResolver) ResolveCallCount() int {
 	return len(fake.resolveArgsForCall)
 }
 
-func (fake *FakeIdResolver) ResolveArgsForCall(i int) (voldriver.Env, string, string) {
+func (fake *FakeIdResolver) ResolveArgsForCall(i int) (dockerdriver.Env, string, string) {
 	fake.resolveMutex.RLock()
 	defer fake.resolveMutex.RUnlock()
 	return fake.resolveArgsForCall[i].env, fake.resolveArgsForCall[i].username, fake.resolveArgsForCall[i].password

@@ -9,11 +9,11 @@ import (
 
 	"context"
 
+	"code.cloudfoundry.org/dockerdriver"
+	"code.cloudfoundry.org/dockerdriver/driverhttp"
 	"code.cloudfoundry.org/goshims/ldapshim/ldap_fake"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/nfsv3driver"
-	"code.cloudfoundry.org/voldriver"
-	"code.cloudfoundry.org/voldriver/driverhttp"
 	"gopkg.in/ldap.v2"
 )
 
@@ -21,7 +21,7 @@ var _ = Describe("IdResolverTest", func() {
 	var ldapFake *ldap_fake.FakeLdap
 	var ldapConnectionFake *ldap_fake.FakeLdapConnection
 	var ldapIdResolver nfsv3driver.IdResolver
-	var env voldriver.Env
+	var env dockerdriver.Env
 	var uid string
 	var gid string
 	var err error

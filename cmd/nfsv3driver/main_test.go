@@ -9,10 +9,10 @@ import (
 	"time"
 
 	"code.cloudfoundry.org/cfhttp"
+	"code.cloudfoundry.org/dockerdriver"
+	"code.cloudfoundry.org/dockerdriver/driverhttp"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
-	"code.cloudfoundry.org/voldriver"
-	"code.cloudfoundry.org/voldriver/driverhttp"
 
 	"os"
 
@@ -229,11 +229,11 @@ var _ = Describe("Main", func() {
 
 				env := driverhttp.NewHttpDriverEnv(logger, context.TODO())
 
-				createRequest := voldriver.CreateRequest{Name: volumeId, Opts: opts}
+				createRequest := dockerdriver.CreateRequest{Name: volumeId, Opts: opts}
 				createResponse := client.Create(env, createRequest)
 				Expect(createResponse.Err).To(BeEmpty())
 
-				mountRequest := voldriver.MountRequest{Name: volumeId}
+				mountRequest := dockerdriver.MountRequest{Name: volumeId}
 				mountResponse := client.Mount(env, mountRequest)
 				Expect(mountResponse.Err).To(BeEmpty())
 				Expect(session.Out).To(gbytes.Say("mount-duration-too-high"))

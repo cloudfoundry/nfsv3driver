@@ -1,18 +1,19 @@
 package nfsv3driver_test
 
 import (
+	"bytes"
+	"io"
+	"time"
+
+	"code.cloudfoundry.org/dockerdriver"
+	"code.cloudfoundry.org/dockerdriver/driverhttp"
+	"code.cloudfoundry.org/goshims/execshim"
 	"code.cloudfoundry.org/goshims/execshim/exec_fake"
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/voldriver"
 	"code.cloudfoundry.org/lager/lagertest"
-	"code.cloudfoundry.org/voldriver/driverhttp"
 	"code.cloudfoundry.org/nfsv3driver"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"io"
-	"bytes"
-	"code.cloudfoundry.org/goshims/execshim"
-	"time"
 )
 
 var _ = Describe("Background Invoker", func() {
@@ -21,10 +22,10 @@ var _ = Describe("Background Invoker", func() {
 		fakeCmd    *exec_fake.FakeCmd
 		fakeExec   *exec_fake.FakeExec
 		testLogger lager.Logger
-		testEnv    voldriver.Env
+		testEnv    dockerdriver.Env
 		cmd        = "some-fake-command"
 		args       = []string{"fake-args-1"}
-		timeout = time.Millisecond * 500
+		timeout    = time.Millisecond * 500
 	)
 	Context("when invoking an executable", func() {
 		BeforeEach(func() {
@@ -55,7 +56,7 @@ var _ = Describe("Background Invoker", func() {
 				Expect(err.Error()).To(ContainSubstring("command exited"))
 			})
 
-			Context("when we aren't waiting for anything", func(){
+			Context("when we aren't waiting for anything", func() {
 				It("should successfully invoke cli", func() {
 					err := subject.Invoke(testEnv, cmd, args, "", timeout)
 					Expect(err).ToNot(HaveOccurred())
@@ -63,12 +64,12 @@ var _ = Describe("Background Invoker", func() {
 			})
 		})
 
-		Context("when the command takes too long to finish", func(){
-			BeforeEach(func(){
+		Context("when the command takes too long to finish", func() {
+			BeforeEach(func() {
 				// use a real invoker for this test so that we can sleep
 				subject = nfsv3driver.NewBackgroundInvoker(&execshim.ExecShim{})
-				cmd        = "sleep"
-				args       = []string{"15"}
+				cmd = "sleep"
+				args = []string{"15"}
 			})
 
 			It("should report an error", func() {

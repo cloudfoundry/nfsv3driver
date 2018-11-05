@@ -6,12 +6,12 @@ import (
 	"strings"
 	"time"
 
+	"code.cloudfoundry.org/dockerdriver"
+	"code.cloudfoundry.org/dockerdriver/driverhttp"
+	"code.cloudfoundry.org/dockerdriver/invoker"
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/voldriver"
-	"code.cloudfoundry.org/voldriver/driverhttp"
-	"code.cloudfoundry.org/voldriver/invoker"
 	"code.cloudfoundry.org/volumedriver"
 	"code.cloudfoundry.org/volumedriver/mountchecker"
 )
@@ -31,7 +31,7 @@ func NewNfsV3Mounter(invoker invoker.Invoker, osutil osshim.Os, ioutil ioutilshi
 	return &nfsV3Mounter{invoker: invoker, osutil: osutil, ioutil: ioutil, mountChecker: mountChecker, config: *config, resolver: resolver}
 }
 
-func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, opts map[string]interface{}) error {
+func (m *nfsV3Mounter) Mount(env dockerdriver.Env, source string, target string, opts map[string]interface{}) error {
 	logger := env.Logger().Session("fuse-nfs-mount")
 	logger.Info("start")
 	defer logger.Info("end")
@@ -51,16 +51,16 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 			"config_mounts": tempConfig.mount,
 			"config_sloppy": tempConfig.sloppyMount,
 		})
-		return voldriver.SafeError{SafeDescription: err.Error()}
+		return dockerdriver.SafeError{SafeDescription: err.Error()}
 	}
 
 	if username, ok := opts["username"]; ok {
 		if m.resolver == nil {
-			return voldriver.SafeError{SafeDescription: "LDAP username is specified but LDAP is not configured"}
+			return dockerdriver.SafeError{SafeDescription: "LDAP username is specified but LDAP is not configured"}
 		}
 		password, ok := opts["password"]
 		if !ok {
-			return voldriver.SafeError{SafeDescription: "LDAP username is specified but LDAP password is missing"}
+			return dockerdriver.SafeError{SafeDescription: "LDAP username is specified but LDAP password is missing"}
 		}
 
 		tempConfig.source.Allowed = append(tempConfig.source.Allowed, "uid", "gid")
@@ -77,7 +77,7 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 			"source", "mount", "kerberosPrincipal", "kerberosKeytab", "readonly", "username", "password",
 		})
 		if err != nil {
-			return voldriver.SafeError{SafeDescription: err.Error()}
+			return dockerdriver.SafeError{SafeDescription: err.Error()}
 		}
 	}
 
@@ -102,20 +102,20 @@ func (m *nfsV3Mounter) Mount(env voldriver.Env, source string, target string, op
 	if err != nil {
 		logger.Error("fuse-nfs-invocation-failed", err)
 		m.invoker.Invoke(env, "umount", []string{target})
-		return voldriver.SafeError{SafeDescription: err.Error()}
+		return dockerdriver.SafeError{SafeDescription: err.Error()}
 	}
 	return nil
 }
 
-func (m *nfsV3Mounter) Unmount(env voldriver.Env, target string) error {
+func (m *nfsV3Mounter) Unmount(env dockerdriver.Env, target string) error {
 	_, err := m.invoker.Invoke(env, "umount", []string{"-l", target})
 	if err != nil {
-		return voldriver.SafeError{SafeDescription: err.Error()}
+		return dockerdriver.SafeError{SafeDescription: err.Error()}
 	}
 	return nil
 }
 
-func (m *nfsV3Mounter) Check(env voldriver.Env, name, mountPoint string) bool {
+func (m *nfsV3Mounter) Check(env dockerdriver.Env, name, mountPoint string) bool {
 	logger := env.Logger().Session("check")
 	logger.Info("start")
 	defer logger.Info("end")
@@ -133,7 +133,7 @@ func (m *nfsV3Mounter) Check(env voldriver.Env, name, mountPoint string) bool {
 	return true
 }
 
-func (m *nfsV3Mounter) Purge(env voldriver.Env, path string) {
+func (m *nfsV3Mounter) Purge(env dockerdriver.Env, path string) {
 	logger := env.Logger().Session("purge")
 	logger.Info("start")
 	defer logger.Info("end")

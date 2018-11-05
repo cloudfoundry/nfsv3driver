@@ -1,10 +1,11 @@
 package driveradminlocal
 
 import (
-	"code.cloudfoundry.org/nfsv3driver/driveradmin"
-	"code.cloudfoundry.org/voldriver"
-	"github.com/tedsuo/ifrit"
 	"os"
+
+	"code.cloudfoundry.org/dockerdriver"
+	"code.cloudfoundry.org/nfsv3driver/driveradmin"
+	"github.com/tedsuo/ifrit"
 )
 
 type DriverAdminLocal struct {
@@ -26,7 +27,7 @@ func (d *DriverAdminLocal) RegisterDrainable(rhs driveradmin.Drainable) {
 	d.drainables = append(d.drainables, rhs)
 }
 
-func (d *DriverAdminLocal) Evacuate(env voldriver.Env) driveradmin.ErrorResponse {
+func (d *DriverAdminLocal) Evacuate(env dockerdriver.Env) driveradmin.ErrorResponse {
 	logger := env.Logger().Session("evacuate")
 	logger.Info("start")
 	defer logger.Info("end")
@@ -46,7 +47,7 @@ func (d *DriverAdminLocal) Evacuate(env voldriver.Env) driveradmin.ErrorResponse
 	return driveradmin.ErrorResponse{}
 }
 
-func (d *DriverAdminLocal) Ping(env voldriver.Env) driveradmin.ErrorResponse {
+func (d *DriverAdminLocal) Ping(env dockerdriver.Env) driveradmin.ErrorResponse {
 	logger := env.Logger().Session("ping")
 	logger.Info("start")
 	defer logger.Info("end")

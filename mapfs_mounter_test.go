@@ -7,15 +7,15 @@ import (
 	"os"
 	"strings"
 
+	"code.cloudfoundry.org/dockerdriver"
+	"code.cloudfoundry.org/dockerdriver/dockerdriverfakes"
+	"code.cloudfoundry.org/dockerdriver/driverhttp"
 	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
-	"code.cloudfoundry.org/voldriver"
-	"code.cloudfoundry.org/voldriver/driverhttp"
-	"code.cloudfoundry.org/voldriver/voldriverfakes"
 	"code.cloudfoundry.org/volumedriver"
 	nfsfakes "code.cloudfoundry.org/volumedriver/volumedriverfakes"
 	. "github.com/onsi/ginkgo"
@@ -27,10 +27,10 @@ var _ = Describe("MapfsMounter", func() {
 	var (
 		logger      lager.Logger
 		testContext context.Context
-		env         voldriver.Env
+		env         dockerdriver.Env
 		err         error
 
-		fakeInvoker    *voldriverfakes.FakeInvoker
+		fakeInvoker    *dockerdriverfakes.FakeInvoker
 		fakeBgInvoker  *nfsdriverfakes.FakeBackgroundInvoker
 		fakeIdResolver *nfsdriverfakes.FakeIdResolver
 
@@ -55,7 +55,7 @@ var _ = Describe("MapfsMounter", func() {
 		opts["uid"] = "2000"
 		opts["gid"] = "2000"
 
-		fakeInvoker = &voldriverfakes.FakeInvoker{}
+		fakeInvoker = &dockerdriverfakes.FakeInvoker{}
 		fakeBgInvoker = &nfsdriverfakes.FakeBackgroundInvoker{}
 		fakeMounter = &nfsfakes.FakeMounter{}
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
@@ -162,7 +162,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				It("should return an error", func() {
 					Expect(err).To(HaveOccurred())
-					_, ok := err.(voldriver.SafeError)
+					_, ok := err.(dockerdriver.SafeError)
 					Expect(ok).To(BeTrue())
 				})
 			})
@@ -264,7 +264,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 			It("should error", func() {
 				Expect(err).To(HaveOccurred())
-				_, ok := err.(voldriver.SafeError)
+				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
 			})
 		})
@@ -308,7 +308,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should error", func() {
 				Expect(err).To(HaveOccurred())
-				_, ok := err.(voldriver.SafeError)
+				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
 				Expect(err.Error()).To(ContainSubstring("LDAP is not configured"))
 			})
@@ -320,7 +320,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should return error", func() {
 				Expect(err).To(HaveOccurred())
-				_, ok := err.(voldriver.SafeError)
+				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
 			})
 
@@ -335,7 +335,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should return error", func() {
 				Expect(err).To(HaveOccurred())
-				_, ok := err.(voldriver.SafeError)
+				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
 			})
 			It("should invoke unmount", func() {
@@ -386,7 +386,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				It("should error", func() {
 					Expect(err).To(HaveOccurred())
-					_, ok := err.(voldriver.SafeError)
+					_, ok := err.(dockerdriver.SafeError)
 					Expect(ok).To(BeTrue())
 					Expect(err.Error()).To(ContainSubstring("LDAP password is missing"))
 				})
@@ -400,7 +400,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				It("should error", func() {
 					Expect(err).To(HaveOccurred())
-					_, ok := err.(voldriver.SafeError)
+					_, ok := err.(dockerdriver.SafeError)
 					Expect(ok).To(BeTrue())
 					Expect(err.Error()).To(ContainSubstring("Not allowed options"))
 				})
@@ -436,7 +436,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should return a SafeError", func() {
 				Expect(err).To(HaveOccurred())
-				safeerr, ok := err.(voldriver.SafeError)
+				safeerr, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
 				Expect(safeerr).To(MatchError("check failed"))
 			})
@@ -498,14 +498,14 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
-				_, ok := err.(voldriver.SafeError)
+				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
 			})
 		})
 
 		Context("when unmount of the intermediate mount fails", func() {
 			BeforeEach(func() {
-				fakeInvoker.InvokeStub = func(_ voldriver.Env, _ string, args []string) ([]byte, error) {
+				fakeInvoker.InvokeStub = func(_ dockerdriver.Env, _ string, args []string) ([]byte, error) {
 					for _, arg := range args {
 						if arg == "target_mapfs" {
 							return []byte("error"), fmt.Errorf("mapfs umount error")
@@ -527,7 +527,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
-				_, ok := err.(voldriver.SafeError)
+				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
 			})
 		})

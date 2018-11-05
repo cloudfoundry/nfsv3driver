@@ -4,15 +4,15 @@ package nfsdriverfakes
 import (
 	"sync"
 
+	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin"
-	"code.cloudfoundry.org/voldriver"
 )
 
 type FakeDrainable struct {
-	DrainStub        func(env voldriver.Env) error
+	DrainStub        func(env dockerdriver.Env) error
 	drainMutex       sync.RWMutex
 	drainArgsForCall []struct {
-		env voldriver.Env
+		env dockerdriver.Env
 	}
 	drainReturns struct {
 		result1 error
@@ -24,11 +24,11 @@ type FakeDrainable struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeDrainable) Drain(env voldriver.Env) error {
+func (fake *FakeDrainable) Drain(env dockerdriver.Env) error {
 	fake.drainMutex.Lock()
 	ret, specificReturn := fake.drainReturnsOnCall[len(fake.drainArgsForCall)]
 	fake.drainArgsForCall = append(fake.drainArgsForCall, struct {
-		env voldriver.Env
+		env dockerdriver.Env
 	}{env})
 	fake.recordInvocation("Drain", []interface{}{env})
 	fake.drainMutex.Unlock()
@@ -47,7 +47,7 @@ func (fake *FakeDrainable) DrainCallCount() int {
 	return len(fake.drainArgsForCall)
 }
 
-func (fake *FakeDrainable) DrainArgsForCall(i int) voldriver.Env {
+func (fake *FakeDrainable) DrainArgsForCall(i int) dockerdriver.Env {
 	fake.drainMutex.RLock()
 	defer fake.drainMutex.RUnlock()
 	return fake.drainArgsForCall[i].env

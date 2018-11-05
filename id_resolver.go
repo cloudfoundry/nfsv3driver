@@ -8,14 +8,14 @@ import (
 
 	"fmt"
 
+	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/goshims/ldapshim"
-	"code.cloudfoundry.org/voldriver"
 	"gopkg.in/ldap.v2"
 )
 
 //go:generate counterfeiter -o nfsdriverfakes/fake_id_resolver.go . IdResolver
 type IdResolver interface {
-	Resolve(env voldriver.Env, username string, password string) (uid string, gid string, err error)
+	Resolve(env dockerdriver.Env, username string, password string) (uid string, gid string, err error)
 }
 
 type ldapIdResolver struct {
@@ -54,7 +54,7 @@ func NewLdapIdResolver(
 	}
 }
 
-func (d *ldapIdResolver) Resolve(env voldriver.Env, username string, password string) (uid string, gid string, err error) {
+func (d *ldapIdResolver) Resolve(env dockerdriver.Env, username string, password string) (uid string, gid string, err error) {
 	addr := fmt.Sprintf("%s:%d", d.ldapHost, d.ldapPort)
 
 	var l ldapshim.LdapConnection

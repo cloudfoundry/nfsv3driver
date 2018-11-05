@@ -1,21 +1,22 @@
 package nfsv3driver
 
 import (
-	"code.cloudfoundry.org/voldriver"
+	"bufio"
+	"context"
+	"errors"
+	"strings"
+	"sync"
+	"time"
+
+	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/goshims/execshim"
 	"code.cloudfoundry.org/lager"
-	"bufio"
-	"strings"
-	"errors"
-	"time"
-	"context"
-	"sync"
 )
 
 //go:generate counterfeiter -o nfsdriverfakes/fake_background_invoker.go . BackgroundInvoker
 
 type BackgroundInvoker interface {
-	Invoke(env voldriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error
+	Invoke(env dockerdriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error
 }
 
 type backgroundInvoker struct {
@@ -26,7 +27,7 @@ func NewBackgroundInvoker(useExec execshim.Exec) BackgroundInvoker {
 	return &backgroundInvoker{useExec}
 }
 
-func (r *backgroundInvoker) Invoke(env voldriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error {
+func (r *backgroundInvoker) Invoke(env dockerdriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error {
 	logger := env.Logger().Session("invoking-command", lager.Data{"executable": executable, "args": cmdArgs})
 	logger.Info("start")
 	defer logger.Info("end")
@@ -50,7 +51,7 @@ func (r *backgroundInvoker) Invoke(env voldriver.Env, executable string, cmdArgs
 
 	var mutex sync.Mutex
 	cancelled := false
-  timer := time.AfterFunc(timeout, func(){
+	timer := time.AfterFunc(timeout, func() {
 		mutex.Lock()
 		defer mutex.Unlock()
 		cancelled = true
@@ -71,7 +72,7 @@ func (r *backgroundInvoker) Invoke(env voldriver.Env, executable string, cmdArgs
 		mutex.Lock()
 		c := cancelled
 		mutex.Unlock()
-		if (c) {
+		if c {
 			err = errors.New("command timed out")
 		} else {
 			err = errors.New("command exited")

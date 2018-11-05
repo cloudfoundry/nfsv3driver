@@ -1,7 +1,7 @@
 package driveradmin
 
 import (
-	"code.cloudfoundry.org/voldriver"
+	"code.cloudfoundry.org/dockerdriver"
 	"github.com/tedsuo/rata"
 )
 
@@ -18,8 +18,8 @@ var Routes = rata.Routes{
 //go:generate counterfeiter -o ../nfsdriverfakes/fake_driver_admin.go . DriverAdmin
 
 type DriverAdmin interface {
-	Evacuate(env voldriver.Env) ErrorResponse
-	Ping(env voldriver.Env) ErrorResponse
+	Evacuate(env dockerdriver.Env) ErrorResponse
+	Ping(env dockerdriver.Env) ErrorResponse
 }
 
 type ErrorResponse struct {
@@ -28,5 +28,5 @@ type ErrorResponse struct {
 
 //go:generate counterfeiter -o ../nfsdriverfakes/fake_drainable.go . Drainable
 type Drainable interface {
-	Drain(env voldriver.Env) error
+	Drain(env dockerdriver.Env) error
 }

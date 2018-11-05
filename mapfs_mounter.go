@@ -9,12 +9,12 @@ import (
 	"syscall"
 	"time"
 
+	"code.cloudfoundry.org/dockerdriver"
+	"code.cloudfoundry.org/dockerdriver/driverhttp"
+	"code.cloudfoundry.org/dockerdriver/invoker"
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/voldriver"
-	"code.cloudfoundry.org/voldriver/driverhttp"
-	"code.cloudfoundry.org/voldriver/invoker"
 	"code.cloudfoundry.org/volumedriver"
 	"code.cloudfoundry.org/volumedriver/mountchecker"
 )
@@ -46,7 +46,7 @@ func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mou
 	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
 }
 
-func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, opts map[string]interface{}) error {
+func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string, opts map[string]interface{}) error {
 	logger := env.Logger().Session("mount")
 	logger.Info("mount-start")
 	defer logger.Info("mount-end")
@@ -70,16 +70,16 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 			"config_mounts": tempConfig.mount,
 			"config_sloppy": tempConfig.sloppyMount,
 		})
-		return voldriver.SafeError{SafeDescription: err.Error()}
+		return dockerdriver.SafeError{SafeDescription: err.Error()}
 	}
 
 	if username, ok := opts["username"]; ok {
 		if m.resolver == nil {
-			return voldriver.SafeError{SafeDescription: "LDAP username is specified but LDAP is not configured"}
+			return dockerdriver.SafeError{SafeDescription: "LDAP username is specified but LDAP is not configured"}
 		}
 		password, ok := opts["password"]
 		if !ok {
-			return voldriver.SafeError{SafeDescription: "LDAP username is specified but LDAP password is missing"}
+			return dockerdriver.SafeError{SafeDescription: "LDAP username is specified but LDAP password is missing"}
 		}
 
 		uid, gid, err := m.resolver.Resolve(env, username.(string), password.(string))
@@ -94,14 +94,14 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 		if err := tempConfig.SetEntries(remote, opts, []string{
 			"source", "mount", "readonly", "username", "password", "experimental",
 		}); err != nil {
-			return voldriver.SafeError{SafeDescription: err.Error()}
+			return dockerdriver.SafeError{SafeDescription: err.Error()}
 		}
 	}
 
 	_, uidok := opts["uid"]
 	_, gidok := opts["gid"]
 	if uidok && !gidok {
-		return voldriver.SafeError{SafeDescription: "required 'gid' option is missing"}
+		return dockerdriver.SafeError{SafeDescription: "required 'gid' option is missing"}
 	}
 
 	// check for legacy URL formatted mounts and rewrite to standard nfs format as necessary
@@ -118,7 +118,7 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 	err := m.osshim.MkdirAll(intermediateMount, os.ModePerm)
 	if err != nil {
 		logger.Error("mkdir-intermediate-failed", err)
-		return voldriver.SafeError{SafeDescription: err.Error()}
+		return dockerdriver.SafeError{SafeDescription: err.Error()}
 	}
 
 	mountOptions := m.defaultOpts
@@ -141,7 +141,7 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 	if err != nil {
 		logger.Error("invoke-mount-failed", err)
 		m.osshim.RemoveAll(intermediateMount)
-		return voldriver.SafeError{SafeDescription: err.Error()}
+		return dockerdriver.SafeError{SafeDescription: err.Error()}
 	}
 
 	if uidok {
@@ -152,14 +152,14 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 			logger.Error("background-invoke-mount-failed", err)
 			m.invoker.Invoke(env, "umount", []string{intermediateMount})
 			m.osshim.Remove(intermediateMount)
-			return voldriver.SafeError{SafeDescription: err.Error()}
+			return dockerdriver.SafeError{SafeDescription: err.Error()}
 		}
 	}
 
 	return nil
 }
 
-func (m *mapfsMounter) Unmount(env voldriver.Env, target string) error {
+func (m *mapfsMounter) Unmount(env dockerdriver.Env, target string) error {
 	logger := env.Logger().Session("unmount")
 	logger.Info("unmount-start")
 	defer logger.Info("unmount-end")
@@ -169,7 +169,7 @@ func (m *mapfsMounter) Unmount(env voldriver.Env, target string) error {
 
 	exists, e := m.mountChecker.Exists(intermediateMount)
 	if e != nil {
-		return voldriver.SafeError{SafeDescription: e.Error()}
+		return dockerdriver.SafeError{SafeDescription: e.Error()}
 	}
 
 	if !exists {
@@ -177,7 +177,7 @@ func (m *mapfsMounter) Unmount(env voldriver.Env, target string) error {
 	}
 
 	if _, e := m.invoker.Invoke(env, "umount", []string{"-l", target}); e != nil {
-		return voldriver.SafeError{SafeDescription: e.Error()}
+		return dockerdriver.SafeError{SafeDescription: e.Error()}
 	}
 
 	if _, e := m.invoker.Invoke(env, "umount", []string{"-l", intermediateMount}); e != nil {
@@ -186,13 +186,13 @@ func (m *mapfsMounter) Unmount(env voldriver.Env, target string) error {
 	}
 
 	if e := m.osshim.Remove(intermediateMount); e != nil {
-		return voldriver.SafeError{SafeDescription: e.Error()}
+		return dockerdriver.SafeError{SafeDescription: e.Error()}
 	}
 
 	return nil
 }
 
-func (m *mapfsMounter) Check(env voldriver.Env, name, mountPoint string) bool {
+func (m *mapfsMounter) Check(env dockerdriver.Env, name, mountPoint string) bool {
 	logger := env.Logger().Session("check")
 	logger.Info("check-start")
 	defer logger.Info("check-end")
@@ -208,7 +208,7 @@ func (m *mapfsMounter) Check(env voldriver.Env, name, mountPoint string) bool {
 	return true
 }
 
-func (m *mapfsMounter) Purge(env voldriver.Env, path string) {
+func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 	logger := env.Logger().Session("purge")
 	logger.Info("purge-start")
 	defer logger.Info("purge-end")

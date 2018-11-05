@@ -5,15 +5,15 @@ import (
 	"sync"
 	"time"
 
+	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/nfsv3driver"
-	"code.cloudfoundry.org/voldriver"
 )
 
 type FakeBackgroundInvoker struct {
-	InvokeStub        func(env voldriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error
+	InvokeStub        func(env dockerdriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error
 	invokeMutex       sync.RWMutex
 	invokeArgsForCall []struct {
-		env        voldriver.Env
+		env        dockerdriver.Env
 		executable string
 		cmdArgs    []string
 		waitFor    string
@@ -29,7 +29,7 @@ type FakeBackgroundInvoker struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBackgroundInvoker) Invoke(env voldriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error {
+func (fake *FakeBackgroundInvoker) Invoke(env dockerdriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error {
 	var cmdArgsCopy []string
 	if cmdArgs != nil {
 		cmdArgsCopy = make([]string, len(cmdArgs))
@@ -38,7 +38,7 @@ func (fake *FakeBackgroundInvoker) Invoke(env voldriver.Env, executable string, 
 	fake.invokeMutex.Lock()
 	ret, specificReturn := fake.invokeReturnsOnCall[len(fake.invokeArgsForCall)]
 	fake.invokeArgsForCall = append(fake.invokeArgsForCall, struct {
-		env        voldriver.Env
+		env        dockerdriver.Env
 		executable string
 		cmdArgs    []string
 		waitFor    string
@@ -61,7 +61,7 @@ func (fake *FakeBackgroundInvoker) InvokeCallCount() int {
 	return len(fake.invokeArgsForCall)
 }
 
-func (fake *FakeBackgroundInvoker) InvokeArgsForCall(i int) (voldriver.Env, string, []string, string, time.Duration) {
+func (fake *FakeBackgroundInvoker) InvokeArgsForCall(i int) (dockerdriver.Env, string, []string, string, time.Duration) {
 	fake.invokeMutex.RLock()
 	defer fake.invokeMutex.RUnlock()
 	return fake.invokeArgsForCall[i].env, fake.invokeArgsForCall[i].executable, fake.invokeArgsForCall[i].cmdArgs, fake.invokeArgsForCall[i].waitFor, fake.invokeArgsForCall[i].timeout

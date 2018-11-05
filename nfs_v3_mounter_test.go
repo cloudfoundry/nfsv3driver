@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"strings"
 
+	"code.cloudfoundry.org/dockerdriver"
+	"code.cloudfoundry.org/dockerdriver/dockerdriverfakes"
+	"code.cloudfoundry.org/dockerdriver/driverhttp"
 	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
-	"code.cloudfoundry.org/voldriver"
-	"code.cloudfoundry.org/voldriver/driverhttp"
-	"code.cloudfoundry.org/voldriver/voldriverfakes"
 	"code.cloudfoundry.org/volumedriver"
 	nfsfakes "code.cloudfoundry.org/volumedriver/volumedriverfakes"
 	. "github.com/onsi/ginkgo"
@@ -25,10 +25,10 @@ var _ = Describe("NfsV3Mounter", func() {
 	var (
 		logger      lager.Logger
 		testContext context.Context
-		env         voldriver.Env
+		env         dockerdriver.Env
 		err         error
 
-		fakeInvoker      *voldriverfakes.FakeInvoker
+		fakeInvoker      *dockerdriverfakes.FakeInvoker
 		fakeIdResolver   *nfsdriverfakes.FakeIdResolver
 		fakeIoutil       *ioutil_fake.FakeIoutil
 		fakeOs           *os_fake.FakeOs
@@ -45,7 +45,7 @@ var _ = Describe("NfsV3Mounter", func() {
 		env = driverhttp.NewHttpDriverEnv(logger, testContext)
 		opts = map[string]interface{}{}
 
-		fakeInvoker = &voldriverfakes.FakeInvoker{}
+		fakeInvoker = &dockerdriverfakes.FakeInvoker{}
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
 		fakeOs = &os_fake.FakeOs{}
 		fakeMountChecker = &nfsfakes.FakeMountChecker{}
@@ -99,7 +99,7 @@ var _ = Describe("NfsV3Mounter", func() {
 
 			It("should return without error", func() {
 				Expect(err).To(HaveOccurred())
-				_, ok := err.(voldriver.SafeError)
+				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
 			})
 		})
@@ -152,7 +152,7 @@ var _ = Describe("NfsV3Mounter", func() {
 				It("should error", func() {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Not allowed options"))
-					_, ok := err.(voldriver.SafeError)
+					_, ok := err.(dockerdriver.SafeError)
 					Expect(ok).To(BeTrue())
 				})
 			})
@@ -170,7 +170,7 @@ var _ = Describe("NfsV3Mounter", func() {
 				It("should error", func() {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("LDAP is not configured"))
-					_, ok := err.(voldriver.SafeError)
+					_, ok := err.(dockerdriver.SafeError)
 					Expect(ok).To(BeTrue())
 				})
 			})
@@ -208,7 +208,7 @@ var _ = Describe("NfsV3Mounter", func() {
 
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
-				_, ok := err.(voldriver.SafeError)
+				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
 			})
 		})
