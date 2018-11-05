@@ -2,19 +2,19 @@
 package nfsdriverfakes
 
 import (
-	"sync"
+	sync "sync"
 
-	"code.cloudfoundry.org/dockerdriver"
-	"code.cloudfoundry.org/nfsv3driver"
+	dockerdriver "code.cloudfoundry.org/dockerdriver"
+	nfsv3driver "code.cloudfoundry.org/nfsv3driver"
 )
 
 type FakeIdResolver struct {
-	ResolveStub        func(env dockerdriver.Env, username string, password string) (uid string, gid string, err error)
+	ResolveStub        func(dockerdriver.Env, string, string) (string, string, error)
 	resolveMutex       sync.RWMutex
 	resolveArgsForCall []struct {
-		env      dockerdriver.Env
-		username string
-		password string
+		arg1 dockerdriver.Env
+		arg2 string
+		arg3 string
 	}
 	resolveReturns struct {
 		result1 string
@@ -30,23 +30,24 @@ type FakeIdResolver struct {
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeIdResolver) Resolve(env dockerdriver.Env, username string, password string) (uid string, gid string, err error) {
+func (fake *FakeIdResolver) Resolve(arg1 dockerdriver.Env, arg2 string, arg3 string) (string, string, error) {
 	fake.resolveMutex.Lock()
 	ret, specificReturn := fake.resolveReturnsOnCall[len(fake.resolveArgsForCall)]
 	fake.resolveArgsForCall = append(fake.resolveArgsForCall, struct {
-		env      dockerdriver.Env
-		username string
-		password string
-	}{env, username, password})
-	fake.recordInvocation("Resolve", []interface{}{env, username, password})
+		arg1 dockerdriver.Env
+		arg2 string
+		arg3 string
+	}{arg1, arg2, arg3})
+	fake.recordInvocation("Resolve", []interface{}{arg1, arg2, arg3})
 	fake.resolveMutex.Unlock()
 	if fake.ResolveStub != nil {
-		return fake.ResolveStub(env, username, password)
+		return fake.ResolveStub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2, ret.result3
 	}
-	return fake.resolveReturns.result1, fake.resolveReturns.result2, fake.resolveReturns.result3
+	fakeReturns := fake.resolveReturns
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
 }
 
 func (fake *FakeIdResolver) ResolveCallCount() int {
@@ -55,13 +56,22 @@ func (fake *FakeIdResolver) ResolveCallCount() int {
 	return len(fake.resolveArgsForCall)
 }
 
+func (fake *FakeIdResolver) ResolveCalls(stub func(dockerdriver.Env, string, string) (string, string, error)) {
+	fake.resolveMutex.Lock()
+	defer fake.resolveMutex.Unlock()
+	fake.ResolveStub = stub
+}
+
 func (fake *FakeIdResolver) ResolveArgsForCall(i int) (dockerdriver.Env, string, string) {
 	fake.resolveMutex.RLock()
 	defer fake.resolveMutex.RUnlock()
-	return fake.resolveArgsForCall[i].env, fake.resolveArgsForCall[i].username, fake.resolveArgsForCall[i].password
+	argsForCall := fake.resolveArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3
 }
 
 func (fake *FakeIdResolver) ResolveReturns(result1 string, result2 string, result3 error) {
+	fake.resolveMutex.Lock()
+	defer fake.resolveMutex.Unlock()
 	fake.ResolveStub = nil
 	fake.resolveReturns = struct {
 		result1 string
@@ -71,6 +81,8 @@ func (fake *FakeIdResolver) ResolveReturns(result1 string, result2 string, resul
 }
 
 func (fake *FakeIdResolver) ResolveReturnsOnCall(i int, result1 string, result2 string, result3 error) {
+	fake.resolveMutex.Lock()
+	defer fake.resolveMutex.Unlock()
 	fake.ResolveStub = nil
 	if fake.resolveReturnsOnCall == nil {
 		fake.resolveReturnsOnCall = make(map[int]struct {
