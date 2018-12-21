@@ -325,7 +325,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			It("should remove the intermediary mountpoint", func() {
-				Expect(fakeOs.RemoveAllCallCount()).To(Equal(1))
+				Expect(fakeOs.RemoveCallCount()).To(Equal(1))
 			})
 		})
 		Context("when kernel mount succeeds, but mapfs mount fails", func() {

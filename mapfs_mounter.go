@@ -140,7 +140,7 @@ func (m *mapfsMounter) Mount(env voldriver.Env, remote string, target string, op
 	_, err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t})
 	if err != nil {
 		logger.Error("invoke-mount-failed", err)
-		m.osshim.RemoveAll(intermediateMount)
+		m.osshim.Remove(intermediateMount)
 		return voldriver.SafeError{SafeDescription: err.Error()}
 	}
 
