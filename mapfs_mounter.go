@@ -154,6 +154,19 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 			m.osshim.Remove(intermediateMount)
 			return dockerdriver.SafeError{SafeDescription: err.Error()}
 		}
+
+		// make sure we can read the directory we just mounted
+		fh, err := m.osshim.OpenFile(target, os.O_RDONLY, 0444)
+		if err != nil {
+			logger.Error("mount-read-access-check-failed", err)
+			m.invoker.Invoke(env, "umount", []string{target})
+			m.osshim.Remove(target)
+			m.invoker.Invoke(env, "umount", []string{intermediateMount})
+			m.osshim.Remove(intermediateMount)
+			return dockerdriver.SafeError{SafeDescription: err.Error()}
+		}
+
+		fh.Close()
 	}
 
 	return nil

@@ -60,6 +60,7 @@ var _ = Describe("MapfsMounter", func() {
 		fakeMounter = &nfsfakes.FakeMounter{}
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
 		fakeOs = &os_fake.FakeOs{}
+		fakeOs.OpenFileReturns(&os_fake.FakeFile{}, nil)
 		fakeMountChecker = &nfsfakes.FakeMountChecker{}
 		fakeMountChecker.ExistsReturns(true, nil)
 
@@ -296,6 +297,28 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args).To(ContainElement("-gid"))
 				Expect(args).To(ContainElement("target"))
 				Expect(args).To(ContainElement("target_mapfs"))
+			})
+		})
+		Context("when the specified uid doesn't have read access", func() {
+			BeforeEach(func() {
+				fakeOs.OpenFileReturns(nil, errors.New("ew"))
+			})
+			It("should fail and clean up", func() {
+				Expect(err).To(HaveOccurred())
+				_, ok := err.(dockerdriver.SafeError)
+				Expect(ok).To(BeTrue())
+				Expect(err.Error()).To(ContainSubstring("ew"))
+
+				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 3))
+				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				Expect(cmd).To(Equal("umount"))
+				Expect(len(args)).To(BeNumerically(">", 0))
+				Expect(args[0]).To(Equal("target"))
+				_, cmd, args = fakeInvoker.InvokeArgsForCall(2)
+				Expect(cmd).To(Equal("umount"))
+				Expect(len(args)).To(BeNumerically(">", 0))
+				Expect(args[0]).To(Equal("target_mapfs"))
+				Expect(fakeOs.RemoveCallCount()).To(Equal(2))
 			})
 		})
 		Context("when idresolver isn't present but username is passed", func() {
