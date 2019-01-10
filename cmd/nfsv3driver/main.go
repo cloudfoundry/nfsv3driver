@@ -19,6 +19,7 @@ import (
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/ldapshim"
 	"code.cloudfoundry.org/goshims/osshim"
+	"code.cloudfoundry.org/goshims/syscallshim"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/nfsv3driver"
@@ -216,6 +217,7 @@ func main() {
 			nfsv3driver.NewBackgroundInvoker(&execshim.ExecShim{}),
 			legacyMounter,
 			&osshim.OsShim{},
+			&syscallshim.SyscallShim{},
 			&ioutilshim.IoutilShim{},
 			mountchecker.NewChecker(&bufioshim.BufioShim{}, &osshim.OsShim{}),
 			fsType,

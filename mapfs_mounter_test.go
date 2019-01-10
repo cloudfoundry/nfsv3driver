@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"syscall"
 
 	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/dockerdriver/dockerdriverfakes"
 	"code.cloudfoundry.org/dockerdriver/driverhttp"
 	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
+	"code.cloudfoundry.org/goshims/syscallshim/syscall_fake"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/nfsv3driver"
@@ -39,6 +41,7 @@ var _ = Describe("MapfsMounter", func() {
 		fakeIoutil       *ioutil_fake.FakeIoutil
 		fakeOs           *os_fake.FakeOs
 		fakeMountChecker *nfsfakes.FakeMountChecker
+		fakeSyscall      *syscall_fake.FakeSyscall
 
 		opts                 map[string]interface{}
 		sourceCfg, mountsCfg *nfsv3driver.ConfigDetails
@@ -60,11 +63,18 @@ var _ = Describe("MapfsMounter", func() {
 		fakeMounter = &nfsfakes.FakeMounter{}
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
 		fakeOs = &os_fake.FakeOs{}
+		fakeSyscall = &syscall_fake.FakeSyscall{}
 		fakeOs.OpenFileReturns(&os_fake.FakeFile{}, nil)
 		fakeMountChecker = &nfsfakes.FakeMountChecker{}
 		fakeMountChecker.ExistsReturns(true, nil)
 
 		fakeOs.StatReturns(nil, nil)
+		fakeSyscall.StatStub = func(path string, st *syscall.Stat_t) error {
+			st.Mode = 0777
+			st.Uid = 1000
+			st.Gid = 1000
+			return nil
+		}
 
 		sourceCfg = nfsv3driver.NewNfsV3ConfigDetails()
 		sourceCfg.ReadConf("", "", []string{})
@@ -72,7 +82,7 @@ var _ = Describe("MapfsMounter", func() {
 		mountsCfg = nfsv3driver.NewNfsV3ConfigDetails()
 		mountsCfg.ReadConf("uid,gid,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 	})
 
 	Context("#Mount", func() {
@@ -301,24 +311,26 @@ var _ = Describe("MapfsMounter", func() {
 		})
 		Context("when the specified uid doesn't have read access", func() {
 			BeforeEach(func() {
-				fakeOs.OpenFileReturns(nil, errors.New("ew"))
+				fakeSyscall.StatStub = func(path string, st *syscall.Stat_t) error {
+					st.Mode = 0750
+					st.Uid = 1000
+					st.Gid = 1000
+					return nil
+				}
 			})
-			It("should fail and clean up", func() {
+			It("should fail and clean up the intermediate mount", func() {
+				Expect(fakeSyscall.StatCallCount()).NotTo(BeZero())
 				Expect(err).To(HaveOccurred())
 				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
-				Expect(err.Error()).To(ContainSubstring("ew"))
+				Expect(err.Error()).To(ContainSubstring("access"))
 
-				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 3))
+				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 2))
 				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
 				Expect(cmd).To(Equal("umount"))
 				Expect(len(args)).To(BeNumerically(">", 0))
-				Expect(args[0]).To(Equal("target"))
-				_, cmd, args = fakeInvoker.InvokeArgsForCall(2)
-				Expect(cmd).To(Equal("umount"))
-				Expect(len(args)).To(BeNumerically(">", 0))
 				Expect(args[0]).To(Equal("target_mapfs"))
-				Expect(fakeOs.RemoveCallCount()).To(Equal(2))
+				Expect(fakeOs.RemoveCallCount()).To(Equal(1))
 			})
 		})
 		Context("when idresolver isn't present but username is passed", func() {
@@ -379,7 +391,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				mountsCfg.ReadConf("dircache,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				delete(opts, "uid")

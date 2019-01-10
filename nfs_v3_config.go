@@ -134,6 +134,28 @@ func (m Config) MountConfig() map[string]interface{} {
 	return m.mount.makeConfig()
 }
 
+func (m *Config) MapfsIds() (uid, gid int) {
+	// merge configs for share and mount, since we don't use share parameters for mapfs
+	shareConfig := m.source.makeConfig()
+	config := m.mount.makeConfig()
+	for k, v := range shareConfig {
+		config[k] = v
+	}
+
+	if uidblob, ok := config["uid"]; ok {
+		uid, _ = strconv.Atoi(m.mount.uniformData(uidblob, false))
+	} else if uidblob, ok := config["nfs_uid"]; ok {
+		uid, _ = strconv.Atoi(m.mount.uniformData(uidblob, false))
+	}
+
+	if gidblob, ok := config["gid"]; ok {
+		gid, _ = strconv.Atoi(m.mount.uniformData(gidblob, false))
+	} else if gidblob, ok := config["nfs_gid"]; ok {
+		gid, _ = strconv.Atoi(m.mount.uniformData(gidblob, false))
+	}
+	return
+}
+
 func (m *Config) MapfsOptions() []string {
 	// merge configs for share and mount, since we don't use share parameters for mapfs
 	shareConfig := m.source.makeConfig()
@@ -161,8 +183,6 @@ func (m *Config) MapfsOptions() []string {
 	}
 	return ret
 }
-
-
 
 func (m *ConfigDetails) readConfDefault(flagString string) {
 	if len(flagString) < 1 {

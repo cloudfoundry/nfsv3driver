@@ -1,14 +1,15 @@
 package nfsv3driver_test
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	. "code.cloudfoundry.org/nfsv3driver"
-	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"strconv"
-	"strings"
 )
 
 func map2string(entry map[string]string, joinKeyVal string, prefix string, joinElemnts string) string {
@@ -317,6 +318,9 @@ var _ = Describe("ConfigDetails", func() {
 				Expect(mapfsOpts).To(ContainElement("1004"))
 				Expect(mapfsOpts).To(ContainElement("-gid"))
 				Expect(mapfsOpts).To(ContainElement("1002"))
+				uid, gid := config.MapfsIds()
+				Expect(uid).To(Equal(1004))
+				Expect(gid).To(Equal(1002))
 			})
 
 			It("should return nil result on setting end users'entries", func() {

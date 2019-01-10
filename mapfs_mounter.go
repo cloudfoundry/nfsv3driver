@@ -2,6 +2,7 @@ package nfsv3driver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"code.cloudfoundry.org/dockerdriver/invoker"
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/osshim"
+	"code.cloudfoundry.org/goshims/syscallshim"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/volumedriver"
 	"code.cloudfoundry.org/volumedriver/mountchecker"
@@ -27,6 +29,7 @@ type mapfsMounter struct {
 	backgroundInvoker BackgroundInvoker
 	v3Mounter         volumedriver.Mounter
 	osshim            osshim.Os
+	syscallshim       syscallshim.Syscall
 	ioutilshim        ioutilshim.Ioutil
 	mountChecker      mountchecker.MountChecker
 	fstype            string
@@ -42,8 +45,20 @@ func init() {
 	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.*)$")
 }
 
-func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, v3Mounter volumedriver.Mounter, osshim osshim.Os, ioutilshim ioutilshim.Ioutil, mountChecker mountchecker.MountChecker, fstype, defaultOpts string, resolver IdResolver, config *Config, mapfsPath string) volumedriver.Mounter {
-	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
+func NewMapfsMounter(
+	invoker invoker.Invoker,
+	bgInvoker BackgroundInvoker,
+	v3Mounter volumedriver.Mounter,
+	osshim osshim.Os,
+	syscallshim syscallshim.Syscall,
+	ioutilshim ioutilshim.Ioutil,
+	mountChecker mountchecker.MountChecker,
+	fstype, defaultOpts string,
+	resolver IdResolver,
+	config *Config,
+	mapfsPath string,
+) volumedriver.Mounter {
+	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, syscallshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
 }
 
 func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -145,6 +160,22 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 	}
 
 	if uidok {
+		// make sure the mapped user has read access to the directory before doing the mapfs mount
+		uid, gid := tempConfig.MapfsIds()
+		st := syscall.Stat_t{}
+		err := m.syscallshim.Stat(intermediateMount, &st)
+		if err == nil {
+			if (st.Mode&04 == 0) && (uint32(gid) != st.Gid || st.Mode&040 == 0) && (uint32(uid) != st.Uid || st.Mode&0400 == 0) {
+				err = errors.New("User lacks read access to share.")
+			}
+		}
+		if err != nil {
+			logger.Error("mount-read-access-check-failed", err)
+			m.invoker.Invoke(env, "umount", []string{intermediateMount})
+			m.osshim.Remove(intermediateMount)
+			return dockerdriver.SafeError{SafeDescription: err.Error()}
+		}
+
 		args := tempConfig.MapfsOptions()
 		args = append(args, target, intermediateMount)
 		err = m.backgroundInvoker.Invoke(env, m.mapfsPath, args, "Mounted!", MAPFS_MOUNT_TIMEOUT)
@@ -154,19 +185,6 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 			m.osshim.Remove(intermediateMount)
 			return dockerdriver.SafeError{SafeDescription: err.Error()}
 		}
-
-		// make sure we can read the directory we just mounted
-		fh, err := m.osshim.OpenFile(target, os.O_RDONLY, 0444)
-		if err != nil {
-			logger.Error("mount-read-access-check-failed", err)
-			m.invoker.Invoke(env, "umount", []string{target})
-			m.osshim.Remove(target)
-			m.invoker.Invoke(env, "umount", []string{intermediateMount})
-			m.osshim.Remove(intermediateMount)
-			return dockerdriver.SafeError{SafeDescription: err.Error()}
-		}
-
-		fh.Close()
 	}
 
 	return nil
