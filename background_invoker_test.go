@@ -40,9 +40,10 @@ var _ = Describe("Background Invoker", func() {
 		})
 
 		It("should successfully invoke cli", func() {
-			err := subject.Invoke(testEnv, cmd, args, "Mounted!", timeout)
+			err, cncl := subject.Invoke(testEnv, cmd, args, "Mounted!", timeout)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(fakeExec.CommandContextCallCount()).To(Equal(1))
+			Expect(cncl).ToNot(BeNil())
 		})
 
 		Context("when command exits without emitting waitFor", func() {
@@ -51,15 +52,16 @@ var _ = Describe("Background Invoker", func() {
 			})
 
 			It("should report an error", func() {
-				err := subject.Invoke(testEnv, cmd, args, "Mounted!", timeout)
+				err, _ := subject.Invoke(testEnv, cmd, args, "Mounted!", timeout)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("command exited"))
 			})
 
 			Context("when we aren't waiting for anything", func() {
 				It("should successfully invoke cli", func() {
-					err := subject.Invoke(testEnv, cmd, args, "", timeout)
+					err, cncl := subject.Invoke(testEnv, cmd, args, "", timeout)
 					Expect(err).ToNot(HaveOccurred())
+					Expect(cncl).ToNot(BeNil())
 				})
 			})
 		})
@@ -73,7 +75,7 @@ var _ = Describe("Background Invoker", func() {
 			})
 
 			It("should report an error", func() {
-				err := subject.Invoke(testEnv, cmd, args, "Mounted!", timeout)
+				err, _ := subject.Invoke(testEnv, cmd, args, "Mounted!", timeout)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("command timed out"))
 			})

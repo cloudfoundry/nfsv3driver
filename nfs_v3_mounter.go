@@ -120,7 +120,8 @@ func (m *nfsV3Mounter) Check(env dockerdriver.Env, name, mountPoint string) bool
 	logger.Info("start")
 	defer logger.Info("end")
 
-	ctx, _ := context.WithDeadline(context.TODO(), time.Now().Add(time.Second*5))
+	ctx, cancel := context.WithDeadline(context.TODO(), time.Now().Add(time.Second*5))
+	defer cancel()
 	env = driverhttp.EnvWithContext(ctx, env)
 	_, err := m.invoker.Invoke(env, "mountpoint", []string{"-q", mountPoint})
 

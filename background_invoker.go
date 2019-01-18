@@ -16,7 +16,7 @@ import (
 //go:generate counterfeiter -o nfsdriverfakes/fake_background_invoker.go . BackgroundInvoker
 
 type BackgroundInvoker interface {
-	Invoke(env dockerdriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error
+	Invoke(env dockerdriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) (error, context.CancelFunc)
 }
 
 type backgroundInvoker struct {
@@ -27,7 +27,7 @@ func NewBackgroundInvoker(useExec execshim.Exec) BackgroundInvoker {
 	return &backgroundInvoker{useExec}
 }
 
-func (r *backgroundInvoker) Invoke(env dockerdriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) error {
+func (r *backgroundInvoker) Invoke(env dockerdriver.Env, executable string, cmdArgs []string, waitFor string, timeout time.Duration) (error, context.CancelFunc) {
 	logger := env.Logger().Session("invoking-command", lager.Data{"executable": executable, "args": cmdArgs})
 	logger.Info("start")
 	defer logger.Info("end")
@@ -36,17 +36,19 @@ func (r *backgroundInvoker) Invoke(env dockerdriver.Env, executable string, cmdA
 	cmdHandle := r.exec.CommandContext(ctx, executable, cmdArgs...)
 	stdout, err := cmdHandle.StdoutPipe()
 	if err != nil {
+		cancel()
 		logger.Error("error-getting-pipe", err)
-		return err
+		return err, nil
 	}
 
 	if err := cmdHandle.Start(); err != nil {
 		logger.Error("error-starting-command", err)
-		return err
+		cancel()
+		return err, nil
 	}
 
 	if waitFor == "" {
-		return nil
+		return nil, cancel
 	}
 
 	var mutex sync.Mutex
@@ -63,7 +65,7 @@ func (r *backgroundInvoker) Invoke(env dockerdriver.Env, executable string, cmdA
 	for scanner.Scan() {
 		if strings.Contains(scanner.Text(), waitFor) {
 			timer.Stop()
-			return nil
+			return nil, cancel
 		}
 	}
 
@@ -81,5 +83,6 @@ func (r *backgroundInvoker) Invoke(env dockerdriver.Env, executable string, cmdA
 
 	timer.Stop()
 	logger.Error("operation failed to report success", err, lager.Data{"waitFor": waitFor})
-	return err
+	cancel()
+	return err, nil
 }

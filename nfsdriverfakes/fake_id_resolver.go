@@ -2,10 +2,10 @@
 package nfsdriverfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	dockerdriver "code.cloudfoundry.org/dockerdriver"
-	nfsv3driver "code.cloudfoundry.org/nfsv3driver"
+	"code.cloudfoundry.org/dockerdriver"
+	"code.cloudfoundry.org/nfsv3driver"
 )
 
 type FakeIdResolver struct {

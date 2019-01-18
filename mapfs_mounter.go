@@ -178,7 +178,7 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 
 		args := tempConfig.MapfsOptions()
 		args = append(args, target, intermediateMount)
-		err = m.backgroundInvoker.Invoke(env, m.mapfsPath, args, "Mounted!", MAPFS_MOUNT_TIMEOUT)
+		err, _ = m.backgroundInvoker.Invoke(env, m.mapfsPath, args, "Mounted!", MAPFS_MOUNT_TIMEOUT)
 		if err != nil {
 			logger.Error("background-invoke-mount-failed", err)
 			m.invoker.Invoke(env, "umount", []string{intermediateMount})
@@ -228,7 +228,8 @@ func (m *mapfsMounter) Check(env dockerdriver.Env, name, mountPoint string) bool
 	logger.Info("check-start")
 	defer logger.Info("check-end")
 
-	ctx, _ := context.WithDeadline(context.TODO(), time.Now().Add(time.Second*5))
+	ctx, cancel := context.WithDeadline(context.TODO(), time.Now().Add(time.Second*5))
+	defer cancel()
 	env = driverhttp.EnvWithContext(ctx, env)
 	_, err := m.invoker.Invoke(env, "mountpoint", []string{"-q", mountPoint})
 

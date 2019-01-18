@@ -2,15 +2,16 @@
 package nfsdriverfakes
 
 import (
-	sync "sync"
-	time "time"
+	"context"
+	"sync"
+	"time"
 
-	dockerdriver "code.cloudfoundry.org/dockerdriver"
-	nfsv3driver "code.cloudfoundry.org/nfsv3driver"
+	"code.cloudfoundry.org/dockerdriver"
+	"code.cloudfoundry.org/nfsv3driver"
 )
 
 type FakeBackgroundInvoker struct {
-	InvokeStub        func(dockerdriver.Env, string, []string, string, time.Duration) error
+	InvokeStub        func(dockerdriver.Env, string, []string, string, time.Duration) (error, context.CancelFunc)
 	invokeMutex       sync.RWMutex
 	invokeArgsForCall []struct {
 		arg1 dockerdriver.Env
@@ -21,15 +22,17 @@ type FakeBackgroundInvoker struct {
 	}
 	invokeReturns struct {
 		result1 error
+		result2 context.CancelFunc
 	}
 	invokeReturnsOnCall map[int]struct {
 		result1 error
+		result2 context.CancelFunc
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
 }
 
-func (fake *FakeBackgroundInvoker) Invoke(arg1 dockerdriver.Env, arg2 string, arg3 []string, arg4 string, arg5 time.Duration) error {
+func (fake *FakeBackgroundInvoker) Invoke(arg1 dockerdriver.Env, arg2 string, arg3 []string, arg4 string, arg5 time.Duration) (error, context.CancelFunc) {
 	var arg3Copy []string
 	if arg3 != nil {
 		arg3Copy = make([]string, len(arg3))
@@ -50,10 +53,10 @@ func (fake *FakeBackgroundInvoker) Invoke(arg1 dockerdriver.Env, arg2 string, ar
 		return fake.InvokeStub(arg1, arg2, arg3, arg4, arg5)
 	}
 	if specificReturn {
-		return ret.result1
+		return ret.result1, ret.result2
 	}
 	fakeReturns := fake.invokeReturns
-	return fakeReturns.result1
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeBackgroundInvoker) InvokeCallCount() int {
@@ -62,7 +65,7 @@ func (fake *FakeBackgroundInvoker) InvokeCallCount() int {
 	return len(fake.invokeArgsForCall)
 }
 
-func (fake *FakeBackgroundInvoker) InvokeCalls(stub func(dockerdriver.Env, string, []string, string, time.Duration) error) {
+func (fake *FakeBackgroundInvoker) InvokeCalls(stub func(dockerdriver.Env, string, []string, string, time.Duration) (error, context.CancelFunc)) {
 	fake.invokeMutex.Lock()
 	defer fake.invokeMutex.Unlock()
 	fake.InvokeStub = stub
@@ -75,27 +78,30 @@ func (fake *FakeBackgroundInvoker) InvokeArgsForCall(i int) (dockerdriver.Env, s
 	return argsForCall.arg1, argsForCall.arg2, argsForCall.arg3, argsForCall.arg4, argsForCall.arg5
 }
 
-func (fake *FakeBackgroundInvoker) InvokeReturns(result1 error) {
+func (fake *FakeBackgroundInvoker) InvokeReturns(result1 error, result2 context.CancelFunc) {
 	fake.invokeMutex.Lock()
 	defer fake.invokeMutex.Unlock()
 	fake.InvokeStub = nil
 	fake.invokeReturns = struct {
 		result1 error
-	}{result1}
+		result2 context.CancelFunc
+	}{result1, result2}
 }
 
-func (fake *FakeBackgroundInvoker) InvokeReturnsOnCall(i int, result1 error) {
+func (fake *FakeBackgroundInvoker) InvokeReturnsOnCall(i int, result1 error, result2 context.CancelFunc) {
 	fake.invokeMutex.Lock()
 	defer fake.invokeMutex.Unlock()
 	fake.InvokeStub = nil
 	if fake.invokeReturnsOnCall == nil {
 		fake.invokeReturnsOnCall = make(map[int]struct {
 			result1 error
+			result2 context.CancelFunc
 		})
 	}
 	fake.invokeReturnsOnCall[i] = struct {
 		result1 error
-	}{result1}
+		result2 context.CancelFunc
+	}{result1, result2}
 }
 
 func (fake *FakeBackgroundInvoker) Invocations() map[string][][]interface{} {

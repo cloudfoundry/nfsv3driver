@@ -365,7 +365,7 @@ var _ = Describe("MapfsMounter", func() {
 		})
 		Context("when kernel mount succeeds, but mapfs mount fails", func() {
 			BeforeEach(func() {
-				fakeBgInvoker.InvokeReturns(fmt.Errorf("error"))
+				fakeBgInvoker.InvokeReturns(fmt.Errorf("error"), nil)
 			})
 
 			It("should return error", func() {
