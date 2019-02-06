@@ -27,7 +27,6 @@ const MAPFS_MOUNT_TIMEOUT = time.Minute * 5
 type mapfsMounter struct {
 	invoker           invoker.Invoker
 	backgroundInvoker BackgroundInvoker
-	v3Mounter         volumedriver.Mounter
 	osshim            osshim.Os
 	syscallshim       syscallshim.Syscall
 	ioutilshim        ioutilshim.Ioutil
@@ -41,6 +40,8 @@ type mapfsMounter struct {
 
 var legacyNfsSharePattern *regexp.Regexp
 
+var PurgeTimeToSleep = time.Millisecond * 100
+
 func init() {
 	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.*)$")
 }
@@ -48,7 +49,6 @@ func init() {
 func NewMapfsMounter(
 	invoker invoker.Invoker,
 	bgInvoker BackgroundInvoker,
-	v3Mounter volumedriver.Mounter,
 	osshim osshim.Os,
 	syscallshim syscallshim.Syscall,
 	ioutilshim ioutilshim.Ioutil,
@@ -58,7 +58,7 @@ func NewMapfsMounter(
 	config *Config,
 	mapfsPath string,
 ) volumedriver.Mounter {
-	return &mapfsMounter{invoker, bgInvoker, v3Mounter, osshim, syscallshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
+	return &mapfsMounter{invoker, bgInvoker, osshim, syscallshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
 }
 
 func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -66,9 +66,6 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 	logger.Info("mount-start")
 	defer logger.Info("mount-end")
 
-	if _, ok := opts["experimental"]; !ok {
-		return m.v3Mounter.Mount(env, remote, target, opts)
-	}
 
 	// TODO--refactor the config object so that we don't have to make a local copy just to keep
 	// TODO--it from leaking information between mounts.
@@ -198,15 +195,6 @@ func (m *mapfsMounter) Unmount(env dockerdriver.Env, target string) error {
 	target = strings.TrimSuffix(target, "/")
 	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
 
-	exists, e := m.mountChecker.Exists(intermediateMount)
-	if e != nil {
-		return dockerdriver.SafeError{SafeDescription: e.Error()}
-	}
-
-	if !exists {
-		return m.v3Mounter.Unmount(env, target)
-	}
-
 	if _, e := m.invoker.Invoke(env, "umount", []string{"-l", target}); e != nil {
 		return dockerdriver.SafeError{SafeDescription: e.Error()}
 	}
@@ -292,8 +280,4 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 
 		logger.Info("remove-directory-successful", lager.Data{"path": mountDir})
 	}
-
-	// TODO -- when we remove the legacy mounter, replace this with something that just deletes all the remaining
-	// TODO -- directories
-	m.v3Mounter.Purge(env, path)
 }

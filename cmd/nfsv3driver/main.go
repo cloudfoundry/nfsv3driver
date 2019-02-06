@@ -174,7 +174,7 @@ func main() {
 
 	var localDriverServer ifrit.Runner
 	var idResolver nfsv3driver.IdResolver
-	var mounter, legacyMounter volumedriver.Mounter
+	var mounter volumedriver.Mounter
 
 	logger, logSink := newLogger()
 	logger.Info("start")
@@ -204,18 +204,9 @@ func main() {
 		mounter = nfsv3driver.NewMockMounter(time.Duration(*mockMountSeconds)*time.Second, logger)
 	} else {
 		config := nfsv3driver.NewNfsV3Config(source, mounts)
-		legacyMounter = nfsv3driver.NewNfsV3Mounter(
-			invoker.NewRealInvoker(),
-			&osshim.OsShim{},
-			&ioutilshim.IoutilShim{},
-			mountchecker.NewChecker(&bufioshim.BufioShim{}, &osshim.OsShim{}),
-			config,
-			idResolver,
-		)
 		mounter = nfsv3driver.NewMapfsMounter(
 			invoker.NewRealInvoker(),
 			nfsv3driver.NewBackgroundInvoker(&execshim.ExecShim{}),
-			legacyMounter,
 			&osshim.OsShim{},
 			&syscallshim.SyscallShim{},
 			&ioutilshim.IoutilShim{},

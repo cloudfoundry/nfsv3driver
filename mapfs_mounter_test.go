@@ -37,7 +37,6 @@ var _ = Describe("MapfsMounter", func() {
 		fakeIdResolver *nfsdriverfakes.FakeIdResolver
 
 		subject          volumedriver.Mounter
-		fakeMounter      *nfsfakes.FakeMounter
 		fakeIoutil       *ioutil_fake.FakeIoutil
 		fakeOs           *os_fake.FakeOs
 		fakeMountChecker *nfsfakes.FakeMountChecker
@@ -54,13 +53,11 @@ var _ = Describe("MapfsMounter", func() {
 		testContext = context.TODO()
 		env = driverhttp.NewHttpDriverEnv(logger, testContext)
 		opts = map[string]interface{}{}
-		opts["experimental"] = true
 		opts["uid"] = "2000"
 		opts["gid"] = "2000"
 
 		fakeInvoker = &dockerdriverfakes.FakeInvoker{}
 		fakeBgInvoker = &nfsdriverfakes.FakeBackgroundInvoker{}
-		fakeMounter = &nfsfakes.FakeMounter{}
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
 		fakeOs = &os_fake.FakeOs{}
 		fakeSyscall = &syscall_fake.FakeSyscall{}
@@ -82,7 +79,7 @@ var _ = Describe("MapfsMounter", func() {
 		mountsCfg = nfsv3driver.NewNfsV3ConfigDetails()
 		mountsCfg.ReadConf("uid,gid,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 	})
 
 	Context("#Mount", func() {
@@ -95,15 +92,6 @@ var _ = Describe("MapfsMounter", func() {
 		})
 		JustBeforeEach(func() {
 			err = subject.Mount(env, source, target, opts)
-		})
-		Context("when mount options don't specify experimental mounting", func() {
-			BeforeEach(func() {
-				delete(opts, "experimental")
-			})
-			It("should use the nfs_v3_mounter mounter", func() {
-				Expect(fakeMounter.MountCallCount()).To(Equal(1))
-				Expect(fakeInvoker.InvokeCallCount()).To(Equal(0))
-			})
 		})
 
 		Context("when version is specified", func() {
@@ -127,7 +115,6 @@ var _ = Describe("MapfsMounter", func() {
 
 		Context("when mount succeeds", func() {
 			It("should use the mapfs mounter", func() {
-				Expect(fakeMounter.MountCallCount()).To(Equal(0))
 				Expect(fakeInvoker.InvokeCallCount()).NotTo(BeZero())
 			})
 
@@ -391,7 +378,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				mountsCfg.ReadConf("dircache,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeMounter, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				delete(opts, "uid")
@@ -451,30 +438,6 @@ var _ = Describe("MapfsMounter", func() {
 
 		JustBeforeEach(func() {
 			err = subject.Unmount(env, target)
-		})
-
-		Context("when mount is not a mapfs mount", func() {
-			BeforeEach(func() {
-				fakeMountChecker.ExistsReturns(false, nil)
-			})
-
-			It("should use the nfs_v3_mounter mounter", func() {
-				Expect(fakeMounter.UnmountCallCount()).To(Equal(1))
-				Expect(fakeInvoker.InvokeCallCount()).To(Equal(0))
-			})
-		})
-
-		Context("when /proc/mounts cannot be checked", func() {
-			BeforeEach(func() {
-				fakeMountChecker.ExistsReturns(false, errors.New("check failed"))
-			})
-
-			It("should return a SafeError", func() {
-				Expect(err).To(HaveOccurred())
-				safeerr, ok := err.(dockerdriver.SafeError)
-				Expect(ok).To(BeTrue())
-				Expect(safeerr).To(MatchError("check failed"))
-			})
 		})
 
 		Context("when unmount succeeds", func() {
@@ -647,10 +610,6 @@ var _ = Describe("MapfsMounter", func() {
 					path = fakeOs.RemoveArgsForCall(1)
 					Expect(path).To(Equal("/foo/foo/foo/mount_one_mapfs"))
 				})
-			})
-
-			It("eventually calls purge on the v3 mounter", func() {
-				Expect(fakeMounter.PurgeCallCount()).To(Equal(1))
 			})
 		})
 	})
