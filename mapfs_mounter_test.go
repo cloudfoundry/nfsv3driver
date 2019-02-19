@@ -136,7 +136,7 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args).To(ContainElement("-t"))
 				Expect(args).To(ContainElement("my-fs"))
 				Expect(args).To(ContainElement("-o"))
-				Expect(args).To(ContainElement("my-mount-options,timeo=600,retrans=2,actimeo=0,vers=3"))
+				Expect(args).To(ContainElement("my-mount-options,timeo=600,retrans=2,actimeo=0"))
 				Expect(args).To(ContainElement("source"))
 				Expect(args).To(ContainElement("target_mapfs"))
 			})

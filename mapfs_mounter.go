@@ -66,7 +66,6 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 	logger.Info("mount-start")
 	defer logger.Info("mount-end")
 
-
 	// TODO--refactor the config object so that we don't have to make a local copy just to keep
 	// TODO--it from leaking information between mounts.
 	tempConfig := m.config.Copy()
@@ -140,8 +139,6 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 
 	if _, ok := opts["version"]; ok {
 		mountOptions = mountOptions + ",vers=" + opts["version"].(string)
-	} else {
-		mountOptions = mountOptions + ",vers=3"
 	}
 
 	t := intermediateMount
