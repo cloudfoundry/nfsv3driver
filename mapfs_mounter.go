@@ -23,6 +23,8 @@ import (
 
 const MAPFS_DIRECTORY_SUFFIX = "_mapfs"
 const MAPFS_MOUNT_TIMEOUT = time.Minute * 5
+const NOBODY_ID = uint32(65534)
+const UNKNOWN_ID = uint32(4294967294)
 
 type mapfsMounter struct {
 	invoker           invoker.Invoker
@@ -161,11 +163,18 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 
 	if uidok {
 		// make sure the mapped user has read access to the directory before doing the mapfs mount
+		// this check is best effort--root may not be able to stat the directory, or the server may
+		// anonymize the owner UID.
 		uid, gid := tempConfig.MapfsIds()
 		st := syscall.Stat_t{}
 		err := m.syscallshim.Stat(intermediateMount, &st)
-		if err == nil {
-			if (st.Mode&04 == 0) && (uint32(gid) != st.Gid || st.Mode&040 == 0) && (uint32(uid) != st.Uid || st.Mode&0400 == 0) {
+		if err != nil {
+			logger.Error("unable-to-stat-new-mount", err)
+			err = nil
+		} else {
+			if (st.Mode&04 == 0) &&
+				((uint32(gid) != st.Gid && NOBODY_ID != st.Gid && UNKNOWN_ID != st.Gid) || st.Mode&040 == 0) &&
+				((uint32(uid) != st.Uid && NOBODY_ID != st.Uid && UNKNOWN_ID != st.Uid) || st.Mode&0400 == 0) {
 				err = errors.New("User lacks read access to share.")
 			}
 		}
