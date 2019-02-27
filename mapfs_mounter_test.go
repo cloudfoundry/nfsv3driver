@@ -14,7 +14,6 @@ import (
 	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/goshims/syscallshim/syscall_fake"
-	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
@@ -27,7 +26,7 @@ import (
 var _ = Describe("MapfsMounter", func() {
 
 	var (
-		logger      lager.Logger
+		logger      *lagertest.TestLogger
 		testContext context.Context
 		env         dockerdriver.Env
 		err         error
@@ -318,6 +317,52 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(len(args)).To(BeNumerically(">", 0))
 				Expect(args[0]).To(Equal("target_mapfs"))
 				Expect(fakeOs.RemoveCallCount()).To(Equal(1))
+			})
+		})
+		Context("when stat() fails during access check", func() {
+			BeforeEach(func() {
+				fakeSyscall.StatStub = func(path string, st *syscall.Stat_t) error {
+					return errors.New("this is nacho share.")
+				}
+			})
+			It("should succeed and log a warning", func() {
+				Expect(fakeSyscall.StatCallCount()).NotTo(BeZero())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(logger.TestSink.Buffer().Contents()).To(ContainSubstring("nacho share"))
+			})
+		})
+		Context("when stat returns ambiguous results", func() {
+			var (
+				uid = uint32(1000)
+				gid = uint32(1000)
+			)
+			BeforeEach(func() {
+				fakeSyscall.StatStub = func(path string, st *syscall.Stat_t) error {
+					st.Mode = 0750
+					st.Uid = uid
+					st.Gid = gid
+					return nil
+				}
+			})
+
+			Context("when uid is unknown", func() {
+				BeforeEach(func() {
+					uid = nfsv3driver.UNKNOWN_ID
+				})
+				It("should succeed", func() {
+					Expect(fakeSyscall.StatCallCount()).NotTo(BeZero())
+					Expect(err).NotTo(HaveOccurred())
+				})
+			})
+
+			Context("when gid is unknown", func() {
+				BeforeEach(func() {
+					gid = nfsv3driver.UNKNOWN_ID
+				})
+				It("should succeed", func() {
+					Expect(fakeSyscall.StatCallCount()).NotTo(BeZero())
+					Expect(err).NotTo(HaveOccurred())
+				})
 			})
 		})
 		Context("when idresolver isn't present but username is passed", func() {
