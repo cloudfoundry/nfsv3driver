@@ -46,6 +46,7 @@ func (r *backgroundInvoker) Invoke(env dockerdriver.Env, executable string, cmdA
 		cancel()
 		return err, nil
 	}
+	defer func() { go cmdHandle.Wait() }()
 
 	if waitFor == "" {
 		return nil, cancel

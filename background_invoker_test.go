@@ -46,6 +46,12 @@ var _ = Describe("Background Invoker", func() {
 			Expect(cncl).ToNot(BeNil())
 		})
 
+		It("should call Wait on the command", func() {
+			err, _ := subject.Invoke(testEnv, cmd, args, "Mounted!", timeout)
+			Expect(err).ToNot(HaveOccurred())
+			Eventually(func() int { return fakeCmd.WaitCallCount() }).ShouldNot(BeZero())
+		})
+
 		Context("when command exits without emitting waitFor", func() {
 			BeforeEach(func() {
 				fakeCmd.StdoutPipeReturns(&nopCloser{bytes.NewBufferString("foo\nfoo\nfoo\n")}, nil)
