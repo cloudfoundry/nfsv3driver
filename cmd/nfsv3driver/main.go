@@ -213,6 +213,7 @@ func main() {
 			idResolver,
 		)
 		mounter = nfsv3driver.NewMapfsMounter(
+			invoker.NewProcessGroupInvoker(),
 			invoker.NewRealInvoker(),
 			nfsv3driver.NewBackgroundInvoker(&execshim.ExecShim{}),
 			legacyMounter,
