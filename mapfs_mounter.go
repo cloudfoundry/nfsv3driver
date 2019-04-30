@@ -27,6 +27,7 @@ const NOBODY_ID = uint32(65534)
 const UNKNOWN_ID = uint32(4294967294)
 
 type mapfsMounter struct {
+	pgInvoker         invoker.Invoker
 	invoker           invoker.Invoker
 	backgroundInvoker BackgroundInvoker
 	osshim            osshim.Os
@@ -49,6 +50,7 @@ func init() {
 }
 
 func NewMapfsMounter(
+	pgInvoker invoker.Invoker,
 	invoker invoker.Invoker,
 	bgInvoker BackgroundInvoker,
 	osshim osshim.Os,
@@ -60,7 +62,7 @@ func NewMapfsMounter(
 	config *Config,
 	mapfsPath string,
 ) volumedriver.Mounter {
-	return &mapfsMounter{invoker, bgInvoker, osshim, syscallshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
+	return &mapfsMounter{pgInvoker, invoker, bgInvoker, osshim, syscallshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
 }
 
 func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -148,7 +150,7 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		t = target
 	}
 
-	_, err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t})
+	_, err = m.pgInvoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t})
 	if err != nil {
 		logger.Error("invoke-mount-failed", err)
 		m.osshim.Remove(intermediateMount)

@@ -31,6 +31,7 @@ var _ = Describe("MapfsMounter", func() {
 		env         dockerdriver.Env
 		err         error
 
+		fakePgInvoker  *dockerdriverfakes.FakeInvoker
 		fakeInvoker    *dockerdriverfakes.FakeInvoker
 		fakeBgInvoker  *nfsdriverfakes.FakeBackgroundInvoker
 		fakeIdResolver *nfsdriverfakes.FakeIdResolver
@@ -55,6 +56,7 @@ var _ = Describe("MapfsMounter", func() {
 		opts["uid"] = "2000"
 		opts["gid"] = "2000"
 
+		fakePgInvoker = &dockerdriverfakes.FakeInvoker{}
 		fakeInvoker = &dockerdriverfakes.FakeInvoker{}
 		fakeBgInvoker = &nfsdriverfakes.FakeBackgroundInvoker{}
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
@@ -78,7 +80,7 @@ var _ = Describe("MapfsMounter", func() {
 		mountsCfg = nfsv3driver.NewNfsV3ConfigDetails()
 		mountsCfg.ReadConf("uid,gid,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+		subject = nfsv3driver.NewMapfsMounter(fakePgInvoker, fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 	})
 
 	Context("#Mount", func() {
@@ -99,7 +101,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			It("should use version specified", func() {
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+				_, cmd, args := fakePgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
 				Expect(len(args)).To(BeNumerically(">", 5))
 				Expect(args).To(ContainElement("-t"))
@@ -114,7 +116,7 @@ var _ = Describe("MapfsMounter", func() {
 
 		Context("when mount succeeds", func() {
 			It("should use the mapfs mounter", func() {
-				Expect(fakeInvoker.InvokeCallCount()).NotTo(BeZero())
+				Expect(fakePgInvoker.InvokeCallCount()).NotTo(BeZero())
 			})
 
 			It("should return without error", func() {
@@ -129,7 +131,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			It("should use the passed in variables", func() {
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+				_, cmd, args := fakePgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
 				Expect(len(args)).To(BeNumerically(">", 5))
 				Expect(args).To(ContainElement("-t"))
@@ -170,13 +172,13 @@ var _ = Describe("MapfsMounter", func() {
 				})
 
 				It("should not append 'ro' to the kernel mount options, since garden manages the ro mount", func() {
-					_, _, args := fakeInvoker.InvokeArgsForCall(0)
+					_, _, args := fakePgInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 3))
 					Expect(args[2]).To(Equal("-o"))
 					Expect(args[3]).NotTo(ContainSubstring(",ro"))
 				})
 				It("should not append 'actimeo=0' to the kernel mount options", func() {
-					_, _, args := fakeInvoker.InvokeArgsForCall(0)
+					_, _, args := fakePgInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 3))
 					Expect(args[2]).To(Equal("-o"))
 					Expect(args[3]).NotTo(ContainSubstring("actimeo=0"))
@@ -188,7 +190,7 @@ var _ = Describe("MapfsMounter", func() {
 					source = "nfs://server/some/share/path"
 				})
 				It("should rewrite the share to use standard nfs format", func() {
-					_, _, args := fakeInvoker.InvokeArgsForCall(0)
+					_, _, args := fakePgInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 4))
 					Expect(args[4]).To(Equal("server:/some/share/path"))
 				})
@@ -199,7 +201,7 @@ var _ = Describe("MapfsMounter", func() {
 					source = "nfs://server/"
 				})
 				It("should rewrite the share to use standard nfs format", func() {
-					_, _, args := fakeInvoker.InvokeArgsForCall(0)
+					_, _, args := fakePgInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 4))
 					Expect(args[4]).To(Equal("server:/"))
 				})
@@ -245,7 +247,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should mount directly to the target", func() {
 				Expect(err).NotTo(HaveOccurred())
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+				_, cmd, args := fakePgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
 				Expect(args).To(ContainElement("source"))
 				Expect(args).To(ContainElement("target"))
@@ -311,8 +313,8 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(ok).To(BeTrue())
 				Expect(err.Error()).To(ContainSubstring("access"))
 
-				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 2))
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				Expect(fakeInvoker.InvokeCallCount()).To(Equal(1))
+				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("umount"))
 				Expect(len(args)).To(BeNumerically(">", 0))
 				Expect(args[0]).To(Equal("target_mapfs"))
@@ -382,7 +384,7 @@ var _ = Describe("MapfsMounter", func() {
 		})
 		Context("when mount errors", func() {
 			BeforeEach(func() {
-				fakeInvoker.InvokeReturns([]byte("error"), fmt.Errorf("error"))
+				fakePgInvoker.InvokeReturns([]byte("error"), fmt.Errorf("error"))
 			})
 
 			It("should return error", func() {
@@ -406,8 +408,8 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(ok).To(BeTrue())
 			})
 			It("should invoke unmount", func() {
-				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">", 1))
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				Expect(fakeInvoker.InvokeCallCount()).To(Equal(1))
+				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("umount"))
 				Expect(len(args)).To(BeNumerically(">", 0))
 				Expect(args[0]).To(Equal("target_mapfs"))
@@ -423,7 +425,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				mountsCfg.ReadConf("dircache,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
 
-				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+				subject = nfsv3driver.NewMapfsMounter(fakePgInvoker, fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				delete(opts, "uid")

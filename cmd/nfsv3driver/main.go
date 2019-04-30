@@ -205,6 +205,7 @@ func main() {
 	} else {
 		config := nfsv3driver.NewNfsV3Config(source, mounts)
 		mounter = nfsv3driver.NewMapfsMounter(
+			invoker.NewProcessGroupInvoker(),
 			invoker.NewRealInvoker(),
 			nfsv3driver.NewBackgroundInvoker(&execshim.ExecShim{}),
 			&osshim.OsShim{},

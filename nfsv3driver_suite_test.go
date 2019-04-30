@@ -11,7 +11,7 @@ import (
 
 func TestNfsV3Driver(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "NfsV3Driver Suite")
+	RunSpecs(t, "NFS V3 Driver Suite")
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
