@@ -207,13 +207,20 @@ func (m *mapfsMounter) Unmount(env dockerdriver.Env, target string) error {
 		return dockerdriver.SafeError{SafeDescription: e.Error()}
 	}
 
-	if _, e := m.invoker.Invoke(env, "umount", []string{"-l", intermediateMount}); e != nil {
-		// this error may be benign since mounts without uid don't actually use this directory
-		logger.Error("warning-umount-intermediate-failed", e)
+	if exists, err := m.mountChecker.Exists(intermediateMount); exists {
+		if _, e := m.invoker.Invoke(env, "umount", []string{"-l", intermediateMount}); e != nil {
+			logger.Error("warning-umount-intermediate-failed", e)
+			return nil
+		}
+	} else if err != nil {
+		logger.Error("warning-umount-check-intermediate-failed", err)
 	}
 
-	if e := m.osshim.Remove(intermediateMount); e != nil {
-		return dockerdriver.SafeError{SafeDescription: e.Error()}
+	_, err := m.osshim.Stat(intermediateMount)
+	if err == nil  {
+		if e := m.osshim.Remove(intermediateMount); e != nil {
+			return dockerdriver.SafeError{SafeDescription: e.Error()}
+		}
 	}
 
 	return nil

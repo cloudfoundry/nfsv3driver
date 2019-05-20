@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/onsi/gomega/gbytes"
 	"os"
 	"strings"
 	"syscall"
@@ -67,6 +68,8 @@ var _ = Describe("MapfsMounter", func() {
 		fakeMountChecker.ExistsReturns(true, nil)
 
 		fakeOs.StatReturns(nil, nil)
+		fakeOs.IsExistReturns(true)
+
 		fakeSyscall.StatStub = func(path string, st *syscall.Stat_t) error {
 			st.Mode = 0777
 			st.Uid = 1000
@@ -534,6 +537,45 @@ var _ = Describe("MapfsMounter", func() {
 					Expect(args[1]).To(Equal("/some/target_mapfs"))
 				})
 			})
+
+			Context("when uid mapping was not used for the mount", func() {
+				BeforeEach(func() {
+					fakeMountChecker.ExistsStub = func(s string) (bool, error) {
+						Expect(s).To(Equal("target_mapfs"))
+						return false, nil
+					}
+				})
+
+				It("should not attempt to unmount the intermediate mount", func() {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeInvoker.InvokeCallCount()).To(Equal(1))
+				})
+
+				Context("when the mount checker returns an error", func() {
+					BeforeEach(func() {
+						fakeMountChecker.ExistsReturns(false, errors.New("mount-checker-failed"))
+					})
+
+					It("should log the error", func() {
+						Expect(err).NotTo(HaveOccurred())
+						Expect(logger.Buffer()).To(gbytes.Say("mount-checker-failed"))
+					})
+				})
+			})
+
+			Context("when the intermediate directory does not exist", func() {
+				BeforeEach(func() {
+					fakeOs.StatStub = func(name string) (os.FileInfo, error) {
+						Expect(name).To(Equal("target_mapfs"))
+						return nil, &os.PathError{Err: os.ErrNotExist}
+					}
+				})
+
+				It("should succeeed", func() {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(fakeOs.RemoveCallCount()).To(Equal(0))
+				})
+			})
 		})
 
 		Context("when unmount fails", func() {
@@ -550,18 +592,18 @@ var _ = Describe("MapfsMounter", func() {
 
 		Context("when unmount of the intermediate mount fails", func() {
 			BeforeEach(func() {
-				fakeInvoker.InvokeStub = func(_ dockerdriver.Env, _ string, args []string) ([]byte, error) {
-					for _, arg := range args {
-						if arg == "target_mapfs" {
-							return []byte("error"), fmt.Errorf("mapfs umount error")
-						}
-					}
-					return nil, nil
-				}
+				fakeInvoker.InvokeReturnsOnCall(0, nil, nil)
+				fakeInvoker.InvokeReturnsOnCall(1, []byte("error"), fmt.Errorf("mapfs umount error"))
 			})
 
 			It("should not return an error", func() {
 				Expect(err).NotTo(HaveOccurred())
+				Expect(logger.Buffer()).To(gbytes.Say("mapfs umount error"))
+			})
+
+			It("should not call Remove on the intermediate directory", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(fakeOs.RemoveCallCount()).To(Equal(0))
 			})
 		})
 
