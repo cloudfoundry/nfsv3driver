@@ -258,7 +258,13 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 		logger.Info("pgrep", lager.Data{"output": output, "err": err})
 	}
 
-	mounts, err := m.mountChecker.List("^" + path + ".*" + MAPFS_DIRECTORY_SUFFIX + "$")
+	mountPattern, err := regexp.Compile("^" + path + ".*" + MAPFS_DIRECTORY_SUFFIX + "$")
+	if err != nil {
+		logger.Error("unable-to-list-mounts", err)
+		return
+	}
+
+	mounts, err := m.mountChecker.List(mountPattern)
 	if err != nil {
 		logger.Error("check-proc-mounts-failed", err, lager.Data{"path": path})
 		return

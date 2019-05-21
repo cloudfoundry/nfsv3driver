@@ -651,12 +651,15 @@ var _ = Describe("MapfsMounter", func() {
 
 	Context("#Purge", func() {
 		Context("when Purge succeeds", func() {
+			var pathToPurge string
+
 			BeforeEach(func() {
+				pathToPurge = "/foo/foo/foo"
 				fakeMountChecker.ListReturns([]string{"/foo/foo/foo/mount_one_mapfs"}, nil)
 			})
 
 			JustBeforeEach(func() {
-				subject.Purge(env, "/foo/foo/foo")
+				subject.Purge(env, pathToPurge)
 			})
 
 			It("kills the mapfs mount processes", func() {
@@ -698,6 +701,17 @@ var _ = Describe("MapfsMounter", func() {
 
 					path = fakeOs.RemoveArgsForCall(1)
 					Expect(path).To(Equal("/foo/foo/foo/mount_one_mapfs"))
+				})
+			})
+
+			Context("when given a path to purge that is a malformed URI", func() {
+				BeforeEach(func() {
+					pathToPurge = "foo("
+				})
+
+				It("should log an error", func() {
+					Expect(logger.TestSink.Buffer()).Should(gbytes.Say("unable-to-list-mounts"))
+					Expect(fakeMountChecker.ListCallCount()).To(Equal(0))
 				})
 			})
 		})
