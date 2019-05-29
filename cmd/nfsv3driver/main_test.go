@@ -1,24 +1,16 @@
 package main_test
 
 import (
-	"context"
+	"github.com/onsi/gomega/gbytes"
 	"io/ioutil"
 	"net"
 	"os/exec"
 	"path/filepath"
-	"time"
-
-	"code.cloudfoundry.org/cfhttp"
-	"code.cloudfoundry.org/dockerdriver"
-	"code.cloudfoundry.org/dockerdriver/driverhttp"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagertest"
 
 	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 )
 
@@ -26,17 +18,21 @@ var _ = Describe("Main", func() {
 	var (
 		session *gexec.Session
 		command *exec.Cmd
-		logger  lager.Logger
+		expectedStartOutput string
+		expectedStartErrOutput string
 	)
 
 	BeforeEach(func() {
 		command = exec.Command(driverPath)
-		logger = lagertest.NewTestLogger("test-nfs-driver")
+		expectedStartOutput = "started"
+		expectedStartErrOutput = ""
 	})
 
 	JustBeforeEach(func() {
 		var err error
 		session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
+		Eventually(session.Out).Should(gbytes.Say(expectedStartOutput))
+		Eventually(session.Err).Should(gbytes.Say(expectedStartErrOutput))
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -139,6 +135,8 @@ var _ = Describe("Main", func() {
 				os.Setenv("LDAP_PROTO", "tcp")
 				command.Args = append(command.Args, "-listenAddr=0.0.0.0:7595")
 				command.Args = append(command.Args, "-adminAddr=0.0.0.0:7596")
+				expectedStartOutput = ""
+				expectedStartErrOutput = "required LDAP parameters are not set"
 			})
 
 			AfterEach(func() {
@@ -196,47 +194,6 @@ var _ = Describe("Main", func() {
 					"TLSConfig": null,
 					"UniqueVolumeIds": true
 				}`))
-			})
-		})
-
-		Context("received a slow mounting request", func() {
-			var (
-				driverUrl     string
-				volumeId      string
-				opts          map[string]interface{}
-				cfHttpTimeout time.Duration
-			)
-
-			BeforeEach(func() {
-				driverUrl = "http://127.0.0.1:7589"
-				volumeId = "fake-nfs"
-				opts = map[string]interface{}{"source": "127.0.0.1/var/vcap"}
-				command.Args = append(command.Args, "-useMockMounter")
-
-				cfHttpTimeout = 12 * time.Second
-				cfhttp.Initialize(cfHttpTimeout)
-			})
-
-			It("log it to warning", func() {
-				// Wait for the server
-				EventuallyWithOffset(1, func() error {
-					_, err := net.Dial("tcp", "0.0.0.0:7589")
-					return err
-				}, 5).ShouldNot(HaveOccurred())
-
-				client, err := driverhttp.NewRemoteClient(driverUrl, nil)
-				Expect(err).ToNot(HaveOccurred())
-
-				env := driverhttp.NewHttpDriverEnv(logger, context.TODO())
-
-				createRequest := dockerdriver.CreateRequest{Name: volumeId, Opts: opts}
-				createResponse := client.Create(env, createRequest)
-				Expect(createResponse.Err).To(BeEmpty())
-
-				mountRequest := dockerdriver.MountRequest{Name: volumeId}
-				mountResponse := client.Mount(env, mountRequest)
-				Expect(mountResponse.Err).To(BeEmpty())
-				Expect(session.Out).To(gbytes.Say("mount-duration-too-high"))
 			})
 		})
 	})

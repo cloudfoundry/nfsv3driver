@@ -1,6 +1,7 @@
 package main
 
 import (
+	"code.cloudfoundry.org/goshims/timeshim"
 	"encoding/json"
 	"flag"
 	"os"
@@ -135,18 +136,6 @@ var mountFlagDefault = flag.String(
 	"This is a comma separted list of like params:value. This list specify default value of parameters. If parameters has default value and is not in allowed list, this default value become a forced value who's cannot be override",
 )
 
-var useMockMounter = flag.Bool(
-	"useMockMounter",
-	false,
-	"Whether to use a mock mounter for integration test",
-)
-
-var mockMountSeconds = flag.Int64(
-	"mockMountSeconds",
-	11,
-	"How many seconds it takes to mount simulated by mock mounter",
-)
-
 var uniqueVolumeIds = flag.Bool(
 	"uniqueVolumeIds",
 	false,
@@ -172,7 +161,7 @@ func main() {
 	parseCommandLine()
 	parseEnvironment()
 
-	var localDriverServer ifrit.Runner
+	var nfsDriverServer ifrit.Runner
 	var idResolver nfsv3driver.IdResolver
 	var mounter volumedriver.Mounter
 
@@ -200,31 +189,28 @@ func main() {
 		)
 	}
 
-	if *useMockMounter {
-		mounter = nfsv3driver.NewMockMounter(time.Duration(*mockMountSeconds)*time.Second, logger)
-	} else {
-		config := nfsv3driver.NewNfsV3Config(source, mounts)
-		mounter = nfsv3driver.NewMapfsMounter(
-			invoker.NewProcessGroupInvoker(),
-			invoker.NewRealInvoker(),
-			nfsv3driver.NewBackgroundInvoker(&execshim.ExecShim{}),
-			&osshim.OsShim{},
-			&syscallshim.SyscallShim{},
-			&ioutilshim.IoutilShim{},
-			mountchecker.NewChecker(&bufioshim.BufioShim{}, &osshim.OsShim{}),
-			fsType,
-			mountOptions,
-			idResolver,
-			config,
-			*mapfsPath,
-		)
-	}
+	config := nfsv3driver.NewNfsV3Config(source, mounts)
+	mounter = nfsv3driver.NewMapfsMounter(
+		invoker.NewProcessGroupInvoker(),
+		invoker.NewRealInvoker(),
+		nfsv3driver.NewBackgroundInvoker(&execshim.ExecShim{}),
+		&osshim.OsShim{},
+		&syscallshim.SyscallShim{},
+		&ioutilshim.IoutilShim{},
+		mountchecker.NewChecker(&bufioshim.BufioShim{}, &osshim.OsShim{}),
+		fsType,
+		mountOptions,
+		idResolver,
+		config,
+		*mapfsPath,
+	)
 
 	client := volumedriver.NewVolumeDriver(
 		logger,
 		&osshim.OsShim{},
 		&filepathshim.FilepathShim{},
 		&ioutilshim.IoutilShim{},
+		&timeshim.TimeShim{},
 		mountchecker.NewChecker(&bufioshim.BufioShim{}, &osshim.OsShim{}),
 		*mountDir,
 		mounter,
@@ -232,15 +218,15 @@ func main() {
 	)
 
 	if *transport == "tcp" {
-		localDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, false, false)
+		nfsDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, false, false)
 	} else if *transport == "tcp-json" {
-		localDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, true, *uniqueVolumeIds)
+		nfsDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, true, *uniqueVolumeIds)
 	} else {
-		localDriverServer = createNfsDriverUnixServer(logger, client, *atAddress)
+		nfsDriverServer = createNfsDriverUnixServer(logger, client, *atAddress)
 	}
 
 	servers := grouper.Members{
-		{Name: "localdriver-server", Runner: localDriverServer},
+		{Name: "nfsdriver-server", Runner: nfsDriverServer},
 	}
 
 	if dbgAddr := cf_debug_server.DebugAddress(flag.CommandLine); dbgAddr != "" {
@@ -251,7 +237,6 @@ func main() {
 
 	adminClient := driveradminlocal.NewDriverAdminLocal()
 	adminHandler, _ := driveradminhttp.NewHandler(logger, adminClient)
-	// TODO handle error
 	adminServer := http_server.New(*adminAddress, adminHandler)
 
 	servers = append(grouper.Members{
