@@ -48,10 +48,6 @@ func (r *backgroundInvoker) Invoke(env dockerdriver.Env, executable string, cmdA
 	}
 	defer func() { go cmdHandle.Wait() }()
 
-	if waitFor == "" {
-		return nil, cancel
-	}
-
 	var mutex sync.Mutex
 	cancelled := false
 	timer := time.AfterFunc(timeout, func() {
