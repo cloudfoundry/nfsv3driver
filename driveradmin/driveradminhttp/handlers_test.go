@@ -1,8 +1,7 @@
 package driveradminhttp_test
 
 import (
-	"encoding/json"
-	"io/ioutil"
+	"github.com/tedsuo/rata"
 	"net/http"
 	"net/http/httptest"
 
@@ -19,62 +18,63 @@ import (
 var _ = Describe("Volman Driver Handlers", func() {
 
 	Context("when generating http handlers", func() {
-		var testLogger = lagertest.NewTestLogger("HandlersTest")
+		var (
+			testLogger = lagertest.NewTestLogger("HandlersTest")
+			driverAdmin = &nfsdriverfakes.FakeDriverAdmin{}
+			handler http.Handler
+			httpRequest *http.Request
+			httpResponseRecorder *httptest.ResponseRecorder
+			route rata.Route
 
-		It("should produce a handler with an evacuate route", func() {
-			By("faking out the driver")
-			driverAdmin := &nfsdriverfakes.FakeDriverAdmin{}
-			driverAdmin.EvacuateReturns(driveradmin.ErrorResponse{})
-			handler, err := driveradminhttp.NewHandler(testLogger, driverAdmin)
+		)
+
+		BeforeEach(func() {
+			var err error
+			handler, err = driveradminhttp.NewHandler(testLogger, driverAdmin)
 			Expect(err).NotTo(HaveOccurred())
-
-			By("then fake serving the response using the handler")
-			route, found := driveradmin.Routes.FindRouteByName(driveradmin.EvacuateRoute)
-			Expect(found).To(BeTrue())
-
-			path := fmt.Sprintf("http://0.0.0.0%s", route.Path)
-			httpRequest, err := http.NewRequest("GET", path, nil)
-			Expect(err).NotTo(HaveOccurred())
-
-			httpResponseRecorder := httptest.NewRecorder()
-			handler.ServeHTTP(httpResponseRecorder, httpRequest)
-
-			By("then deserialing the HTTP response")
-			response := driveradmin.ErrorResponse{}
-			body, err := ioutil.ReadAll(httpResponseRecorder.Body)
-			err = json.Unmarshal(body, &response)
-
-			By("then expecting correct JSON conversion")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(response.Err).Should(BeEmpty())
 		})
 
-		It("should produce a handler with an ping route", func() {
-			By("faking out the driver")
-			driverAdmin := &nfsdriverfakes.FakeDriverAdmin{}
-			driverAdmin.PingReturns(driveradmin.ErrorResponse{})
-			handler, err := driveradminhttp.NewHandler(testLogger, driverAdmin)
-			Expect(err).NotTo(HaveOccurred())
-
-			By("then fake serving the response using the handler")
-			route, found := driveradmin.Routes.FindRouteByName(driveradmin.PingRoute)
-			Expect(found).To(BeTrue())
-
+		JustBeforeEach(func() {
+			var err error
 			path := fmt.Sprintf("http://0.0.0.0%s", route.Path)
-			httpRequest, err := http.NewRequest("GET", path, nil)
+			httpRequest, err = http.NewRequest("GET", path, nil)
 			Expect(err).NotTo(HaveOccurred())
 
-			httpResponseRecorder := httptest.NewRecorder()
+			httpResponseRecorder = httptest.NewRecorder()
 			handler.ServeHTTP(httpResponseRecorder, httpRequest)
-
-			By("then deserialing the HTTP response")
-			response := driveradmin.ErrorResponse{}
-			body, err := ioutil.ReadAll(httpResponseRecorder.Body)
-			err = json.Unmarshal(body, &response)
-
-			By("then expecting correct JSON conversion")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(response.Err).Should(BeEmpty())
 		})
+
+		Context("Evacuate", func() {
+			BeforeEach(func() {
+				driverAdmin.EvacuateReturns(driveradmin.ErrorResponse{})
+
+				var found bool
+				route, found = driveradmin.Routes.FindRouteByName(driveradmin.EvacuateRoute)
+				Expect(found).To(BeTrue())
+			})
+
+			It("should produce a handler with an evacuate route", func() {
+				Expect(httpResponseRecorder.Code).To(Equal(200))
+				Expect(httpResponseRecorder.Body).Should(MatchJSON(`{"Err":""}`))
+			})
+
+		})
+
+		Context("Ping", func() {
+			BeforeEach(func() {
+				driverAdmin.EvacuateReturns(driveradmin.ErrorResponse{})
+
+				var found bool
+				route, found = driveradmin.Routes.FindRouteByName(driveradmin.PingRoute)
+				Expect(found).To(BeTrue())
+			})
+
+			It("should produce a handler with an evacuate route", func() {
+				Expect(httpResponseRecorder.Code).To(Equal(200))
+				Expect(httpResponseRecorder.Body).Should(MatchJSON(`{"Err":""}`))
+			})
+
+		})
+
 	})
 })
