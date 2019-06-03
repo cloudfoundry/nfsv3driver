@@ -99,7 +99,6 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 
 		uid, gid, err := m.resolver.Resolve(env, username.(string), password.(string))
 		if err != nil {
-			// this error is not wrapped in SafeError since it might contain sensitive information
 			return err
 		}
 

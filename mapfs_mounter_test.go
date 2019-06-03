@@ -422,7 +422,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 		})
 
-		Context("when username mapping is enabled", func() {
+		Context("when provided a username to map to a uid", func() {
 			BeforeEach(func() {
 				fakeIdResolver = &nfsdriverfakes.FakeIdResolver{}
 
@@ -475,6 +475,18 @@ var _ = Describe("MapfsMounter", func() {
 					_, ok := err.(dockerdriver.SafeError)
 					Expect(ok).To(BeTrue())
 					Expect(err.Error()).To(ContainSubstring("Not allowed options"))
+				})
+			})
+
+			Context("when unable to resolve username", func() {
+				BeforeEach(func() {
+					fakeIdResolver.ResolveReturns("", "", errors.New("unable to resolve"))
+				})
+
+				It("return an error that is not a SafeError since it might contain sensitive information", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(MatchError("unable to resolve"))
+					Expect(err).NotTo(BeAssignableToTypeOf(dockerdriver.SafeError{}))
 				})
 			})
 		})
