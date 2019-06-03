@@ -650,18 +650,18 @@ var _ = Describe("MapfsMounter", func() {
 	})
 
 	Context("#Purge", func() {
+		var pathToPurge string
+
+		BeforeEach(func() {
+			pathToPurge = "/foo/foo/foo"
+			fakeMountChecker.ListReturns([]string{"/foo/foo/foo/mount_one_mapfs"}, nil)
+		})
+
+		JustBeforeEach(func() {
+			subject.Purge(env, pathToPurge)
+		})
+
 		Context("when Purge succeeds", func() {
-			var pathToPurge string
-
-			BeforeEach(func() {
-				pathToPurge = "/foo/foo/foo"
-				fakeMountChecker.ListReturns([]string{"/foo/foo/foo/mount_one_mapfs"}, nil)
-			})
-
-			JustBeforeEach(func() {
-				subject.Purge(env, pathToPurge)
-			})
-
 			It("kills the mapfs mount processes", func() {
 				Expect(fakeInvoker.InvokeCallCount()).To(Equal(33))
 
@@ -713,6 +713,18 @@ var _ = Describe("MapfsMounter", func() {
 					Expect(logger.TestSink.Buffer()).Should(gbytes.Say("unable-to-list-mounts"))
 					Expect(fakeMountChecker.ListCallCount()).To(Equal(0))
 				})
+			})
+		})
+
+		Context("when unable to list mounts", func() {
+			BeforeEach(func(){
+				fakeMountChecker.ListReturns(nil, errors.New("list-failed"))
+			})
+
+			It("should log the error and not attempt any unmounts", func() {
+				Expect(logger.Buffer()).To(gbytes.Say("list-failed"))
+				Expect(logger.Buffer()).NotTo(gbytes.Say("mount-directory-list"))
+
 			})
 		})
 	})
