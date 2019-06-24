@@ -4,10 +4,9 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"io/ioutil"
 	"net"
+	"os"
 	"os/exec"
 	"path/filepath"
-
-	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -100,24 +99,24 @@ var _ = Describe("Main", func() {
 
 		Context("given correct LDAP arguments set in the environment", func() {
 			BeforeEach(func() {
-				os.Setenv("LDAP_SVC_USER", "user")
-				os.Setenv("LDAP_SVC_PASS", "password")
-				os.Setenv("LDAP_USER_FQDN", "cn=Users,dc=corp,dc=testdomain,dc=com")
-				os.Setenv("LDAP_HOST", "ldap.testdomain.com")
-				os.Setenv("LDAP_PORT", "7593")
-				os.Setenv("LDAP_PROTO", "tcp")
+				Expect(os.Setenv("LDAP_SVC_USER", "user")).To(Succeed())
+				Expect(os.Setenv("LDAP_SVC_PASS", "password")).To(Succeed())
+				Expect(os.Setenv("LDAP_USER_FQDN", "cn=Users,dc=corp,dc=testdomain,dc=com")).To(Succeed())
+				Expect(os.Setenv("LDAP_HOST", "ldap.testdomain.com")).To(Succeed())
+				Expect(os.Setenv("LDAP_PORT", "7593")).To(Succeed())
+				Expect(os.Setenv("LDAP_PROTO", "tcp")).To(Succeed())
 
 				command.Args = append(command.Args, "-listenAddr=0.0.0.0:7593")
 				command.Args = append(command.Args, "-adminAddr=0.0.0.0:7594")
 			})
 
 			AfterEach(func() {
-				os.Unsetenv("LDAP_SVC_USER")
-				os.Unsetenv("LDAP_SVC_PASS")
-				os.Unsetenv("LDAP_USER_FQDN")
-				os.Unsetenv("LDAP_HOST")
-				os.Unsetenv("LDAP_PORT")
-				os.Unsetenv("LDAP_PROTO")
+				Expect(os.Unsetenv("LDAP_SVC_USER")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_SVC_PASS")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_USER_FQDN")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_HOST")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_PORT")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_PROTO")).To(Succeed())
 			})
 
 			It("listens on provided arguments", func() {
@@ -130,9 +129,9 @@ var _ = Describe("Main", func() {
 
 		Context("given incomplete LDAP arguments set in the environment", func() {
 			BeforeEach(func() {
-				os.Setenv("LDAP_HOST", "ldap.testdomain.com")
-				os.Setenv("LDAP_PORT", "389")
-				os.Setenv("LDAP_PROTO", "tcp")
+				Expect(os.Setenv("LDAP_HOST", "ldap.testdomain.com")).To(Succeed())
+				Expect(os.Setenv("LDAP_PORT", "389")).To(Succeed())
+				Expect(os.Setenv("LDAP_PROTO", "tcp")).To(Succeed())
 				command.Args = append(command.Args, "-listenAddr=0.0.0.0:7595")
 				command.Args = append(command.Args, "-adminAddr=0.0.0.0:7596")
 				expectedStartOutput = ""
@@ -140,9 +139,9 @@ var _ = Describe("Main", func() {
 			})
 
 			AfterEach(func() {
-				os.Unsetenv("LDAP_HOST")
-				os.Unsetenv("LDAP_PORT")
-				os.Unsetenv("LDAP_PROTO")
+				Expect(os.Unsetenv("LDAP_HOST")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_PORT")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_PROTO")).To(Succeed())
 			})
 
 			It("fails to start", func() {
@@ -155,16 +154,27 @@ var _ = Describe("Main", func() {
 
 		Context("given LDAP_TIMEOUT are set in the the environment", func() {
 			BeforeEach(func() {
-				os.Setenv("LDAP_SVC_USER", "user")
-				os.Setenv("LDAP_SVC_PASS", "password")
-				os.Setenv("LDAP_USER_FQDN", "cn=Users,dc=corp,dc=testdomain,dc=com")
-				os.Setenv("LDAP_HOST", "ldap.testdomain.com")
-				os.Setenv("LDAP_PORT", "389")
-				os.Setenv("LDAP_PROTO", "tcp")
-				os.Setenv("LDAP_TIMEOUT", "60")
+				Expect(os.Setenv("LDAP_SVC_USER", "user")).To(Succeed())
+				Expect(os.Setenv("LDAP_SVC_PASS", "password")).To(Succeed())
+				Expect(os.Setenv("LDAP_USER_FQDN", "cn=Users,dc=corp,dc=testdomain,dc=com")).To(Succeed())
+				Expect(os.Setenv("LDAP_HOST", "ldap.testdomain.com")).To(Succeed())
+				Expect(os.Setenv("LDAP_PORT", "389")).To(Succeed())
+				Expect(os.Setenv("LDAP_PROTO", "tcp")).To(Succeed())
+				Expect(os.Setenv("LDAP_TIMEOUT", "60")).To(Succeed())
 				command.Args = append(command.Args, "-listenAddr=0.0.0.0:7593")
 				command.Args = append(command.Args, "-adminAddr=0.0.0.0:7594")
 			})
+
+			AfterEach(func() {
+				Expect(os.Unsetenv("LDAP_SVC_USER")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_SVC_PASS")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_USER_FQDN")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_HOST")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_PORT")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_PROTO")).To(Succeed())
+				Expect(os.Unsetenv("LDAP_TIMEOUT")).To(Succeed())
+			})
+
 			It("listens on tcp/7589 by default", func() {
 				EventuallyWithOffset(1, func() error {
 					_, err := net.Dial("tcp", "0.0.0.0:7593")
