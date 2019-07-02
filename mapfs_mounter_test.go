@@ -322,6 +322,30 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(len(args)).To(BeNumerically(">", 0))
 				Expect(args[0]).To(Equal("target_mapfs"))
 				Expect(fakeOs.RemoveCallCount()).To(Equal(1))
+
+				Expect(logger.LogMessages()).NotTo(ContainElement(ContainSubstring("intermediate-unmount-failed")))
+				Expect(logger.LogMessages()).NotTo(ContainElement(ContainSubstring("intermediate-remove-failed")))
+			})
+
+			Context("when it fails to unmount the intermediate directory", func() {
+
+				BeforeEach(func() {
+					fakeInvoker.InvokeReturns(nil, errors.New("intermediate-unmount-failed"))
+				})
+				It("should log the error", func() {
+					Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("intermediate-unmount-failed")))
+					Expect(fakeOs.RemoveCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when it fails to remove the intermediate directory", func() {
+
+				BeforeEach(func() {
+					fakeOs.RemoveReturns(errors.New("intermediate-remove-failed"))
+				})
+				It("should log the error", func() {
+					Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("intermediate-remove-failed")))
+				})
 			})
 		})
 		Context("when stat() fails during access check", func() {
@@ -335,6 +359,8 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(logger.TestSink.Buffer().Contents()).To(ContainSubstring("nacho share"))
 			})
+
+
 		})
 		Context("when stat returns ambiguous results", func() {
 			var (
@@ -397,7 +423,19 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			It("should remove the intermediary mountpoint", func() {
+				Expect(logger.LogMessages()).NotTo(ContainElement(ContainSubstring("remove-failed")))
+
 				Expect(fakeOs.RemoveCallCount()).To(Equal(1))
+			})
+
+			Context("when the intermediate mount directory remove fails", func() {
+				BeforeEach(func() {
+					fakeOs.RemoveReturns(errors.New("remove-failed"))
+				})
+
+				It("should log an error", func() {
+					Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("remove-failed")))
+				})
 			})
 		})
 		Context("when kernel mount succeeds, but mapfs mount fails", func() {
@@ -419,6 +457,27 @@ var _ = Describe("MapfsMounter", func() {
 			})
 			It("should remove the intermediary mountpoint", func() {
 				Expect(fakeOs.RemoveCallCount()).To(Equal(1))
+				Expect(logger.LogMessages()).NotTo(ContainElement(ContainSubstring("unmount-failed")))
+				Expect(logger.LogMessages()).NotTo(ContainElement(ContainSubstring("remove-failed")))
+			})
+
+			Context("when unmount fails", func() {
+				BeforeEach(func(){
+					fakeInvoker.InvokeReturns(nil, errors.New("unmount-failed"))
+				})
+				It("should log the error", func() {
+					Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("unmount-failed")))
+					Expect(fakeOs.RemoveCallCount()).To(Equal(0))
+				})
+			})
+
+			Context("when remove fails", func() {
+				BeforeEach(func(){
+					fakeOs.RemoveReturns(errors.New("remove-failed"))
+				})
+				It("should log the error", func() {
+					Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("remove-failed")))
+				})
 			})
 		})
 

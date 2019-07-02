@@ -148,7 +148,10 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 	_, err = m.pgInvoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t})
 	if err != nil {
 		logger.Error("invoke-mount-failed", err)
-		m.osshim.Remove(intermediateMount)
+		err1 := m.osshim.Remove(intermediateMount)
+		if err1 != nil {
+			logger.Error("remove-failed", err1)
+		}
 		return dockerdriver.SafeError{SafeDescription: err.Error()}
 	}
 
@@ -174,13 +177,24 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 			if (st.Mode&04 == 0) &&
 				((uint32(gid) != st.Gid && NobodyId != st.Gid && UnknownId != st.Gid) || st.Mode&040 == 0) &&
 				((uint32(uid) != st.Uid && NobodyId != st.Uid && UnknownId != st.Uid) || st.Mode&0400 == 0) {
-				err = errors.New("User lacks read access to share.")
+				err = errors.New("user lacks read access to share")
 			}
 		}
 		if err != nil {
 			logger.Error("mount-read-access-check-failed", err)
-			m.invoker.Invoke(env, "umount", []string{intermediateMount})
-			m.osshim.Remove(intermediateMount)
+			_, err1 := m.invoker.Invoke(env, "umount", []string{intermediateMount})
+
+			if err1 != nil {
+				logger.Error("intermediate-unmount-failed", err1)
+			}
+
+			if err1 == nil {
+				err1 = m.osshim.Remove(intermediateMount)
+				if err1 != nil {
+					logger.Error("intermediate-remove-failed", err1)
+				}
+			}
+
 			return dockerdriver.SafeError{SafeDescription: err.Error()}
 		}
 
@@ -189,8 +203,18 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		err, _ = m.backgroundInvoker.Invoke(env, m.mapfsPath, args, "Mounted!", MapfsMountTimeout)
 		if err != nil {
 			logger.Error("background-invoke-mount-failed", err)
-			m.invoker.Invoke(env, "umount", []string{intermediateMount})
-			m.osshim.Remove(intermediateMount)
+
+			_, err1 := m.invoker.Invoke(env, "umount", []string{intermediateMount})
+			if err1 != nil {
+				logger.Error("unmount-failed", err1)
+			}
+
+			if err1 == nil {
+				err1 = m.osshim.Remove(intermediateMount)
+				if err1 != nil {
+					logger.Error("remove-failed", err1)
+				}
+			}
 			return dockerdriver.SafeError{SafeDescription: err.Error()}
 		}
 	}
