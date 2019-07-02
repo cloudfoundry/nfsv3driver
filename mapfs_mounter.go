@@ -23,10 +23,10 @@ import (
 	"code.cloudfoundry.org/volumedriver/mountchecker"
 )
 
-const MAPFS_DIRECTORY_SUFFIX = "_mapfs"
-const MAPFS_MOUNT_TIMEOUT = time.Minute * 5
-const NOBODY_ID = uint32(65534)
-const UNKNOWN_ID = uint32(4294967294)
+const MapfsDirectorySuffix = "_mapfs"
+const MapfsMountTimeout = time.Minute * 5
+const NobodyId = uint32(65534)
+const UnknownId = uint32(4294967294)
 
 type mapfsMounter struct {
 	pgInvoker         invoker.Invoker
@@ -123,7 +123,7 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 
 	target = strings.TrimSuffix(target, "/")
 
-	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
+	intermediateMount := target + MapfsDirectorySuffix
 	orig := syscall.Umask(000)
 	defer syscall.Umask(orig)
 	err = m.osshim.MkdirAll(intermediateMount, os.ModePerm)
@@ -173,8 +173,8 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 			err = nil
 		} else {
 			if (st.Mode&04 == 0) &&
-				((uint32(gid) != st.Gid && NOBODY_ID != st.Gid && UNKNOWN_ID != st.Gid) || st.Mode&040 == 0) &&
-				((uint32(uid) != st.Uid && NOBODY_ID != st.Uid && UNKNOWN_ID != st.Uid) || st.Mode&0400 == 0) {
+				((uint32(gid) != st.Gid && NobodyId != st.Gid && UnknownId != st.Gid) || st.Mode&040 == 0) &&
+				((uint32(uid) != st.Uid && NobodyId != st.Uid && UnknownId != st.Uid) || st.Mode&0400 == 0) {
 				err = errors.New("User lacks read access to share.")
 			}
 		}
@@ -187,7 +187,7 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 
 		args := mapfsOptions(optsToUse)
 		args = append(args, target, intermediateMount)
-		err, _ = m.backgroundInvoker.Invoke(env, m.mapfsPath, args, "Mounted!", MAPFS_MOUNT_TIMEOUT)
+		err, _ = m.backgroundInvoker.Invoke(env, m.mapfsPath, args, "Mounted!", MapfsMountTimeout)
 		if err != nil {
 			logger.Error("background-invoke-mount-failed", err)
 			m.invoker.Invoke(env, "umount", []string{intermediateMount})
@@ -205,7 +205,7 @@ func (m *mapfsMounter) Unmount(env dockerdriver.Env, target string) error {
 	defer logger.Info("unmount-end")
 
 	target = strings.TrimSuffix(target, "/")
-	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
+	intermediateMount := target + MapfsDirectorySuffix
 
 	if _, e := m.invoker.Invoke(env, "umount", []string{"-l", target}); e != nil {
 		return dockerdriver.SafeError{SafeDescription: e.Error()}
@@ -262,7 +262,7 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 		logger.Info("pgrep", lager.Data{"output": output, "err": err})
 	}
 
-	mountPattern, err := regexp.Compile("^" + path + ".*" + MAPFS_DIRECTORY_SUFFIX + "$")
+	mountPattern, err := regexp.Compile("^" + path + ".*" + MapfsDirectorySuffix + "$")
 	if err != nil {
 		logger.Error("unable-to-list-mounts", err)
 		return
@@ -277,7 +277,7 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 	logger.Info("mount-directory-list", lager.Data{"mounts": mounts})
 
 	for _, mountDir := range mounts {
-		realMountpoint := strings.TrimSuffix(mountDir, MAPFS_DIRECTORY_SUFFIX)
+		realMountpoint := strings.TrimSuffix(mountDir, MapfsDirectorySuffix)
 
 		_, err = m.invoker.Invoke(env, "umount", []string{"-l", "-f", realMountpoint})
 		if err != nil {

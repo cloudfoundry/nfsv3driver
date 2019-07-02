@@ -352,7 +352,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			Context("when uid is unknown", func() {
 				BeforeEach(func() {
-					uid = nfsv3driver.UNKNOWN_ID
+					uid = nfsv3driver.UnknownId
 				})
 				It("should succeed", func() {
 					Expect(fakeSyscall.StatCallCount()).NotTo(BeZero())
@@ -362,7 +362,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			Context("when gid is unknown", func() {
 				BeforeEach(func() {
-					gid = nfsv3driver.UNKNOWN_ID
+					gid = nfsv3driver.UnknownId
 				})
 				It("should succeed", func() {
 					Expect(fakeSyscall.StatCallCount()).NotTo(BeZero())
