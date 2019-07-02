@@ -95,6 +95,21 @@ var _ = Describe("Main", func() {
 					return err
 				}, 5).ShouldNot(HaveOccurred())
 			})
+
+			Context("when they are invalid", func() {
+
+				BeforeEach(func() {
+					command.Args = append(command.Args, "-default-in-mount=sloppy_mount:123")
+					expectedStartOutput = "fatal-err-aborting"
+				})
+
+				It("should error", func() {
+					EventuallyWithOffset(1, func() error {
+						_, err := net.Dial("tcp", "0.0.0.0:7595")
+						return err
+					}, 5).Should(HaveOccurred())
+				})
+			})
 		})
 
 		Context("given correct LDAP arguments set in the environment", func() {

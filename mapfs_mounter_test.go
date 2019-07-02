@@ -78,7 +78,7 @@ var _ = Describe("MapfsMounter", func() {
 			return nil
 		}
 
-		mask, err = nfsv3driver.NewMapFsVolumeMountMask("auto_cache", "fsname")
+		mask, err = nfsv3driver.NewMapFsVolumeMountMask("auto_cache,fsname", "")
 		Expect(err).NotTo(HaveOccurred())
 
 		subject = nfsv3driver.NewMapfsMounter(fakePgInvoker, fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, mask, mapfsPath)
@@ -769,6 +769,34 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(logger.Buffer()).To(gbytes.Say("list-failed"))
 				Expect(logger.Buffer()).NotTo(gbytes.Say("mount-directory-list"))
 
+			})
+		})
+	})
+
+	Context("NewMapFsVolumeMountMask", func() {
+
+		Context("when given additional options", func() {
+			var (
+				mask                                 vmo.MountOptsMask
+				err                                  error
+				allowMountOption, defaultMountOption string
+			)
+
+			BeforeEach(func() {
+				allowMountOption = "opt1,opt2"
+				defaultMountOption = "opt1:val1,opt2:val2"
+			})
+
+			JustBeforeEach(func() {
+				mask, err = nfsv3driver.NewMapFsVolumeMountMask(allowMountOption, defaultMountOption)
+			})
+
+			It("should create a mask with those options", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(mask.Allowed).To(ContainElement("opt1"))
+				Expect(mask.Allowed).To(ContainElement("opt2"))
+				Expect(mask.Defaults).To(HaveKeyWithValue("opt1", "val1"))
+				Expect(mask.Defaults).To(HaveKeyWithValue("opt2", "val2"))
 			})
 		})
 	})

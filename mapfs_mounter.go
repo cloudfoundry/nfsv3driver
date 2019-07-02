@@ -72,7 +72,6 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 	logger.Info("mount-start")
 	defer logger.Info("mount-end")
 
-
 	if username, ok := opts["username"]; ok {
 		if _, found := opts["uid"]; found {
 			return dockerdriver.SafeError{SafeDescription: "Not allowed options"}
@@ -306,8 +305,27 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 		logger.Info("remove-directory-successful", lager.Data{"path": mountDir})
 	}
 }
-func NewMapFsVolumeMountMask(allowedMountOpt1 string, allowedMountOpt2 string) (vmo.MountOptsMask, error) {
-	return vmo.NewMountOptsMask([]string{"source", "mount", "uid", "gid", "username", "password", "readonly", "version", allowedMountOpt1, allowedMountOpt2}, nil, nil, []string{}, []string{})
+
+func NewMapFsVolumeMountMask(allowedMountOptions string, defaultMountOptions string) (vmo.MountOptsMask, error) {
+	allowed := []string{"source", "mount", "uid", "gid", "username", "password", "readonly", "version"}
+	allowed = append(allowed, strings.Split(allowedMountOptions, ",")...)
+
+	defaultMap := map[string]interface{}{}
+	for _, value := range strings.Split(defaultMountOptions, ",") {
+		split := strings.Split(value, ":")
+		if len(split) == 2 {
+			defaultMap[split[0]] = split[1]
+		}
+	}
+
+	return vmo.NewMountOptsMask(
+		allowed,
+		defaultMap,
+		nil,
+		[]string{},
+		[]string{},
+	)
+
 }
 
 func uniformData(data interface{}) string {
