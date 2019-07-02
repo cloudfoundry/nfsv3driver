@@ -2,11 +2,13 @@ package main
 
 import (
 	"code.cloudfoundry.org/goshims/timeshim"
+	vmo "code.cloudfoundry.org/volume-mount-options"
 	"encoding/json"
 	"flag"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	cf_http "code.cloudfoundry.org/cfhttp"
@@ -169,12 +171,6 @@ func main() {
 	logger.Info("start")
 	defer logger.Info("end")
 
-	source := nfsv3driver.NewNfsV3ConfigDetails()
-	source.ReadConf(*sourceFlagAllowed, *sourceFlagDefault, []string{})
-
-	mounts := nfsv3driver.NewNfsV3ConfigDetails()
-	mounts.ReadConf(*mountFlagAllowed, *mountFlagDefault, []string{})
-
 	if ldapHost != "" {
 		idResolver = nfsv3driver.NewLdapIdResolver(
 			ldapSvcUser,
@@ -189,7 +185,19 @@ func main() {
 		)
 	}
 
-	config := nfsv3driver.NewNfsV3Config(source, mounts)
+	mountFlagDefaultMap := map[string]interface{}{}
+	for _, value := range strings.Split(*mountFlagDefault, ",") {
+		split := strings.Split(value, ":")
+		if len(split) == 2 {
+			mountFlagDefaultMap[split[0]] = split[1]
+		}
+	}
+
+	mask, err := vmo.NewMountOptsMask(strings.Split(*mountFlagAllowed, ","), mountFlagDefaultMap, map[string]string{}, []string{}, []string{})
+	if err != nil {
+		panic(err)
+	}
+
 	mounter = nfsv3driver.NewMapfsMounter(
 		invoker.NewProcessGroupInvoker(),
 		invoker.NewRealInvoker(),
@@ -201,7 +209,7 @@ func main() {
 		fsType,
 		mountOptions,
 		idResolver,
-		config,
+		mask,
 		*mapfsPath,
 	)
 

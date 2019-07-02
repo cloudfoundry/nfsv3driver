@@ -18,6 +18,7 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
+	vmo "code.cloudfoundry.org/volume-mount-options"
 	"code.cloudfoundry.org/volumedriver"
 	nfsfakes "code.cloudfoundry.org/volumedriver/volumedriverfakes"
 	. "github.com/onsi/ginkgo"
@@ -43,9 +44,9 @@ var _ = Describe("MapfsMounter", func() {
 		fakeMountChecker *nfsfakes.FakeMountChecker
 		fakeSyscall      *syscall_fake.FakeSyscall
 
-		opts                 map[string]interface{}
-		sourceCfg, mountsCfg *nfsv3driver.ConfigDetails
-		mapfsPath            string
+		opts      map[string]interface{}
+		mapfsPath string
+		mask      vmo.MountOptsMask
 	)
 
 	BeforeEach(func() {
@@ -77,13 +78,10 @@ var _ = Describe("MapfsMounter", func() {
 			return nil
 		}
 
-		sourceCfg = nfsv3driver.NewNfsV3ConfigDetails()
-		sourceCfg.ReadConf("", "", []string{})
+		mask, err = nfsv3driver.NewMapFsVolumeMountMask("auto_cache", "fsname")
+		Expect(err).NotTo(HaveOccurred())
 
-		mountsCfg = nfsv3driver.NewNfsV3ConfigDetails()
-		mountsCfg.ReadConf("uid,gid,nfs_uid,nfs_gid,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
-
-		subject = nfsv3driver.NewMapfsMounter(fakePgInvoker, fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+		subject = nfsv3driver.NewMapfsMounter(fakePgInvoker, fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, mask, mapfsPath)
 	})
 
 	Context("#Mount", func() {
@@ -104,6 +102,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			It("should use version specified", func() {
+				Expect(err).NotTo(HaveOccurred())
 				_, cmd, args := fakePgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
 				Expect(len(args)).To(BeNumerically(">", 5))
@@ -181,6 +180,7 @@ var _ = Describe("MapfsMounter", func() {
 					Expect(args[3]).NotTo(ContainSubstring(",ro"))
 				})
 				It("should not append 'actimeo=0' to the kernel mount options", func() {
+					Expect(err).NotTo(HaveOccurred())
 					_, _, args := fakePgInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 3))
 					Expect(args[2]).To(Equal("-o"))
@@ -426,9 +426,7 @@ var _ = Describe("MapfsMounter", func() {
 			BeforeEach(func() {
 				fakeIdResolver = &nfsdriverfakes.FakeIdResolver{}
 
-				mountsCfg.ReadConf("dircache,auto_cache,sloppy_mount,fsname,username,password", "", []string{})
-
-				subject = nfsv3driver.NewMapfsMounter(fakePgInvoker, fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, nfsv3driver.NewNfsV3Config(sourceCfg, mountsCfg), mapfsPath)
+				subject = nfsv3driver.NewMapfsMounter(fakePgInvoker, fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, mask, mapfsPath)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				delete(opts, "uid")
@@ -464,9 +462,43 @@ var _ = Describe("MapfsMounter", func() {
 				})
 			})
 
-			Context("when uid and gid are passed", func() {
+			Context("when uid is NaN", func() {
+				BeforeEach(func() {
+					fakeIdResolver.ResolveReturns("uid-not-a-number", "1", nil)
+				})
+
+				It("should error", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("uid-not-a-number"))
+				})
+			})
+
+			Context("when gid is NaN", func() {
+				BeforeEach(func() {
+					fakeIdResolver.ResolveReturns("1", "gid-not-a-number", nil)
+				})
+
+				It("should error", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("gid-not-a-number"))
+				})
+			})
+
+			Context("when uid is passed", func() {
 				BeforeEach(func() {
 					opts["uid"] = "100"
+				})
+
+				It("should error", func() {
+					Expect(err).To(HaveOccurred())
+					_, ok := err.(dockerdriver.SafeError)
+					Expect(ok).To(BeTrue())
+					Expect(err.Error()).To(ContainSubstring("Not allowed options"))
+				})
+			})
+
+			Context("when gid is passed", func() {
+				BeforeEach(func() {
 					opts["gid"] = "100"
 				})
 
@@ -729,7 +761,7 @@ var _ = Describe("MapfsMounter", func() {
 		})
 
 		Context("when unable to list mounts", func() {
-			BeforeEach(func(){
+			BeforeEach(func() {
 				fakeMountChecker.ListReturns(nil, errors.New("list-failed"))
 			})
 

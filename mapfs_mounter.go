@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/goshims/syscallshim"
 	"code.cloudfoundry.org/lager"
+	vmo "code.cloudfoundry.org/volume-mount-options"
 	"code.cloudfoundry.org/volumedriver"
 	"code.cloudfoundry.org/volumedriver/mountchecker"
 )
@@ -37,7 +39,7 @@ type mapfsMounter struct {
 	fstype            string
 	defaultOpts       string
 	resolver          IdResolver
-	config            Config
+	mask              vmo.MountOptsMask
 	mapfsPath         string
 }
 
@@ -59,10 +61,10 @@ func NewMapfsMounter(
 	mountChecker mountchecker.MountChecker,
 	fstype, defaultOpts string,
 	resolver IdResolver,
-	config *Config,
+	mask vmo.MountOptsMask,
 	mapfsPath string,
 ) volumedriver.Mounter {
-	return &mapfsMounter{pgInvoker, invoker, bgInvoker, osshim, syscallshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, *config, mapfsPath}
+	return &mapfsMounter{pgInvoker, invoker, bgInvoker, osshim, syscallshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, mask, mapfsPath}
 }
 
 func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -70,25 +72,16 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 	logger.Info("mount-start")
 	defer logger.Info("mount-end")
 
-	// TODO--refactor the config object so that we don't have to make a local copy just to keep
-	// TODO--it from leaking information between mounts.
-	tempConfig := m.config.Copy()
-
-	if err := tempConfig.SetEntries(remote, opts, []string{
-		"source", "mount", "readonly", "username", "password", "experimental", "version",
-	}); err != nil {
-		logger.Debug("error-parse-entries", lager.Data{
-			"given_source":  remote,
-			"given_target":  target,
-			"given_options": opts,
-			"config_source": tempConfig.source,
-			"config_mounts": tempConfig.mount,
-			"config_sloppy": tempConfig.sloppyMount,
-		})
-		return dockerdriver.SafeError{SafeDescription: err.Error()}
-	}
 
 	if username, ok := opts["username"]; ok {
+		if _, found := opts["uid"]; found {
+			return dockerdriver.SafeError{SafeDescription: "Not allowed options"}
+		}
+
+		if _, found := opts["gid"]; found {
+			return dockerdriver.SafeError{SafeDescription: "Not allowed options"}
+		}
+
 		if m.resolver == nil {
 			return dockerdriver.SafeError{SafeDescription: "LDAP username is specified but LDAP is not configured"}
 		}
@@ -104,18 +97,22 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 
 		opts["uid"] = uid
 		opts["gid"] = gid
-		tempConfig.source.Allowed = append(tempConfig.source.Allowed, "uid", "gid")
-		if err := tempConfig.SetEntries(remote, opts, []string{
-			"source", "mount", "readonly", "username", "password", "experimental",
-		}); err != nil {
-			return dockerdriver.SafeError{SafeDescription: err.Error()}
-		}
 	}
 
 	_, uidok := opts["uid"]
 	_, gidok := opts["gid"]
 	if uidok && !gidok {
 		return dockerdriver.SafeError{SafeDescription: "required 'gid' option is missing"}
+	}
+
+	optsToUse, err := vmo.NewMountOpts(opts, m.mask)
+	if err != nil {
+		logger.Debug("mount-options-failed", lager.Data{
+			"source":  remote,
+			"target":  target,
+			"options": opts,
+		})
+		return dockerdriver.SafeError{SafeDescription: err.Error()}
 	}
 
 	// check for legacy URL formatted mounts and rewrite to standard nfs format as necessary
@@ -129,7 +126,7 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 	intermediateMount := target + MAPFS_DIRECTORY_SUFFIX
 	orig := syscall.Umask(000)
 	defer syscall.Umask(orig)
-	err := m.osshim.MkdirAll(intermediateMount, os.ModePerm)
+	err = m.osshim.MkdirAll(intermediateMount, os.ModePerm)
 	if err != nil {
 		logger.Error("mkdir-intermediate-failed", err)
 		return dockerdriver.SafeError{SafeDescription: err.Error()}
@@ -160,9 +157,17 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		// make sure the mapped user has read access to the directory before doing the mapfs mount
 		// this check is best effort--root may not be able to stat the directory, or the server may
 		// anonymize the owner UID.
-		uid, gid := tempConfig.MapfsIds()
+		uid, err := strconv.Atoi(uniformData(opts["uid"]))
+		if err != nil {
+			return err
+		}
+		gid, err := strconv.Atoi(uniformData(opts["gid"]))
+		if err != nil {
+			return err
+		}
+
 		st := syscall.Stat_t{}
-		err := m.syscallshim.Stat(intermediateMount, &st)
+		err = m.syscallshim.Stat(intermediateMount, &st)
 		if err != nil {
 			logger.Error("unable-to-stat-new-mount", err)
 			err = nil
@@ -180,7 +185,7 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 			return dockerdriver.SafeError{SafeDescription: err.Error()}
 		}
 
-		args := tempConfig.MapfsOptions()
+		args := mapfsOptions(optsToUse)
 		args = append(args, target, intermediateMount)
 		err, _ = m.backgroundInvoker.Invoke(env, m.mapfsPath, args, "Mounted!", MAPFS_MOUNT_TIMEOUT)
 		if err != nil {
@@ -216,7 +221,7 @@ func (m *mapfsMounter) Unmount(env dockerdriver.Env, target string) error {
 	}
 
 	_, err := m.osshim.Stat(intermediateMount)
-	if err == nil  {
+	if err == nil {
 		if e := m.osshim.Remove(intermediateMount); e != nil {
 			return dockerdriver.SafeError{SafeDescription: e.Error()}
 		}
@@ -300,4 +305,36 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 
 		logger.Info("remove-directory-successful", lager.Data{"path": mountDir})
 	}
+}
+func NewMapFsVolumeMountMask(allowedMountOpt1 string, allowedMountOpt2 string) (vmo.MountOptsMask, error) {
+	return vmo.NewMountOptsMask([]string{"source", "mount", "uid", "gid", "username", "password", "readonly", "version", allowedMountOpt1, allowedMountOpt2}, nil, nil, []string{}, []string{})
+}
+
+func uniformData(data interface{}) string {
+	switch data.(type) {
+	case int:
+		return strconv.FormatInt(int64(data.(int)), 10)
+
+	case string:
+		return data.(string)
+	}
+
+	return ""
+}
+
+func mapfsOptions(opts vmo.MountOpts) []string {
+	var ret []string
+	if uid, ok := opts["uid"]; ok {
+		ret = append(ret, "-uid", uniformData(uid))
+	}
+	if gid, ok := opts["gid"]; ok {
+		ret = append(ret, "-gid", uniformData(gid))
+	}
+	if _, ok := opts["auto_cache"]; ok {
+		ret = append(ret, "-auto_cache")
+	}
+	if fsname, ok := opts["fsname"]; ok {
+		ret = append(ret, "-fsname", uniformData(fsname))
+	}
+	return ret
 }
