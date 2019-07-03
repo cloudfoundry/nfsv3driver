@@ -133,7 +133,6 @@ var uniqueVolumeIds = flag.Bool(
 const fsType = "nfs"
 const mountOptions = "rsize=1048576,wsize=1048576,hard,intr,timeo=600,retrans=2,actimeo=0"
 
-// static variables pulled from the environment
 var (
 	ldapSvcUser  string
 	ldapSvcPass  string
