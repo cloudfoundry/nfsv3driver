@@ -112,18 +112,6 @@ var insecureSkipVerify = flag.Bool(
 	"whether SSL communication should skip verification of server IP addresses in the certificate",
 )
 
-var sourceFlagAllowed = flag.String(
-	"allowed-in-source",
-	"",
-	"This is a comma separted list of parameters allowed to be send in share url. Each of this parameters can be specify by brokers",
-)
-
-var sourceFlagDefault = flag.String(
-	"default-in-source",
-	"",
-	"This is a comma separted list of like params:value. This list specify default value of parameters. If parameters has default value and is not in allowed list, this default value become a forced value who's cannot be override",
-)
-
 var mountFlagAllowed = flag.String(
 	"allowed-in-mount",
 	"",
