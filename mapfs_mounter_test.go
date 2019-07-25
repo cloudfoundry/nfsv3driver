@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/onsi/ginkgo/extensions/table"
 	"github.com/onsi/gomega/gbytes"
 	"os"
 	"strings"
@@ -300,6 +301,37 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args).To(ContainElement("target_mapfs"))
 			})
 		})
+
+		table.DescribeTable("when uid is provided invalid values it should error", func(invalidUid interface{}) {
+			opts["uid"] = invalidUid
+			err = subject.Mount(env, source, target, opts)
+			Expect(err).To(HaveOccurred())
+			_, ok := err.(dockerdriver.SafeError)
+			Expect(ok).To(BeTrue())
+			Expect(err.Error()).To(Equal("Invalid 'uid' option (0, negative, or non-integer)"))
+
+		},
+			table.Entry("when uid is not an integer", "foo"),
+			table.Entry("when uid is negative", -1),
+			table.Entry("when uid is not an integer", 1.2),
+			table.Entry("when uid is zero", 0),
+		)
+
+		table.DescribeTable("when gid is provided invalid values it should error", func(invalidGid interface{}) {
+			opts["gid"] = invalidGid
+			err = subject.Mount(env, source, target, opts)
+			Expect(err).To(HaveOccurred())
+			_, ok := err.(dockerdriver.SafeError)
+			Expect(ok).To(BeTrue())
+			Expect(err.Error()).To(Equal("Invalid 'gid' option (0, negative, or non-integer)"))
+
+		},
+			table.Entry("when gid is not an integer", "foo"),
+			table.Entry("when gid is negative", -1),
+			table.Entry("when gid is not an integer", 1.2),
+			table.Entry("when gid is zero", 0),
+		)
+
 		Context("when the specified uid doesn't have read access", func() {
 			BeforeEach(func() {
 				fakeSyscall.StatStub = func(path string, st *syscall.Stat_t) error {
@@ -528,7 +560,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				It("should error", func() {
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("uid-not-a-number"))
+					Expect(err.Error()).To(Equal("Invalid 'uid' option (0, negative, or non-integer)"))
 				})
 			})
 
@@ -539,7 +571,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				It("should error", func() {
 					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(ContainSubstring("gid-not-a-number"))
+					Expect(err.Error()).To(ContainSubstring("Invalid 'gid' option (0, negative, or non-integer)"))
 				})
 			})
 

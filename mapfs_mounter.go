@@ -2,8 +2,8 @@ package nfsv3driver
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"errors"
 	"os"
 	"regexp"
 	"strconv"
@@ -161,11 +161,18 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		// anonymize the owner UID.
 		uid, err := strconv.Atoi(uniformData(opts["uid"]))
 		if err != nil {
-			return err
+			return dockerdriver.SafeError{SafeDescription: "Invalid 'uid' option (0, negative, or non-integer)"}
 		}
+		if uid <= 0 {
+			return dockerdriver.SafeError{SafeDescription: "Invalid 'uid' option (0, negative, or non-integer)"}
+		}
+
 		gid, err := strconv.Atoi(uniformData(opts["gid"]))
 		if err != nil {
-			return err
+			return dockerdriver.SafeError{SafeDescription: "Invalid 'gid' option (0, negative, or non-integer)"}
+		}
+		if gid <= 0 {
+			return dockerdriver.SafeError{SafeDescription: "Invalid 'gid' option (0, negative, or non-integer)"}
 		}
 
 		st := syscall.Stat_t{}
