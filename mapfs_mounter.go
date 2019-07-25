@@ -27,6 +27,8 @@ const MapfsDirectorySuffix = "_mapfs"
 const MapfsMountTimeout = time.Minute * 5
 const NobodyId = uint32(65534)
 const UnknownId = uint32(4294967294)
+const InvalidUidValueErrorMessage = "Invalid 'uid' option (0, negative, or non-integer)"
+const InvalidGidValueErrorMessage = "Invalid 'gid' option (0, negative, or non-integer)"
 
 type mapfsMounter struct {
 	pgInvoker         invoker.Invoker
@@ -161,18 +163,18 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		// anonymize the owner UID.
 		uid, err := strconv.Atoi(uniformData(opts["uid"]))
 		if err != nil {
-			return dockerdriver.SafeError{SafeDescription: "Invalid 'uid' option (0, negative, or non-integer)"}
+			return dockerdriver.SafeError{SafeDescription: InvalidUidValueErrorMessage}
 		}
 		if uid <= 0 {
-			return dockerdriver.SafeError{SafeDescription: "Invalid 'uid' option (0, negative, or non-integer)"}
+			return dockerdriver.SafeError{SafeDescription: InvalidUidValueErrorMessage}
 		}
 
 		gid, err := strconv.Atoi(uniformData(opts["gid"]))
 		if err != nil {
-			return dockerdriver.SafeError{SafeDescription: "Invalid 'gid' option (0, negative, or non-integer)"}
+			return dockerdriver.SafeError{SafeDescription: InvalidGidValueErrorMessage}
 		}
 		if gid <= 0 {
-			return dockerdriver.SafeError{SafeDescription: "Invalid 'gid' option (0, negative, or non-integer)"}
+			return dockerdriver.SafeError{SafeDescription: InvalidGidValueErrorMessage}
 		}
 
 		st := syscall.Stat_t{}
