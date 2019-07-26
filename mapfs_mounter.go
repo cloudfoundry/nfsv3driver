@@ -138,8 +138,17 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		mountOptions = strings.Replace(mountOptions, ",actimeo=0", "", -1)
 	}
 
-	if _, ok := opts["version"]; ok {
-		mountOptions = mountOptions + ",vers=" + opts["version"].(string)
+	if version, ok := opts["version"].(string); ok {
+		versionFloat, err := strconv.ParseFloat(version, 64)
+		if err != nil {
+			return dockerdriver.SafeError{SafeDescription: "\"version\" must be a positive numeric value"}
+		}
+
+		if versionFloat <= 0 {
+			return dockerdriver.SafeError{SafeDescription: "\"version\" must be a positive numeric value"}
+		}
+
+		mountOptions = mountOptions + ",vers=" + version
 	}
 
 	t := intermediateMount

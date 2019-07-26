@@ -115,6 +115,20 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args).To(ContainElement("target_mapfs"))
 			})
 
+			table.DescribeTable("when version is invalid", func(version string) {
+				opts["version"] = version
+
+				err = subject.Mount(env, source, target, opts)
+				Expect(err).To(HaveOccurred())
+				_, ok := err.(dockerdriver.SafeError)
+				Expect(ok).To(BeTrue())
+				Expect(err.Error()).To(Equal("\"version\" must be a positive numeric value"))
+			},
+				table.Entry("version with additional options", "4.1,4.2"),
+				table.Entry("not a number", "foo"),
+				table.Entry("negative number", "-1"),
+				table.Entry("not a valid version", "0"),
+			)
 		})
 
 		Context("when mount succeeds", func() {
