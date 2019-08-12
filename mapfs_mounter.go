@@ -349,7 +349,7 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 }
 
 func NewMapFsVolumeMountMask(allowedMountOptions string, defaultMountOptions string) (vmo.MountOptsMask, error) {
-	allowed := []string{"source", "mount", "uid", "gid", "username", "password", "readonly", "version"}
+	allowed := []string{"mount", "source", "experimental", "uid", "gid", "username", "password", "readonly", "version"}
 	allowed = append(allowed, strings.Split(allowedMountOptions, ",")...)
 
 	defaultMap := map[string]interface{}{}

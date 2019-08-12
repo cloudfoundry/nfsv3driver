@@ -131,6 +131,36 @@ var _ = Describe("MapfsMounter", func() {
 			)
 		})
 
+		Context("when experimental is specified", func() {
+			BeforeEach(func() {
+				opts["experimental"] = "true"
+			})
+
+			It("should succeed", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when source is specified", func() {
+			BeforeEach(func() {
+				opts["source"] = "some-source"
+			})
+
+			It("should succeed", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
+		Context("when mount is specified", func() {
+			BeforeEach(func() {
+				opts["mount"] = "some-mount"
+			})
+
+			It("should succeed", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+
 		Context("when mount succeeds", func() {
 			It("should use the mapfs mounter", func() {
 				Expect(fakePgInvoker.InvokeCallCount()).NotTo(BeZero())
