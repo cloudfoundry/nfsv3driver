@@ -112,8 +112,8 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 				entry := &ldap.Entry{
 					DN: "foo",
 					Attributes: []*ldap.EntryAttribute{
-						&ldap.EntryAttribute{Name: "uidNumber", Values: []string{"100"}},
-						&ldap.EntryAttribute{Name: "gidNumber", Values: []string{"100"}},
+						{Name: "uidNumber", Values: []string{"100"}},
+						{Name: "gidNumber", Values: []string{"100"}},
 					},
 				}
 
@@ -162,7 +162,7 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 				entry := &ldap.Entry{
 					DN: "foo",
 					Attributes: []*ldap.EntryAttribute{
-						&ldap.EntryAttribute{Name: "uidNumber", Values: []string{"100"}},
+						{Name: "uidNumber", Values: []string{"100"}},
 					},
 				}
 
@@ -188,8 +188,8 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 				entry := &ldap.Entry{
 					DN: "foo",
 					Attributes: []*ldap.EntryAttribute{
-						&ldap.EntryAttribute{Name: "uidNumber", Values: []string{"100"}},
-						&ldap.EntryAttribute{Name: "gidNumber", Values: []string{""}},
+						{Name: "uidNumber", Values: []string{"100"}},
+						{Name: "gidNumber", Values: []string{""}},
 					},
 				}
 
@@ -228,8 +228,8 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 				entry := &ldap.Entry{
 					DN: "foo",
 					Attributes: []*ldap.EntryAttribute{
-						&ldap.EntryAttribute{Name: "uidNumber", Values: []string{"100"}},
-						&ldap.EntryAttribute{Name: "gidNumber", Values: []string{"100"}},
+						{Name: "uidNumber", Values: []string{"100"}},
+						{Name: "gidNumber", Values: []string{"100"}},
 					},
 				}
 
