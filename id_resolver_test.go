@@ -28,32 +28,35 @@ var _ = Describe("IdResolverTest", func() {
 	var ldapCACert string
 	var ldapTimeout time.Duration
 
+	BeforeEach(func() {
+		logger := lagertest.NewTestLogger("nfs-mounter")
+		testContext := context.TODO()
+		env = driverhttp.NewHttpDriverEnv(logger, testContext)
+	})
+
+	JustBeforeEach(func() {
+		ldapIdResolver = nfsv3driver.NewLdapIdResolver(
+			"svcuser",
+			"svcpw",
+			"host",
+			111,
+			"tcp",
+			"cn=Users,dc=test,dc=com",
+			ldapCACert,
+			ldapFake,
+			ldapTimeout,
+		)
+		uid, gid, err = ldapIdResolver.Resolve(env, "user", "pw")
+	})
+
 	Context("when the connection is successful", func() {
 		BeforeEach(func() {
 			ldapFake = &ldap_fake.FakeLdap{}
 			ldapConnectionFake = &ldap_fake.FakeLdapConnection{}
 			ldapFake.DialReturns(ldapConnectionFake, nil)
-			logger := lagertest.NewTestLogger("nfs-mounter")
-			testContext := context.TODO()
-			env = driverhttp.NewHttpDriverEnv(logger, testContext)
 			ldapCACert = ""
 			ldapTimeout = 120 * time.Second
 			ldapConnectionFake.SearchReturns(&ldap.SearchResult{}, nil)
-		})
-
-		JustBeforeEach(func() {
-			ldapIdResolver = nfsv3driver.NewLdapIdResolver(
-				"svcuser",
-				"svcpw",
-				"host",
-				111,
-				"tcp",
-				"cn=Users,dc=test,dc=com",
-				ldapCACert,
-				ldapFake,
-				ldapTimeout,
-			)
-			uid, gid, err = ldapIdResolver.Resolve(env, "user", "pw")
 		})
 
 		Context("when CA cert is provided", func() {
@@ -146,6 +149,7 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 				})
 				It("should find the user and then fail", func() {
 					Expect(err).To(HaveOccurred())
+					Expect(err).To(BeAssignableToTypeOf(dockerdriver.SafeError{}))
 					Expect(err.Error()).To(ContainSubstring("badness"))
 					Expect(ldapConnectionFake.SearchCallCount()).To(Equal(1))
 					Expect(uid).To(BeEmpty())
@@ -215,6 +219,7 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 			It("reports an error for the missing user", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("User does not exist"))
+				Expect(err).To(BeAssignableToTypeOf(dockerdriver.SafeError{}))
 			})
 		})
 
@@ -237,8 +242,27 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 
 			It("reports an error for the ambiguous search", func() {
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("Ambiguous search"))
+				Expect(err.Error()).To(ContainSubstring("Ambiguous search--too many results"))
+				Expect(err).To(BeAssignableToTypeOf(dockerdriver.SafeError{}))
 			})
+		})
+	})
+
+	Context("LDAP Server is unreachable", func() {
+		BeforeEach(func() {
+			ldapFake = &ldap_fake.FakeLdap{}
+			ldapConnectionFake = &ldap_fake.FakeLdapConnection{}
+			ldapFake.DialReturns(ldapConnectionFake, errors.New("unable to reach ldap server"))
+
+			ldapCACert = ""
+			ldapTimeout = 120 * time.Second
+			ldapConnectionFake.SearchReturns(&ldap.SearchResult{}, nil)
+		})
+
+		It("Should return an error", func() {
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("LDAP server could not be reached, please contact your system administrator"))
+			Expect(err).To(BeAssignableToTypeOf(dockerdriver.SafeError{}))
 		})
 	})
 })

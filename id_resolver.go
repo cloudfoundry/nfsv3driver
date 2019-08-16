@@ -73,7 +73,7 @@ func (d *ldapIdResolver) Resolve(env dockerdriver.Env, username string, password
 		l, err = d.ldap.Dial(d.ldapProto, addr)
 	}
 	if err != nil {
-		return "", "", err
+		return "", "", dockerdriver.SafeError{"LDAP server could not be reached, please contact your system administrator"}
 	}
 
 	l.SetTimeout(d.ldapTimeout)
@@ -100,10 +100,10 @@ func (d *ldapIdResolver) Resolve(env dockerdriver.Env, username string, password
 	}
 
 	if len(sr.Entries) == 0 {
-		return "", "", errors.New("User does not exist")
+		return "", "", dockerdriver.SafeError{"User does not exist"}
 	}
 	if len(sr.Entries) > 1 {
-		return "", "", errors.New("Ambiguous search--too many results")
+		return "", "", dockerdriver.SafeError{"Ambiguous search--too many results"}
 	}
 
 	userdn := sr.Entries[0].DN
@@ -117,7 +117,7 @@ func (d *ldapIdResolver) Resolve(env dockerdriver.Env, username string, password
 	// Bind as the user to verify their password
 	err = l.Bind(userdn, password)
 	if err != nil {
-		return "", "", err
+		return "", "", dockerdriver.SafeError{err.Error()}
 	}
 
 	return uid, gid, nil
