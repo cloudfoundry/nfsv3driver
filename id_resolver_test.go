@@ -27,6 +27,30 @@ var _ = Describe("IdResolverTest", func() {
 	var err error
 	var ldapCACert string
 	var ldapTimeout time.Duration
+	var user string
+
+	BeforeEach(func() {
+		logger := lagertest.NewTestLogger("nfs-mounter")
+		testContext := context.TODO()
+		env = driverhttp.NewHttpDriverEnv(logger, testContext)
+
+		user = "user"
+	})
+
+	JustBeforeEach(func() {
+		ldapIdResolver = nfsv3driver.NewLdapIdResolver(
+			"svcuser",
+			"svcpw",
+			"host",
+			111,
+			"tcp",
+			"cn=Users,dc=test,dc=com",
+			ldapCACert,
+			ldapFake,
+			ldapTimeout,
+		)
+		uid, gid, err = ldapIdResolver.Resolve(env, user, "pw")
+	})
 
 	Context("when the connection is successful", func() {
 		BeforeEach(func() {
@@ -39,21 +63,6 @@ var _ = Describe("IdResolverTest", func() {
 			ldapCACert = ""
 			ldapTimeout = 120 * time.Second
 			ldapConnectionFake.SearchReturns(&ldap.SearchResult{}, nil)
-		})
-
-		JustBeforeEach(func() {
-			ldapIdResolver = nfsv3driver.NewLdapIdResolver(
-				"svcuser",
-				"svcpw",
-				"host",
-				111,
-				"tcp",
-				"cn=Users,dc=test,dc=com",
-				ldapCACert,
-				ldapFake,
-				ldapTimeout,
-			)
-			uid, gid, err = ldapIdResolver.Resolve(env, "user", "pw")
 		})
 
 		Context("when CA cert is provided", func() {
@@ -104,7 +113,7 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 			})
 		})
 
-		Context("when search returns sucessfully", func() {
+		Context("when search returns successfully", func() {
 			BeforeEach(func() {
 				entry := &ldap.Entry{
 					DN: "foo",
@@ -119,6 +128,19 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 				}
 
 				ldapConnectionFake.SearchReturns(result, nil)
+			})
+
+			It("should build a valid ldap search request", func() {
+				baseDN, scope, derefAliases, sizeLimit, timeLimit, typesOnly, filter, attributes, controls := ldapFake.NewSearchRequestArgsForCall(0)
+				Expect(baseDN).To(Equal("cn=Users,dc=test,dc=com"))
+				Expect(scope).To(Equal(2))
+				Expect(derefAliases).To(Equal(0))
+				Expect(sizeLimit).To(Equal(0))
+				Expect(timeLimit).To(Equal(0))
+				Expect(typesOnly).To(BeFalse())
+				Expect(filter).To(Equal("(&(objectClass=User)(cn=user))"))
+				Expect(attributes).To(ConsistOf("dn", "uidNumber", "gidNumber"))
+				Expect(controls).To(BeNil())
 			})
 
 			It("set timeout for connection", func() {
@@ -150,6 +172,17 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 					Expect(ldapConnectionFake.SearchCallCount()).To(Equal(1))
 					Expect(uid).To(BeEmpty())
 				})
+			})
+		})
+
+		Context("when the search uses an invalid username", func() {
+			BeforeEach(func() {
+				user = "*"
+			})
+
+			It("should continue to search for the username", func() {
+				_, _, _, _, _, _, req, _, _ := ldapFake.NewSearchRequestArgsForCall(0)
+				Expect(req).To(Equal("(&(objectClass=User)(cn=\\2a))"))
 			})
 		})
 

@@ -88,8 +88,12 @@ func (d *ldapIdResolver) Resolve(env dockerdriver.Env, username string, password
 	// Search for the given username
 	searchRequest := d.ldap.NewSearchRequest(
 		d.ldapFqdn,
-		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
-		fmt.Sprintf("(&(objectClass=User)(cn=%s))", username),
+		ldap.ScopeWholeSubtree,
+		ldap.NeverDerefAliases,
+		0,
+		0,
+		false,
+		fmt.Sprintf("(&(objectClass=User)(cn=%s))", ldap.EscapeFilter(username)),
 		[]string{"dn", "uidNumber", "gidNumber"},
 		nil,
 	)
