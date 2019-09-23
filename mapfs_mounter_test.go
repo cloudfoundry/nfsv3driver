@@ -233,27 +233,19 @@ var _ = Describe("MapfsMounter", func() {
 				})
 			})
 
-			Context("when the mount has a legacy format", func() {
-				BeforeEach(func() {
-					source = "nfs://server/some/share/path"
-				})
-				It("should rewrite the share to use standard nfs format", func() {
-					_, _, args := fakePgInvoker.InvokeArgsForCall(0)
-					Expect(len(args)).To(BeNumerically(">", 4))
-					Expect(args[4]).To(Equal("server:/some/share/path"))
-				})
-			})
+			table.DescribeTable("when the mount has a legacy format", func(legacySourceFormat string, expectedShareFormat string) {
+				err = subject.Mount(env, legacySourceFormat, target, opts)
+				Expect(err).NotTo(HaveOccurred())
 
-			Context("when the mount has a legacy format without subdirectory", func() {
-				BeforeEach(func() {
-					source = "nfs://server/"
-				})
-				It("should rewrite the share to use standard nfs format", func() {
-					_, _, args := fakePgInvoker.InvokeArgsForCall(0)
-					Expect(len(args)).To(BeNumerically(">", 4))
-					Expect(args[4]).To(Equal("server:/"))
-				})
-			})
+				_, _, args := fakePgInvoker.InvokeArgsForCall(1)
+				Expect(len(args)).To(BeNumerically(">", 4))
+				Expect(args[4]).To(Equal(expectedShareFormat))
+			},
+				table.Entry("with subdirectories", "nfs://server/some/share/path/", "server:/some/share/path/"),
+				table.Entry("with subdirectories without a trailing slash", "nfs://server/some/share/path", "server:/some/share/path"),
+				table.Entry("without subdirectories", "nfs://server/", "server:/"),
+				table.Entry("without subdirectories without a trailing slash", "nfs://server", "server:/"),
+			)
 
 			Context("when the target has a trailing slash", func() {
 				BeforeEach(func() {

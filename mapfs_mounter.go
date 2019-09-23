@@ -50,7 +50,7 @@ var legacyNfsSharePattern *regexp.Regexp
 var PurgeTimeToSleep = time.Millisecond * 100
 
 func init() {
-	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.*)$")
+	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.*)?$")
 }
 
 func NewMapfsMounter(
@@ -118,8 +118,13 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 
 	// check for legacy URL formatted mounts and rewrite to standard nfs format as necessary
 	match := legacyNfsSharePattern.FindStringSubmatch(remote)
+
 	if len(match) > 2 {
-		remote = match[1] + ":" + match[2]
+		if match[2] == "" {
+			remote = match[1] + ":/"
+		} else {
+			remote = match[1] + ":" + match[2]
+		}
 	}
 
 	target = strings.TrimSuffix(target, "/")
