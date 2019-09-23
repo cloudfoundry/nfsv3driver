@@ -247,6 +247,16 @@ var _ = Describe("MapfsMounter", func() {
 				table.Entry("without subdirectories without a trailing slash", "nfs://server", "server:/"),
 			)
 
+			Context("when the share value is invalid", func() {
+				BeforeEach(func() {
+					source = "nfs:// "
+				})
+				It("should return an error", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(MatchError("Invalid 'share' option"))
+				})
+			})
+
 			Context("when the target has a trailing slash", func() {
 				BeforeEach(func() {
 					target = "/some/target/"

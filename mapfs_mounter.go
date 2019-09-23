@@ -120,6 +120,9 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 	match := legacyNfsSharePattern.FindStringSubmatch(remote)
 
 	if len(match) > 2 {
+		if strings.TrimSpace(match[1]) == "" {
+			return dockerdriver.SafeError{SafeDescription: "Invalid 'share' option"}
+		}
 		if match[2] == "" {
 			remote = match[1] + ":/"
 		} else {
