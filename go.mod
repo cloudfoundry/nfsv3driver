@@ -11,7 +11,7 @@ require (
 	code.cloudfoundry.org/volume-mount-options v0.0.0-20190906175603-989332e3b8fa
 	code.cloudfoundry.org/volumedriver v0.0.0-20190624205815-521b41315311
 	github.com/bmizerany/pat v0.0.0-20170815010413-6226ea591a40 // indirect
-	github.com/onsi/ginkgo v1.10.2
+	github.com/onsi/ginkgo v1.10.3
 	github.com/onsi/gomega v1.7.1
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00
