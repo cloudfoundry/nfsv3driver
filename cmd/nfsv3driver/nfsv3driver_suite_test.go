@@ -24,7 +24,7 @@ var _ = BeforeSuite(func() {
 	Expect(config.GinkgoConfig.ParallelTotal).To(Equal(1))
 
 	var err error
-	driverPath, err = Build("code.cloudfoundry.org/nfsv3driver/cmd/nfsv3driver")
+	driverPath, err = Build("code.cloudfoundry.org/nfsv3driver/cmd/nfsv3driver", "-mod=vendor")
 	Expect(err).ToNot(HaveOccurred())
 })
 
