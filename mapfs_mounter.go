@@ -401,8 +401,5 @@ func mapfsOptions(opts vmo.MountOpts) []string {
 	if _, ok := opts["auto_cache"]; ok {
 		ret = append(ret, "-auto_cache")
 	}
-	if fsname, ok := opts["fsname"]; ok {
-		ret = append(ret, "-fsname", uniformData(fsname))
-	}
 	return ret
 }

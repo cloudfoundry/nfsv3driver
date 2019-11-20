@@ -272,14 +272,11 @@ var _ = Describe("MapfsMounter", func() {
 			Context("when other options are specified", func() {
 				BeforeEach(func() {
 					opts["auto_cache"] = true
-					opts["fsname"] = "zanzibar"
 				})
 				It("should include those options on the mapfs invoke call", func() {
 					Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
 					_, _, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
 					Expect(args).To(ContainElement("-auto_cache"))
-					Expect(args).To(ContainElement("-fsname"))
-					Expect(args).To(ContainElement("zanzibar"))
 				})
 			})
 		})
