@@ -9,7 +9,7 @@ image_resource:
 
 inputs:
   - name: nfsv3driver
-  - name: mapfs-release
+  - name: mapfs
   - name: docker_driver_integration_tests
 
 params:
