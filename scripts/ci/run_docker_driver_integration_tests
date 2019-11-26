@@ -10,15 +10,14 @@ function kill_ganesha {
 
 trap kill_ganesha EXIT
 
-SOURCE="localhost:/"
-export SOURCE
+export SOURCE="localhost:/"
 export GOROOT=/usr/local/go
 export PATH=$GOROOT/bin:$PATH
 go get -u github.com/onsi/ginkgo/ginkgo
 
 pushd mapfs
   mkdir -p /var/vcap/packages/mapfs/bin/
-  GO111MODULE=on go build -mod=vendor -o "/var/vcap/packages/mapfs/bin/mapfs" *.go
+  go build -mod=vendor -o "/var/vcap/packages/mapfs/bin/mapfs" *.go
 popd
 
 NFS_ACCEPTANCE_DIR="${PWD}/tmp"
@@ -47,7 +46,7 @@ pushd nfsv3driver
 }
 EOT
 
-  GO111MODULE=on go build -mod=vendor -o "${NFS_ACCEPTANCE_DIR}/nfsv3driver" "cmd/nfsv3driver/main.go"
+  go build -mod=vendor -o "${NFS_ACCEPTANCE_DIR}/nfsv3driver" "cmd/nfsv3driver/main.go"
 
   export PATH=$PATH:$PWD
   mkdir -p "${NFS_ACCEPTANCE_DIR}/mountdir"
@@ -62,6 +61,5 @@ function kill_ganesha {
 
 trap kill_ganesha EXIT
 pushd ${TEST_PACKAGE}
-  GO111MODULE=on ginkgo -v -keepGoing . -race
+  ginkgo -v -keepGoing . -race
 popd
-rm -rf "${NFS_ACCEPTANCE_DIR}"
