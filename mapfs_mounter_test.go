@@ -1,6 +1,7 @@
 package nfsv3driver_test
 
 import (
+	"code.cloudfoundry.org/volumedriver/invokerfakes"
 	"context"
 	"errors"
 	"fmt"
@@ -9,9 +10,9 @@ import (
 	"os"
 	"strings"
 	"syscall"
+	"time"
 
 	"code.cloudfoundry.org/dockerdriver"
-	"code.cloudfoundry.org/dockerdriver/dockerdriverfakes"
 	"code.cloudfoundry.org/dockerdriver/driverhttp"
 	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
@@ -34,10 +35,14 @@ var _ = Describe("MapfsMounter", func() {
 		env         dockerdriver.Env
 		err         error
 
-		fakePgInvoker  *dockerdriverfakes.FakeInvoker
-		fakeInvoker    *dockerdriverfakes.FakeInvoker
-		fakeBgInvoker  *nfsdriverfakes.FakeBackgroundInvoker
+		fakePgInvoker  *invokerfakes.FakeInvoker
+		fakeInvoker    *invokerfakes.FakeInvoker
+		fakeBgInvoker  *invokerfakes.FakeInvoker
 		fakeIdResolver *nfsdriverfakes.FakeIdResolver
+
+		fakePgInvokeResult *invokerfakes.FakeInvokeResult
+		fakeInvokeResult   *invokerfakes.FakeInvokeResult
+		fakeBgInvokeResult *invokerfakes.FakeInvokeResult
 
 		subject          volumedriver.Mounter
 		fakeIoutil       *ioutil_fake.FakeIoutil
@@ -59,9 +64,22 @@ var _ = Describe("MapfsMounter", func() {
 		opts["uid"] = "2000"
 		opts["gid"] = "2000"
 
-		fakePgInvoker = &dockerdriverfakes.FakeInvoker{}
-		fakeInvoker = &dockerdriverfakes.FakeInvoker{}
-		fakeBgInvoker = &nfsdriverfakes.FakeBackgroundInvoker{}
+		fakePgInvoker = &invokerfakes.FakeInvoker{}
+		fakeInvoker = &invokerfakes.FakeInvoker{}
+		fakeBgInvoker = &invokerfakes.FakeInvoker{}
+
+		fakePgInvokeResult = &invokerfakes.FakeInvokeResult{}
+		fakeInvokeResult = &invokerfakes.FakeInvokeResult{}
+		fakeBgInvokeResult = &invokerfakes.FakeInvokeResult{}
+
+		fakePgInvoker.InvokeReturns(fakePgInvokeResult, nil)
+		fakeInvoker.InvokeReturns(fakeInvokeResult, nil)
+		fakeBgInvoker.InvokeReturns(fakeBgInvokeResult, nil)
+
+		fakePgInvokeResult.WaitReturns(nil)
+		fakeInvokeResult.WaitReturns(nil)
+		fakeBgInvokeResult.WaitForReturns(nil)
+
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
 		fakeOs = &os_fake.FakeOs{}
 		fakeSyscall = &syscall_fake.FakeSyscall{}
@@ -191,14 +209,18 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should launch mapfs to mount the target", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-				_, cmd, args, waitFor, _ := fakeBgInvoker.InvokeArgsForCall(0)
+				_, cmd, args := fakeBgInvoker.InvokeArgsForCall(0)
+				expectedText, duration := fakeBgInvokeResult.WaitForArgsForCall(0)
+
 				Expect(cmd).To(Equal(mapfsPath))
 				Expect(args).To(ContainElement("-uid"))
 				Expect(args).To(ContainElement("2000"))
 				Expect(args).To(ContainElement("-gid"))
 				Expect(args).To(ContainElement("target"))
 				Expect(args).To(ContainElement("target_mapfs"))
-				Expect(waitFor).To(Equal("Mounted!"))
+
+				Expect(expectedText).To(Equal("Mounted!"))
+				Expect(duration).To(Equal(time.Minute * 5))
 			})
 
 			Context("when mkdir fails", func() {
@@ -263,7 +285,7 @@ var _ = Describe("MapfsMounter", func() {
 				})
 				It("should rewrite the target to remove the slash", func() {
 					Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-					_, _, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
+					_, _, args := fakeBgInvoker.InvokeArgsForCall(0)
 					Expect(args[4]).To(Equal("/some/target"))
 					Expect(args[5]).To(Equal("/some/target_mapfs"))
 				})
@@ -275,7 +297,7 @@ var _ = Describe("MapfsMounter", func() {
 				})
 				It("should include those options on the mapfs invoke call", func() {
 					Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-					_, _, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
+					_, _, args := fakeBgInvoker.InvokeArgsForCall(0)
 					Expect(args).To(ContainElement("-auto_cache"))
 				})
 			})
@@ -320,7 +342,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 			It("should not error", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-				_, cmd, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
+				_, cmd, args := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal(mapfsPath))
 				Expect(args).To(ContainElement("-uid"))
 				Expect(args).To(ContainElement("2000"))
@@ -335,7 +357,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 			It("should not error", func() {
 				Expect(fakeBgInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-				_, cmd, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
+				_, cmd, args := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal(mapfsPath))
 				Expect(args).To(ContainElement("-uid"))
 				Expect(args).To(ContainElement("2000"))
@@ -405,7 +427,7 @@ var _ = Describe("MapfsMounter", func() {
 			Context("when it fails to unmount the intermediate directory", func() {
 
 				BeforeEach(func() {
-					fakeInvoker.InvokeReturns(nil, errors.New("intermediate-unmount-failed"))
+					fakeInvoker.InvokeReturns(&invokerfakes.FakeInvokeResult{}, errors.New("intermediate-unmount-failed"))
 				})
 				It("should log the error", func() {
 					Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("intermediate-unmount-failed")))
@@ -434,7 +456,6 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(logger.TestSink.Buffer().Contents()).To(ContainSubstring("nacho share"))
 			})
-
 
 		})
 		Context("when stat returns ambiguous results", func() {
@@ -486,9 +507,10 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(err.Error()).To(ContainSubstring("LDAP is not configured"))
 			})
 		})
+
 		Context("when mount errors", func() {
 			BeforeEach(func() {
-				fakePgInvoker.InvokeReturns([]byte("error"), fmt.Errorf("error"))
+				fakePgInvoker.InvokeReturns(fakePgInvokeResult, fmt.Errorf("error"))
 			})
 
 			It("should return error", func() {
@@ -497,61 +519,125 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(ok).To(BeTrue())
 			})
 
-			It("should remove the intermediary mountpoint", func() {
-				Expect(logger.LogMessages()).NotTo(ContainElement(ContainSubstring("remove-failed")))
-
-				Expect(fakeOs.RemoveCallCount()).To(Equal(1))
-			})
-
-			Context("when the intermediate mount directory remove fails", func() {
+			Context("waiting for mount errors", func() {
 				BeforeEach(func() {
-					fakeOs.RemoveReturns(errors.New("remove-failed"))
+					fakePgInvoker.InvokeReturns(fakePgInvokeResult, nil)
+					fakePgInvokeResult.WaitReturns(fmt.Errorf("error"))
 				})
 
-				It("should log an error", func() {
-					Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("remove-failed")))
+				It("should return error", func() {
+					Expect(fakePgInvokeResult.WaitCallCount()).To(Equal(1))
+					Expect(err).To(HaveOccurred())
+					_, ok := err.(dockerdriver.SafeError)
+					Expect(ok).To(BeTrue())
+				})
+
+				It("should remove the intermediary mountpoint", func() {
+					Expect(logger.LogMessages()).NotTo(ContainElement(ContainSubstring("remove-failed")))
+
+					Expect(fakeOs.RemoveCallCount()).To(Equal(1))
+				})
+
+				Context("when the intermediate mount directory remove fails", func() {
+					BeforeEach(func() {
+						fakeOs.RemoveReturns(errors.New("remove-failed"))
+					})
+
+					It("should log an error", func() {
+						Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("remove-failed")))
+					})
 				})
 			})
+
 		})
+
 		Context("when kernel mount succeeds, but mapfs mount fails", func() {
 			BeforeEach(func() {
-				fakeBgInvoker.InvokeReturns(fmt.Errorf("error"), nil)
+				fakeBgInvoker.InvokeReturns(fakeBgInvokeResult, fmt.Errorf("error from invoke"))
 			})
 
 			It("should return error", func() {
 				Expect(err).To(HaveOccurred())
 				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
-			})
-			It("should invoke unmount", func() {
-				Expect(fakeInvoker.InvokeCallCount()).To(Equal(1))
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
-				Expect(cmd).To(Equal("umount"))
-				Expect(len(args)).To(BeNumerically(">", 0))
-				Expect(args[0]).To(Equal("target_mapfs"))
-			})
-			It("should remove the intermediary mountpoint", func() {
-				Expect(fakeOs.RemoveCallCount()).To(Equal(1))
-				Expect(logger.LogMessages()).NotTo(ContainElement(ContainSubstring("unmount-failed")))
-				Expect(logger.LogMessages()).NotTo(ContainElement(ContainSubstring("remove-failed")))
+				Expect(err).To(MatchError("error from invoke"))
 			})
 
-			Context("when unmount fails", func() {
-				BeforeEach(func(){
-					fakeInvoker.InvokeReturns(nil, errors.New("unmount-failed"))
+			Context("mapfs mount fails", func() {
+				BeforeEach(func() {
+					fakeBgInvoker.InvokeReturns(fakeBgInvokeResult, nil)
+					fakeBgInvokeResult.WaitForReturns(errors.New("mount error"))
 				})
-				It("should log the error", func() {
-					Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("unmount-failed")))
-					Expect(fakeOs.RemoveCallCount()).To(Equal(0))
-				})
-			})
 
-			Context("when remove fails", func() {
-				BeforeEach(func(){
-					fakeOs.RemoveReturns(errors.New("remove-failed"))
+				It("should invoke unmount", func() {
+					Expect(fakeInvoker.InvokeCallCount()).To(Equal(1))
+					_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+					Expect(cmd).To(Equal("umount"))
+					Expect(len(args)).To(BeNumerically(">", 0))
+					Expect(args[0]).To(Equal("target_mapfs"))
+
+					Expect(fakeInvokeResult.WaitCallCount()).To(Equal(1))
 				})
-				It("should log the error", func() {
-					Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("remove-failed")))
+
+				It("should remove the intermediary mountpoint", func() {
+					Expect(fakeOs.RemoveCallCount()).To(Equal(1))
+					Expect(logger.LogMessages()).NotTo(ContainElement(ContainSubstring("unmount-failed")))
+					Expect(logger.LogMessages()).NotTo(ContainElement(ContainSubstring("remove-failed")))
+				})
+
+				It("should safely return the mount error", func() {
+					Expect(err).To(HaveOccurred())
+					_, ok := err.(dockerdriver.SafeError)
+					Expect(ok).To(BeTrue())
+					Expect(err).To(MatchError("mount error"))
+				})
+
+				Context("umount invoke errors", func() {
+					BeforeEach(func() {
+						fakeInvoker.InvokeReturns(fakeInvokeResult, errors.New("error from invoke"))
+					})
+
+					It("should safely return the mount error", func() {
+						Expect(err).To(HaveOccurred())
+						_, ok := err.(dockerdriver.SafeError)
+						Expect(ok).To(BeTrue())
+						Expect(err).To(MatchError("mount error"))
+					})
+				})
+
+				Context("when unmount fails", func() {
+					BeforeEach(func() {
+						fakeInvoker.InvokeReturns(fakeInvokeResult, nil)
+						fakeInvokeResult.WaitReturns(errors.New(""))
+					})
+					It("should log the error", func() {
+						Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("unmount-failed")))
+						Expect(fakeOs.RemoveCallCount()).To(Equal(0))
+					})
+
+					It("should return the mount error safely", func() {
+						Expect(err).To(HaveOccurred())
+						_, ok := err.(dockerdriver.SafeError)
+						Expect(ok).To(BeTrue())
+						Expect(err).To(MatchError("mount error"))
+					})
+				})
+
+				Context("when remove fails", func() {
+					BeforeEach(func() {
+						fakeOs.RemoveReturns(errors.New("remove-failed"))
+					})
+
+					It("should log the error", func() {
+						Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("remove-failed")))
+					})
+
+					It("should return the mount error safely", func() {
+						Expect(err).To(HaveOccurred())
+						_, ok := err.(dockerdriver.SafeError)
+						Expect(ok).To(BeTrue())
+						Expect(err).To(MatchError("mount error"))
+					})
 				})
 			})
 		})
@@ -571,14 +657,14 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("does not show the credentials in the options", func() {
 				Expect(err).NotTo(HaveOccurred())
-				_, _, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
+				_, _, args := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(strings.Join(args, " ")).To(Not(ContainSubstring("username")))
 				Expect(strings.Join(args, " ")).To(Not(ContainSubstring("password")))
 			})
 
 			It("shows gid and uid", func() {
 				Expect(err).NotTo(HaveOccurred())
-				_, _, args, _, _ := fakeBgInvoker.InvokeArgsForCall(0)
+				_, _, args := fakeBgInvoker.InvokeArgsForCall(0)
 				Expect(strings.Join(args, " ")).To(ContainSubstring("-uid 100"))
 				Expect(strings.Join(args, " ")).To(ContainSubstring("-gid 100"))
 			})
@@ -670,6 +756,7 @@ var _ = Describe("MapfsMounter", func() {
 
 		Context("when unmount succeeds", func() {
 			It("should return without error", func() {
+				Expect(logger.Buffer()).NotTo(gbytes.Say("failed"))
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -756,25 +843,64 @@ var _ = Describe("MapfsMounter", func() {
 			})
 		})
 
-		Context("when unmount fails", func() {
+		Context("when unmount invocation fails", func() {
 			BeforeEach(func() {
-				fakeInvoker.InvokeReturns([]byte("error"), fmt.Errorf("error"))
+				fakeInvoker.InvokeReturns(&invokerfakes.FakeInvokeResult{}, fmt.Errorf("umount fails"))
 			})
 
 			It("should return an error", func() {
 				Expect(err).To(HaveOccurred())
 				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
+				Expect(err).To(MatchError("umount fails"))
 			})
 		})
 
-		Context("when unmount of the intermediate mount fails", func() {
+		Context("umount cmd errors", func() {
 			BeforeEach(func() {
-				fakeInvoker.InvokeReturnsOnCall(0, nil, nil)
-				fakeInvoker.InvokeReturnsOnCall(1, []byte("error"), fmt.Errorf("mapfs umount error"))
+				fakeInvokeResult.WaitReturns(fmt.Errorf("umount error"))
+			})
+
+			It("should return an error", func() {
+				Expect(fakeInvokeResult.WaitCallCount()).To(Equal(1))
+
+				Expect(err).To(HaveOccurred())
+				_, ok := err.(dockerdriver.SafeError)
+				Expect(ok).To(BeTrue())
+				Expect(err).To(MatchError("umount error"))
+			})
+		})
+
+		Context("when invoke unmount of the intermediate mount fails", func() {
+			var invokeResultThatErrors *invokerfakes.FakeInvokeResult
+
+			BeforeEach(func() {
+				fakeInvoker.InvokeReturnsOnCall(0, &invokerfakes.FakeInvokeResult{}, nil)
+				invokeResultThatErrors = &invokerfakes.FakeInvokeResult{}
+				invokeResultThatErrors.WaitReturns(fmt.Errorf("umount intermediate errors"))
+				fakeInvoker.InvokeReturnsOnCall(1, invokeResultThatErrors, fmt.Errorf("mapfs umount error"))
 			})
 
 			It("should not return an error", func() {
+				Expect(invokeResultThatErrors.WaitCallCount()).To(Equal(0))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(logger.Buffer()).To(gbytes.Say("mapfs umount error"))
+			})
+
+			It("should not call Remove on the intermediate directory", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(fakeOs.RemoveCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when waiting for unmount of the intermediate mount fails", func() {
+			BeforeEach(func() {
+				fakeInvokeResult.WaitReturnsOnCall(0, nil)
+				fakeInvokeResult.WaitReturnsOnCall(1, fmt.Errorf("mapfs umount error"))
+			})
+
+			It("should not return an error", func() {
+				Expect(fakeInvokeResult.WaitCallCount()).To(Equal(2))
 				Expect(err).NotTo(HaveOccurred())
 				Expect(logger.Buffer()).To(gbytes.Say("mapfs umount error"))
 			})
@@ -804,22 +930,36 @@ var _ = Describe("MapfsMounter", func() {
 			success bool
 		)
 
+		JustBeforeEach(func() {
+			success = subject.Check(env, "target", "source")
+		})
+
 		Context("when check succeeds", func() {
-			BeforeEach(func() {
-				success = subject.Check(env, "target", "source")
-			})
+
 			It("uses correct context", func() {
 				env, _, _ := fakeInvoker.InvokeArgsForCall(0)
 				Expect(fmt.Sprintf("%#v", env.Context())).To(ContainSubstring("timerCtx"))
 			})
+
 			It("reports valid mountpoint", func() {
+				Expect(fakeInvokeResult.WaitCallCount()).To(Equal(1))
 				Expect(success).To(BeTrue())
 			})
 		})
-		Context("when check fails", func() {
+
+		Context("when check invoke fails", func() {
 			BeforeEach(func() {
-				fakeInvoker.InvokeReturns([]byte("error"), fmt.Errorf("error"))
-				success = subject.Check(env, "target", "source")
+				fakeInvoker.InvokeReturns(&invokerfakes.FakeInvokeResult{}, fmt.Errorf("error"))
+			})
+
+			It("reports invalid mountpoint", func() {
+				Expect(success).To(BeFalse())
+			})
+		})
+
+		Context("when check command error", func() {
+			BeforeEach(func() {
+				fakeInvokeResult.WaitReturns(fmt.Errorf("check command error"))
 			})
 			It("reports invalid mountpoint", func() {
 				Expect(success).To(BeFalse())
@@ -833,68 +973,170 @@ var _ = Describe("MapfsMounter", func() {
 		BeforeEach(func() {
 			pathToPurge = "/foo/foo/foo"
 			fakeMountChecker.ListReturns([]string{"/foo/foo/foo/mount_one_mapfs"}, nil)
+			fakeInvokeResult.StdOutputReturnsOnCall(0, "stdout from pkill fakeinvoke result")
+			fakeInvokeResult.StdOutputReturnsOnCall(1, "stdout from pgrep fakeinvoke result")
 		})
 
 		JustBeforeEach(func() {
 			subject.Purge(env, pathToPurge)
 		})
 
-		Context("when Purge succeeds", func() {
-			It("kills the mapfs mount processes", func() {
-				Expect(fakeInvoker.InvokeCallCount()).To(Equal(33))
+		It("kills the mapfs mount processes", func() {
+			Expect(fakeInvokeResult.WaitCallCount()).To(Equal(33))
+			Expect(fakeInvoker.InvokeCallCount()).To(Equal(33))
 
-				_, proc, args := fakeInvoker.InvokeArgsForCall(0)
-				Expect(proc).To(Equal("pkill"))
-				Expect(args[0]).To(Equal("mapfs"))
+			_, proc, args := fakeInvoker.InvokeArgsForCall(0)
+			Expect(proc).To(Equal("pkill"))
+			Expect(args[0]).To(Equal("mapfs"))
+			Expect(logger.Buffer()).Should(gbytes.Say("pkill.*stdout from pkill fakeinvoke result"))
 
-				_, proc, args = fakeInvoker.InvokeArgsForCall(1)
-				Expect(proc).To(Equal("pgrep"))
-				Expect(args[0]).To(Equal("mapfs"))
+			_, proc, args = fakeInvoker.InvokeArgsForCall(1)
+			Expect(proc).To(Equal("pgrep"))
+			Expect(args[0]).To(Equal("mapfs"))
+
+			Expect(logger.Buffer()).Should(gbytes.Say("stdout from pgrep fakeinvoke result"))
+		})
+
+		Context("pkill process is no longer found by pgrep", func() {
+			BeforeEach(func() {
+				fakeInvokeResult.WaitReturnsOnCall(11, fmt.Errorf("pkill not found"))
 			})
 
-			Context("when there are mapfs mounts", func() {
-				It("should unmount both the mounts", func() {
-					Expect(fakeInvoker.InvokeCallCount()).To(Equal(33))
-
-					_, cmd, args := fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 2)
-					Expect(cmd).To(Equal("umount"))
-					Expect(len(args)).To(Equal(3))
-					Expect(args[0]).To(Equal("-l"))
-					Expect(args[1]).To(Equal("-f"))
-					Expect(args[2]).To(Equal("/foo/foo/foo/mount_one"))
-
-					_, cmd, args = fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 1)
-					Expect(cmd).To(Equal("umount"))
-					Expect(len(args)).To(Equal(3))
-					Expect(args[0]).To(Equal("-l"))
-					Expect(args[1]).To(Equal("-f"))
-					Expect(args[2]).To(Equal("/foo/foo/foo/mount_one_mapfs"))
-				})
-
-				It("should remove both the mountpoints", func() {
-					Expect(fakeOs.RemoveCallCount()).To(Equal(2))
-
-					path := fakeOs.RemoveArgsForCall(0)
-					Expect(path).To(Equal("/foo/foo/foo/mount_one"))
-
-					path = fakeOs.RemoveArgsForCall(1)
-					Expect(path).To(Equal("/foo/foo/foo/mount_one_mapfs"))
-				})
-			})
-
-			Context("when given a path to purge that is a malformed URI", func() {
-				BeforeEach(func() {
-					pathToPurge = "foo("
-				})
-
-				It("should log an error", func() {
-					Expect(logger.TestSink.Buffer()).Should(gbytes.Say("unable-to-list-mounts"))
-					Expect(fakeMountChecker.ListCallCount()).To(Equal(0))
-				})
+			It("continues", func() {
+				Expect(fakeInvokeResult.WaitCallCount()).To(Equal(14))
 			})
 		})
 
-		Context("when unable to list mounts", func() {
+		It("should unmount both the mounts", func() {
+			Expect(fakeInvoker.InvokeCallCount()).To(Equal(33))
+			Expect(fakeInvokeResult.WaitCallCount()).To(Equal(33))
+
+			_, cmd, args := fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 2)
+			Expect(cmd).To(Equal("umount"))
+			Expect(len(args)).To(Equal(3))
+			Expect(args[0]).To(Equal("-l"))
+			Expect(args[1]).To(Equal("-f"))
+			Expect(args[2]).To(Equal("/foo/foo/foo/mount_one"))
+
+			_, cmd, args = fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 1)
+			Expect(cmd).To(Equal("umount"))
+			Expect(len(args)).To(Equal(3))
+			Expect(args[0]).To(Equal("-l"))
+			Expect(args[1]).To(Equal("-f"))
+			Expect(args[2]).To(Equal("/foo/foo/foo/mount_one_mapfs"))
+		})
+
+		It("should remove both the mountpoints", func() {
+			Expect(fakeOs.RemoveCallCount()).To(Equal(2))
+
+			path := fakeOs.RemoveArgsForCall(0)
+			Expect(path).To(Equal("/foo/foo/foo/mount_one"))
+
+			path = fakeOs.RemoveArgsForCall(1)
+			Expect(path).To(Equal("/foo/foo/foo/mount_one_mapfs"))
+		})
+
+		Context("pkill invoke fails", func() {
+			BeforeEach(func() {
+				fakeInvoker.InvokeReturnsOnCall(0, fakeInvokeResult, fmt.Errorf("pkill invoke error"))
+			})
+
+			It("does not call wait", func() {
+				Expect(fakeInvokeResult.WaitCallCount()).To(Equal(32))
+				Expect(logger.Buffer()).To(gbytes.Say(`{"err":"pkill invoke error","session":"1"}`))
+			})
+		})
+
+		Context("pkill command fails", func() {
+			BeforeEach(func() {
+				fakeInvokeResult.WaitReturnsOnCall(0, fmt.Errorf("pkill command errored out"))
+			})
+
+			It("returns", func() {
+				Expect(logger.Buffer()).Should(gbytes.Say("pkill.*err.*pkill command errored out.*output.*stdout from pkill fakeinvoke result"))
+			})
+		})
+
+		Context("pgrep invoke fails", func() {
+			BeforeEach(func() {
+
+				fakeInvoker.InvokeReturns(fakeInvokeResult, fmt.Errorf("pgrep invoke error"))
+				fakeInvoker.InvokeReturnsOnCall(0, fakeInvokeResult, nil)
+			})
+
+			It("returns", func() {
+				Expect(logger.Buffer()).Should(gbytes.Say("mapfs-mounter.purge.waiting-for-kill.*pgrep invoke error"))
+				Expect(fakeInvokeResult.WaitCallCount()).To(Equal(1))
+			})
+		})
+
+		Context("pgrep command fails", func() {
+			BeforeEach(func() {
+				fakeInvokeResult.WaitReturnsOnCall(1, fmt.Errorf("pgrep command errored out"))
+			})
+
+			It("continues checking if the mapfs has been killed", func() {
+				Expect(logger.Buffer()).Should(gbytes.Say("mapfs-mounter.purge.pgrep.*pgrep command errored out"))
+			})
+		})
+
+		Context("umount on mapfs invoke fails", func() {
+			BeforeEach(func() {
+				fakeInvoker.InvokeReturns(fakeInvokeResult, nil)
+				fakeInvoker.InvokeReturnsOnCall(31, fakeInvokeResult, fmt.Errorf("umount invoke error"))
+			})
+
+			It("returns", func() {
+				Expect(logger.Buffer()).Should(gbytes.Say("warning-umount-intermediate-failed.*umount invoke error"))
+			})
+		})
+
+		Context("umount on mapfs command fails", func() {
+			BeforeEach(func() {
+				fakeInvoker.InvokeReturns(fakeInvokeResult, nil)
+				fakeInvokeResult.WaitReturnsOnCall(31, fmt.Errorf("umount command error"))
+			})
+
+			It("returns", func() {
+				Expect(logger.Buffer()).Should(gbytes.Say("warning-umount-command-intermediate-failed.*umount command error"))
+			})
+		})
+
+		Context("umount on linux dir invoke fails", func() {
+			BeforeEach(func() {
+				fakeInvoker.InvokeReturns(fakeInvokeResult, nil)
+				fakeInvoker.InvokeReturnsOnCall(32, fakeInvokeResult, fmt.Errorf("umount invoke error"))
+			})
+
+			It("returns", func() {
+				Expect(fakeInvokeResult.WaitCallCount()).To(Equal(32))
+				Expect(logger.Buffer()).Should(gbytes.Say("warning-umount-mapfs-failed.*umount invoke error"))
+			})
+		})
+
+		Context("umount on linux dir command fails", func() {
+			BeforeEach(func() {
+				fakeInvoker.InvokeReturns(fakeInvokeResult, nil)
+				fakeInvokeResult.WaitReturnsOnCall(32, fmt.Errorf("umount command error"))
+			})
+
+			It("returns", func() {
+				Expect(logger.Buffer()).Should(gbytes.Say("warning-umount-mapfs-failed.*umount command error"))
+			})
+		})
+
+		Context("when given a path to purge that is a malformed URI", func() {
+			BeforeEach(func() {
+				pathToPurge = "foo("
+			})
+
+			It("should log an error", func() {
+				Expect(logger.TestSink.Buffer()).Should(gbytes.Say("unable-to-list-mounts"))
+				Expect(fakeMountChecker.ListCallCount()).To(Equal(0))
+			})
+		})
+
+		Context("when list mounts invoke fails", func() {
 			BeforeEach(func() {
 				fakeMountChecker.ListReturns(nil, errors.New("list-failed"))
 			})
@@ -905,8 +1147,8 @@ var _ = Describe("MapfsMounter", func() {
 
 			})
 		})
-	})
 
+	})
 	Context("NewMapFsVolumeMountMask", func() {
 
 		Context("when given additional options", func() {

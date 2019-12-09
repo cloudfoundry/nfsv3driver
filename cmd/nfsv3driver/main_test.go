@@ -15,9 +15,9 @@ import (
 
 var _ = Describe("Main", func() {
 	var (
-		session *gexec.Session
-		command *exec.Cmd
-		expectedStartOutput string
+		session                *gexec.Session
+		command                *exec.Cmd
+		expectedStartOutput    string
 		expectedStartErrOutput string
 	)
 

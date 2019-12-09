@@ -2,9 +2,9 @@ package main_test
 
 import (
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
-	"github.com/onsi/ginkgo/config"
 	"time"
 
 	"testing"

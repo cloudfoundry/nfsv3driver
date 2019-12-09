@@ -13,9 +13,7 @@ import (
 	cf_debug_server "code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/dockerdriver/driverhttp"
-	"code.cloudfoundry.org/dockerdriver/invoker"
 	"code.cloudfoundry.org/goshims/bufioshim"
-	"code.cloudfoundry.org/goshims/execshim"
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/ldapshim"
@@ -27,6 +25,7 @@ import (
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminhttp"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminlocal"
 	"code.cloudfoundry.org/volumedriver"
+	"code.cloudfoundry.org/volumedriver/invoker"
 	"code.cloudfoundry.org/volumedriver/mountchecker"
 	"code.cloudfoundry.org/volumedriver/oshelper"
 	"github.com/tedsuo/ifrit"
@@ -177,8 +176,8 @@ func main() {
 
 	mounter = nfsv3driver.NewMapfsMounter(
 		invoker.NewProcessGroupInvoker(),
-		invoker.NewRealInvoker(),
-		nfsv3driver.NewBackgroundInvoker(&execshim.ExecShim{}),
+		invoker.NewProcessGroupInvoker(),
+		invoker.NewProcessGroupInvoker(),
 		&osshim.OsShim{},
 		&syscallshim.SyscallShim{},
 		&ioutilshim.IoutilShim{},

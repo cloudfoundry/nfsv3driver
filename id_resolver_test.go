@@ -136,7 +136,7 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 				Expect(timeLimit).To(Equal(0))
 				Expect(typesOnly).To(BeFalse())
 				Expect(filter).To(Equal("(&(objectClass=User)(cn=user))"))
-				Expect(attributes).To( ConsistOf("dn", "uidNumber", "gidNumber"))
+				Expect(attributes).To(ConsistOf("dn", "uidNumber", "gidNumber"))
 				Expect(controls).To(BeNil())
 			})
 

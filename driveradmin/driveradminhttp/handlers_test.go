@@ -25,7 +25,6 @@ var _ = Describe("Volman Driver Handlers", func() {
 			httpRequest          *http.Request
 			httpResponseRecorder *httptest.ResponseRecorder
 			route                rata.Route
-
 		)
 
 		BeforeEach(func() {
