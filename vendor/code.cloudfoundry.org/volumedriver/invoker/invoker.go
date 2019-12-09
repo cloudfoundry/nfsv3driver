@@ -24,6 +24,7 @@ type Invoker interface {
 }
 
 type invokeResult struct {
+	cmdDone      chan interface{}
 	cmd          *exec.Cmd
 	outputBuffer *Buffer
 	errorBuffer  *Buffer
@@ -68,6 +69,7 @@ func (i invokeResult) WaitFor(stringToWaitFor string, duration time.Duration) er
 			return errors.New("command timed out")
 		default:
 			if i.isExpectedTextContainedInStdOut(stringToWaitFor) {
+				close(i.cmdDone)
 				return nil
 			}
 		}
@@ -77,4 +79,3 @@ func (i invokeResult) WaitFor(stringToWaitFor string, duration time.Duration) er
 func (i invokeResult) isExpectedTextContainedInStdOut(stringToWaitFor string) bool {
 	return strings.Contains(i.StdOutput(), stringToWaitFor)
 }
-
