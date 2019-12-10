@@ -239,11 +239,11 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		mountError := invokeResult.WaitFor("Mounted!", MapfsMountTimeout)
 		if mountError != nil {
 			logger.Error("background-invoke-mount-failed", err)
-
 			result, err := m.invoker.Invoke(env, "umount", []string{intermediateMount})
 			if err != nil {
 				return dockerdriver.SafeError{SafeDescription: mountError.Error()}
 			}
+
 			err = result.Wait()
 			if err != nil {
 				logger.Error("unmount-failed", err)
