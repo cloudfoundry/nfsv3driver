@@ -86,7 +86,7 @@ var _ = Describe("MapfsMounter", func() {
 		mask, err = nfsv3driver.NewMapFsVolumeMountMask("auto_cache,fsname", "")
 		Expect(err).NotTo(HaveOccurred())
 
-		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeInvoker, fakeInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, mask, mapfsPath)
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, mask, mapfsPath)
 	})
 
 	Context("#Mount", func() {
@@ -244,7 +244,7 @@ var _ = Describe("MapfsMounter", func() {
 			table.DescribeTable("when the mount has a legacy format", func(legacySourceFormat string, expectedShareFormat string) {
 				fakeInvoker = &invokerfakes.FakeInvoker{}
 				fakeInvoker.InvokeReturns(fakeInvokeResult, nil)
-				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeInvoker, fakeInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, mask, mapfsPath)
+				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, mask, mapfsPath)
 
 				err = subject.Mount(env, legacySourceFormat, target, opts)
 				Expect(err).NotTo(HaveOccurred())
@@ -642,7 +642,7 @@ var _ = Describe("MapfsMounter", func() {
 			BeforeEach(func() {
 				fakeIdResolver = &nfsdriverfakes.FakeIdResolver{}
 
-				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeInvoker, fakeInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, mask, mapfsPath)
+				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, mask, mapfsPath)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				delete(opts, "uid")

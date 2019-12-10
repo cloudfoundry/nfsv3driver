@@ -174,10 +174,9 @@ func main() {
 		exitOnFailure(logger, err)
 	}
 
+	processGroupInvoker := invoker.NewProcessGroupInvoker()
 	mounter = nfsv3driver.NewMapfsMounter(
-		invoker.NewProcessGroupInvoker(),
-		invoker.NewProcessGroupInvoker(),
-		invoker.NewProcessGroupInvoker(),
+		processGroupInvoker,
 		&osshim.OsShim{},
 		&syscallshim.SyscallShim{},
 		&ioutilshim.IoutilShim{},

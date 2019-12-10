@@ -31,18 +31,16 @@ const InvalidUidValueErrorMessage = "Invalid 'uid' option (0, negative, or non-i
 const InvalidGidValueErrorMessage = "Invalid 'gid' option (0, negative, or non-integer)"
 
 type mapfsMounter struct {
-	pgInvoker         invoker.Invoker
-	invoker           invoker.Invoker
-	backgroundInvoker invoker.Invoker
-	osshim            osshim.Os
-	syscallshim       syscallshim.Syscall
-	ioutilshim        ioutilshim.Ioutil
-	mountChecker      mountchecker.MountChecker
-	fstype            string
-	defaultOpts       string
-	resolver          IdResolver
-	mask              vmo.MountOptsMask
-	mapfsPath         string
+	invoker      invoker.Invoker
+	osshim       osshim.Os
+	syscallshim  syscallshim.Syscall
+	ioutilshim   ioutilshim.Ioutil
+	mountChecker mountchecker.MountChecker
+	fstype       string
+	defaultOpts  string
+	resolver     IdResolver
+	mask         vmo.MountOptsMask
+	mapfsPath    string
 }
 
 var legacyNfsSharePattern *regexp.Regexp
@@ -54,9 +52,7 @@ func init() {
 }
 
 func NewMapfsMounter(
-	pgInvoker invoker.Invoker,
 	invoker invoker.Invoker,
-	bgInvoker invoker.Invoker,
 	osshim osshim.Os,
 	syscallshim syscallshim.Syscall,
 	ioutilshim ioutilshim.Ioutil,
@@ -66,7 +62,7 @@ func NewMapfsMounter(
 	mask vmo.MountOptsMask,
 	mapfsPath string,
 ) volumedriver.Mounter {
-	return &mapfsMounter{pgInvoker, invoker, bgInvoker, osshim, syscallshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, mask, mapfsPath}
+	return &mapfsMounter{invoker, osshim, syscallshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, mask, mapfsPath}
 }
 
 func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -164,7 +160,7 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		t = target
 	}
 
-	invokeResult, err := m.pgInvoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t})
+	invokeResult, err := m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t})
 	if err != nil {
 		return dockerdriver.SafeError{SafeDescription: err.Error()}
 	}
@@ -231,7 +227,7 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 
 		args := mapfsOptions(optsToUse)
 		args = append(args, target, intermediateMount)
-		invokeResult, err := m.backgroundInvoker.Invoke(env, m.mapfsPath, args)
+		invokeResult, err := m.invoker.Invoke(env, m.mapfsPath, args)
 		if err != nil {
 			return dockerdriver.SafeError{SafeDescription: err.Error()}
 		}
