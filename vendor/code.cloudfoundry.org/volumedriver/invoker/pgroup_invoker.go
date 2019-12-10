@@ -34,14 +34,15 @@ func (r *pgroupInvoker) Invoke(env dockerdriver.Env, executable string, cmdArgs 
 		logger.Error("command-start-failed", err, lager.Data{"exe": executable, "output": stdOutBuffer.String()})
 		return invokeResult{}, err
 	}
-
-	var cmdDone = make(chan interface{}, 1)
+	var cmdDone = false
 
 	go func() {
 		select {
-		case <-cmdDone:
-			return
 		case <-env.Context().Done():
+			if cmdDone {
+				logger.Info("not killing process due to already finished")
+				return
+			}
 			logger.Info("command-sigkill", lager.Data{"exe": executable, "pid": -cmdHandle.Process.Pid})
 			err := syscall.Kill(-cmdHandle.Process.Pid, syscall.SIGKILL)
 			if err != nil {
@@ -55,7 +56,7 @@ func (r *pgroupInvoker) Invoke(env dockerdriver.Env, executable string, cmdArgs 
 	}()
 
 	return invokeResult{
-		cmdDone:      cmdDone,
+		cmdDone:      &cmdDone,
 		cmd:          cmdHandle,
 		outputBuffer: &stdOutBuffer,
 		errorBuffer:  &stdErrBuffer,
