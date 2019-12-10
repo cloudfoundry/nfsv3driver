@@ -61,5 +61,5 @@ function kill_ganesha {
 
 trap kill_ganesha EXIT
 pushd ${TEST_PACKAGE}
-  ginkgo -v -keepGoing . -race
+  ginkgo -v -keepGoing -race .
 popd
