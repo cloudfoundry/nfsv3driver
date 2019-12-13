@@ -108,7 +108,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should use version specified", func() {
 				Expect(err).NotTo(HaveOccurred())
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
 				Expect(len(args)).To(BeNumerically(">", 5))
 				Expect(args).To(ContainElement("-t"))
@@ -182,7 +182,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			It("should use the passed in variables", func() {
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
 				Expect(len(args)).To(BeNumerically(">", 5))
 				Expect(args).To(ContainElement("-t"))
@@ -195,7 +195,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should launch mapfs to mount the target", func() {
 				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(1)
 				expectedText, duration := fakeInvokeResult.WaitForArgsForCall(0)
 
 				Expect(cmd).To(Equal(mapfsPath))
@@ -227,14 +227,14 @@ var _ = Describe("MapfsMounter", func() {
 				})
 
 				It("should not append 'ro' to the kernel mount options, since garden manages the ro mount", func() {
-					_, _, args := fakeInvoker.InvokeArgsForCall(0)
+					_, _, args, _ := fakeInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 3))
 					Expect(args[2]).To(Equal("-o"))
 					Expect(args[3]).NotTo(ContainSubstring(",ro"))
 				})
 				It("should not append 'actimeo=0' to the kernel mount options", func() {
 					Expect(err).NotTo(HaveOccurred())
-					_, _, args := fakeInvoker.InvokeArgsForCall(0)
+					_, _, args, _ := fakeInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 3))
 					Expect(args[2]).To(Equal("-o"))
 					Expect(args[3]).NotTo(ContainSubstring("actimeo=0"))
@@ -249,7 +249,7 @@ var _ = Describe("MapfsMounter", func() {
 				err = subject.Mount(env, legacySourceFormat, target, opts)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, _, args := fakeInvoker.InvokeArgsForCall(0)
+				_, _, args, _ := fakeInvoker.InvokeArgsForCall(0)
 				Expect(len(args)).To(BeNumerically(">", 4))
 				Expect(args[4]).To(Equal(expectedShareFormat))
 			},
@@ -275,7 +275,7 @@ var _ = Describe("MapfsMounter", func() {
 				})
 				It("should rewrite the target to remove the slash", func() {
 					Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-					_, _, args := fakeInvoker.InvokeArgsForCall(1)
+					_, _, args, _ := fakeInvoker.InvokeArgsForCall(1)
 					Expect(args[4]).To(Equal("/some/target"))
 					Expect(args[5]).To(Equal("/some/target_mapfs"))
 				})
@@ -287,7 +287,7 @@ var _ = Describe("MapfsMounter", func() {
 				})
 				It("should include those options on the mapfs invoke call", func() {
 					Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-					_, _, args := fakeInvoker.InvokeArgsForCall(1)
+					_, _, args, _ := fakeInvoker.InvokeArgsForCall(1)
 					Expect(args).To(ContainElement("-auto_cache"))
 				})
 			})
@@ -297,7 +297,7 @@ var _ = Describe("MapfsMounter", func() {
 			BeforeEach(func() {
 				delete(opts, "uid")
 
-				fakeInvoker.InvokeStub = func(d dockerdriver.Env, actualCommand string, s []string) (invoker.InvokeResult, error) {
+				fakeInvoker.InvokeStub = func(d dockerdriver.Env, actualCommand string, s []string, e ...string) (invoker.InvokeResult, error) {
 					Expect(actualCommand).NotTo(ContainSubstring(mapfsPath), "should not launch mapfs")
 					return fakeInvokeResult, nil
 				}
@@ -313,7 +313,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should mount directly to the target", func() {
 				Expect(err).NotTo(HaveOccurred())
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
 				Expect(args).To(ContainElement("source"))
 				Expect(args).To(ContainElement("target"))
@@ -339,7 +339,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 			It("should not error", func() {
 				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(1)
 				Expect(cmd).To(Equal(mapfsPath))
 				Expect(args).To(ContainElement("-uid"))
 				Expect(args).To(ContainElement("2000"))
@@ -354,7 +354,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 			It("should not error", func() {
 				Expect(fakeInvoker.InvokeCallCount()).To(BeNumerically(">=", 1))
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(1)
 				Expect(cmd).To(Equal(mapfsPath))
 				Expect(args).To(ContainElement("-uid"))
 				Expect(args).To(ContainElement("2000"))
@@ -411,7 +411,7 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(err.Error()).To(ContainSubstring("access"))
 
 				Expect(fakeInvoker.InvokeCallCount()).To(Equal(2))
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(1)
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(1)
 				Expect(cmd).To(Equal("umount"))
 				Expect(len(args)).To(BeNumerically(">", 0))
 				Expect(args[0]).To(Equal("target_mapfs"))
@@ -568,7 +568,7 @@ var _ = Describe("MapfsMounter", func() {
 
 				It("should invoke unmount", func() {
 					Expect(fakeInvoker.InvokeCallCount()).To(Equal(3))
-					_, cmd, args := fakeInvoker.InvokeArgsForCall(2)
+					_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(2)
 					Expect(cmd).To(Equal("umount"))
 					Expect(len(args)).To(BeNumerically(">", 0))
 					Expect(args[0]).To(Equal("target_mapfs"))
@@ -653,14 +653,14 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("does not show the credentials in the options", func() {
 				Expect(err).NotTo(HaveOccurred())
-				_, _, args := fakeInvoker.InvokeArgsForCall(0)
+				_, _, args, _ := fakeInvoker.InvokeArgsForCall(0)
 				Expect(strings.Join(args, " ")).To(Not(ContainSubstring("username")))
 				Expect(strings.Join(args, " ")).To(Not(ContainSubstring("password")))
 			})
 
 			It("shows gid and uid", func() {
 				Expect(err).NotTo(HaveOccurred())
-				_, _, args := fakeInvoker.InvokeArgsForCall(1)
+				_, _, args, _ := fakeInvoker.InvokeArgsForCall(1)
 				Expect(strings.Join(args, " ")).To(ContainSubstring("-uid 100"))
 				Expect(strings.Join(args, " ")).To(ContainSubstring("-gid 100"))
 			})
@@ -759,13 +759,13 @@ var _ = Describe("MapfsMounter", func() {
 			It("should invoke unmount on both the mapfs and target mountpoints", func() {
 				Expect(fakeInvoker.InvokeCallCount()).To(Equal(2))
 
-				_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("umount"))
 				Expect(len(args)).To(Equal(2))
 				Expect(args[0]).To(Equal("-l"))
 				Expect(args[1]).To(Equal("target"))
 
-				_, cmd, args = fakeInvoker.InvokeArgsForCall(1)
+				_, cmd, args, _ = fakeInvoker.InvokeArgsForCall(1)
 				Expect(cmd).To(Equal("umount"))
 				Expect(len(args)).To(Equal(2))
 				Expect(args[0]).To(Equal("-l"))
@@ -785,13 +785,13 @@ var _ = Describe("MapfsMounter", func() {
 				It("should rewrite the target to remove the slash", func() {
 					Expect(fakeInvoker.InvokeCallCount()).To(Equal(2))
 
-					_, cmd, args := fakeInvoker.InvokeArgsForCall(0)
+					_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(0)
 					Expect(cmd).To(Equal("umount"))
 					Expect(len(args)).To(Equal(2))
 					Expect(args[0]).To(Equal("-l"))
 					Expect(args[1]).To(Equal("/some/target"))
 
-					_, cmd, args = fakeInvoker.InvokeArgsForCall(1)
+					_, cmd, args, _ = fakeInvoker.InvokeArgsForCall(1)
 					Expect(cmd).To(Equal("umount"))
 					Expect(len(args)).To(Equal(2))
 					Expect(args[0]).To(Equal("-l"))
@@ -933,7 +933,7 @@ var _ = Describe("MapfsMounter", func() {
 		Context("when check succeeds", func() {
 
 			It("uses correct context", func() {
-				env, _, _ := fakeInvoker.InvokeArgsForCall(0)
+				env, _, _, _ := fakeInvoker.InvokeArgsForCall(0)
 				Expect(fmt.Sprintf("%#v", env.Context())).To(ContainSubstring("timerCtx"))
 			})
 
@@ -981,12 +981,12 @@ var _ = Describe("MapfsMounter", func() {
 			Expect(fakeInvokeResult.WaitCallCount()).To(Equal(33))
 			Expect(fakeInvoker.InvokeCallCount()).To(Equal(33))
 
-			_, proc, args := fakeInvoker.InvokeArgsForCall(0)
+			_, proc, args, _ := fakeInvoker.InvokeArgsForCall(0)
 			Expect(proc).To(Equal("pkill"))
 			Expect(args[0]).To(Equal("mapfs"))
 			Expect(logger.Buffer()).Should(gbytes.Say("pkill.*stdout from pkill fakeinvoke result"))
 
-			_, proc, args = fakeInvoker.InvokeArgsForCall(1)
+			_, proc, args, _ = fakeInvoker.InvokeArgsForCall(1)
 			Expect(proc).To(Equal("pgrep"))
 			Expect(args[0]).To(Equal("mapfs"))
 
@@ -1007,14 +1007,14 @@ var _ = Describe("MapfsMounter", func() {
 			Expect(fakeInvoker.InvokeCallCount()).To(Equal(33))
 			Expect(fakeInvokeResult.WaitCallCount()).To(Equal(33))
 
-			_, cmd, args := fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 2)
+			_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 2)
 			Expect(cmd).To(Equal("umount"))
 			Expect(len(args)).To(Equal(3))
 			Expect(args[0]).To(Equal("-l"))
 			Expect(args[1]).To(Equal("-f"))
 			Expect(args[2]).To(Equal("/foo/foo/foo/mount_one"))
 
-			_, cmd, args = fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 1)
+			_, cmd, args, _ = fakeInvoker.InvokeArgsForCall(fakeInvoker.InvokeCallCount() - 1)
 			Expect(cmd).To(Equal("umount"))
 			Expect(len(args)).To(Equal(3))
 			Expect(args[0]).To(Equal("-l"))

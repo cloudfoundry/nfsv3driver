@@ -6,6 +6,8 @@ code.cloudfoundry.org/debugserver v0.0.0-20180612203758-a3ba348dfede h1:/vMWnzgj
 code.cloudfoundry.org/debugserver v0.0.0-20180612203758-a3ba348dfede/go.mod h1:TotxfVIqTDwSnfxRc2ksk8uFZs5vhIN8Ooy3RdbsQF8=
 code.cloudfoundry.org/dockerdriver v0.0.0-20190430182539-d20038a36dd2 h1:PiSdzevbuSQIORLqppBvxb0WvUDFQd2aFAsKIDZzyWk=
 code.cloudfoundry.org/dockerdriver v0.0.0-20190430182539-d20038a36dd2/go.mod h1:LHp3o0peO3VemcRBZc8OqppAvEjauYfZuqx5Z0Y+sJ8=
+code.cloudfoundry.org/dockerdriver v0.0.0-20191212003739-aa77eeea8c23 h1:Mz3lFoatJW9CJkGxFOFYBBOjKkcLnLhlvbwaCIn5UUQ=
+code.cloudfoundry.org/dockerdriver v0.0.0-20191212003739-aa77eeea8c23/go.mod h1:LHp3o0peO3VemcRBZc8OqppAvEjauYfZuqx5Z0Y+sJ8=
 code.cloudfoundry.org/goshims v0.0.0-20190529192408-bb24d2ef71ff h1:mM+PDE9FenEujN8i1CQS6dkN4PgVp269vFxpWkt3op8=
 code.cloudfoundry.org/goshims v0.0.0-20190529192408-bb24d2ef71ff/go.mod h1:p+Q0ZCTdX+nJ5w8bXZjFicVtUEnTX7kRL8viv+DXmR0=
 code.cloudfoundry.org/lager v1.1.1-0.20191008172124-a9afc05ee5be/go.mod h1:O2sS7gKP3HM2iemG+EnwvyNQK7pTSC6Foi4QiMp9sSk=
@@ -17,6 +19,8 @@ code.cloudfoundry.org/volume-mount-options v0.0.0-20191114202258-e09e839f17af h1
 code.cloudfoundry.org/volume-mount-options v0.0.0-20191114202258-e09e839f17af/go.mod h1:ydxOg1SOONU1OWEORaW1ovk+XYoMmMKB9wgVOiZuFyA=
 code.cloudfoundry.org/volumedriver v0.0.0-20191210184105-9be69cb9dca0 h1:UXVuggk/wznV6p1PJeleX55WI6btrcTY9jqKYGuKzG8=
 code.cloudfoundry.org/volumedriver v0.0.0-20191210184105-9be69cb9dca0/go.mod h1:1wPX/9QKKW6yFDf3K6jjQ90oMSmlzgK9D5Rlu/DjZjc=
+code.cloudfoundry.org/volumedriver v0.0.0-20191212004417-ff6c0a47c125 h1:2EGy8lyxpKRw/DX6fmeO26gL6XyPmopdX2Kmr0ZcU+k=
+code.cloudfoundry.org/volumedriver v0.0.0-20191212004417-ff6c0a47c125/go.mod h1:4stLyjja0tzd/+Z2/q9ItxvQlDL3zzsBacci0zdwa6o=
 github.com/bmizerany/pat v0.0.0-20170815010413-6226ea591a40 h1:y4B3+GPxKlrigF1ha5FFErxK+sr6sWxQovRMzwMhejo=
 github.com/bmizerany/pat v0.0.0-20170815010413-6226ea591a40/go.mod h1:8rLXio+WjiTceGBHIoTvn60HIbs7Hm7bcHjyrSqYB9c=
 github.com/fsnotify/fsnotify v1.4.7 h1:IXs+QLmnXW2CcXuY+8Mzv/fWEsPGWxqefPtCP5CnV9I=
