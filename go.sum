@@ -19,6 +19,8 @@ code.cloudfoundry.org/volume-mount-options v0.0.0-20191114202258-e09e839f17af h1
 code.cloudfoundry.org/volume-mount-options v0.0.0-20191114202258-e09e839f17af/go.mod h1:ydxOg1SOONU1OWEORaW1ovk+XYoMmMKB9wgVOiZuFyA=
 code.cloudfoundry.org/volume-mount-options v1.0.0 h1:5UOAbadWb+3eTuiOSJB2h1x7bPbY8RlcdnaeooPV8OU=
 code.cloudfoundry.org/volume-mount-options v1.0.0/go.mod h1:mN++KrULBSjlhHK3WptZzm3S4xi5txyHPQaFlb1H2mU=
+code.cloudfoundry.org/volume-mount-options v1.0.1-0.20191219180154-29bfca66bda5 h1:tgP6Db3YRdfGToj1Bh4teD7OyN5tEwsHDki517HXjwo=
+code.cloudfoundry.org/volume-mount-options v1.0.1-0.20191219180154-29bfca66bda5/go.mod h1:P25wuYKuzciDac79anE7Y7YiM130Fer6bsm+04Thw0U=
 code.cloudfoundry.org/volumedriver v0.0.0-20191210184105-9be69cb9dca0 h1:UXVuggk/wznV6p1PJeleX55WI6btrcTY9jqKYGuKzG8=
 code.cloudfoundry.org/volumedriver v0.0.0-20191210184105-9be69cb9dca0/go.mod h1:1wPX/9QKKW6yFDf3K6jjQ90oMSmlzgK9D5Rlu/DjZjc=
 code.cloudfoundry.org/volumedriver v0.0.0-20191212004417-ff6c0a47c125 h1:2EGy8lyxpKRw/DX6fmeO26gL6XyPmopdX2Kmr0ZcU+k=
