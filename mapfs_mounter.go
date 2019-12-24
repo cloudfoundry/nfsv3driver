@@ -160,12 +160,7 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		t = target
 	}
 
-	invokeResult, err := m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t})
-	if err != nil {
-		return dockerdriver.SafeError{SafeDescription: err.Error()}
-	}
-
-	err = invokeResult.Wait()
+	err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t}).Wait()
 	if err != nil {
 		logger.Error("invoke-mount-failed", err)
 		err1 := m.osshim.Remove(intermediateMount)
@@ -209,8 +204,8 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		}
 		if err != nil {
 			logger.Error("mount-read-access-check-failed", err)
-			_, err1 := m.invoker.Invoke(env, "umount", []string{intermediateMount})
 
+			err1 := m.invoker.Invoke(env, "umount", []string{intermediateMount}).Wait()
 			if err1 != nil {
 				logger.Error("intermediate-unmount-failed", err1)
 			}
@@ -227,20 +222,10 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 
 		args := mapfsOptions(optsToUse)
 		args = append(args, target, intermediateMount)
-		invokeResult, err := m.invoker.Invoke(env, m.mapfsPath, args)
-		if err != nil {
-			return dockerdriver.SafeError{SafeDescription: err.Error()}
-		}
-
-		mountError := invokeResult.WaitFor("Mounted!", MapfsMountTimeout)
+		mountError := m.invoker.Invoke(env, m.mapfsPath, args).WaitFor("Mounted!", MapfsMountTimeout)
 		if mountError != nil {
 			logger.Error("background-invoke-mount-failed", err)
-			result, err := m.invoker.Invoke(env, "umount", []string{intermediateMount})
-			if err != nil {
-				return dockerdriver.SafeError{SafeDescription: mountError.Error()}
-			}
-
-			err = result.Wait()
+			err = m.invoker.Invoke(env, "umount", []string{intermediateMount}).Wait()
 			if err != nil {
 				logger.Error("unmount-failed", err)
 				return dockerdriver.SafeError{SafeDescription: mountError.Error()}
@@ -268,24 +253,13 @@ func (m *mapfsMounter) Unmount(env dockerdriver.Env, target string) error {
 	target = strings.TrimSuffix(target, "/")
 	intermediateMount := target + MapfsDirectorySuffix
 
-	result, e := m.invoker.Invoke(env, "umount", []string{"-l", target})
-	if e != nil {
-		return dockerdriver.SafeError{SafeDescription: e.Error()}
-	}
-
-	waitError := result.Wait()
+	waitError := m.invoker.Invoke(env, "umount", []string{"-l", target}).Wait()
 	if waitError != nil {
 		return dockerdriver.SafeError{SafeDescription: waitError.Error()}
 	}
 
 	if exists, err := m.mountChecker.Exists(intermediateMount); exists {
-		invokeResult, err := m.invoker.Invoke(env, "umount", []string{"-l", intermediateMount})
-		if err != nil {
-			logger.Error("warning-umount-intermediate-failed", err)
-			return nil
-		}
-
-		err = invokeResult.Wait()
+		err = m.invoker.Invoke(env, "umount", []string{"-l", intermediateMount}).Wait()
 		if err != nil {
 			logger.Error("warning-umount-intermediate-failed", err)
 			return nil
@@ -313,14 +287,7 @@ func (m *mapfsMounter) Check(env dockerdriver.Env, name, mountPoint string) bool
 	ctx, cancel := context.WithDeadline(context.TODO(), time.Now().Add(time.Second*5))
 	defer cancel()
 	env = driverhttp.EnvWithContext(ctx, env)
-	result, err := m.invoker.Invoke(env, "mountpoint", []string{"-q", mountPoint})
-
-	if err != nil {
-		logger.Info(fmt.Sprintf("unable to verify volume %s (%s)", name, err.Error()))
-		return false
-	}
-
-	err = result.Wait()
+	err := m.invoker.Invoke(env, "mountpoint", []string{"-q", mountPoint}).Wait()
 	if err != nil {
 		logger.Info(fmt.Sprintf("unable to verify volume %s (%s)", name, err.Error()))
 		return false
@@ -333,34 +300,24 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 	logger.Info("purge-start")
 	defer logger.Info("purge-end")
 
-	pkillInvokeResult, err := m.invoker.Invoke(env, "pkill", []string{"mapfs"})
-	if err == nil {
-		err = pkillInvokeResult.Wait()
-		if err != nil {
-			logger.Info("pkill", lager.Data{"err": err.Error(), "output": pkillInvokeResult.StdOutput()})
-		} else {
-			logger.Debug("pkill", lager.Data{"output": pkillInvokeResult.StdOutput()})
-		}
+	pkillInvokeResult := m.invoker.Invoke(env, "pkill", []string{"mapfs"})
+	err := pkillInvokeResult.Wait()
+	if err != nil {
+		logger.Info("pkill", lager.Data{"err": err.Error(), "output": pkillInvokeResult.StdOutput()})
 	} else {
-		logger.Info("pkill", lager.Data{"err": err.Error()})
+		logger.Debug("pkill", lager.Data{"output": pkillInvokeResult.StdOutput()})
 	}
 
 	for i := 0; i < 30; i++ {
 		logger.Info("waiting-for-kill")
 		time.Sleep(PurgeTimeToSleep)
-		invokeResult, err := m.invoker.Invoke(env, "pgrep", []string{"mapfs"})
-		if err != nil {
-			logger.Info("mapfs-mounter.purge.waiting-for-kill", lager.Data{"err": err.Error()})
-			continue
-		}
-
+		invokeResult := m.invoker.Invoke(env, "pgrep", []string{"mapfs"})
 		err = invokeResult.Wait()
-		output := invokeResult.StdOutput()
 		if err != nil {
-			logger.Info("pgrep", lager.Data{"err": err.Error(), "output": output})
+			logger.Info("pgrep", lager.Data{"err": err.Error(), "output": invokeResult.StdOutput()})
 			break
 		}
-		logger.Debug("pgrep", lager.Data{"output": output})
+		logger.Debug("pgrep", lager.Data{"output": invokeResult.StdOutput()})
 	}
 
 	mountPattern, err := regexp.Compile("^" + path + ".*" + MapfsDirectorySuffix + "$")
@@ -380,14 +337,9 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 	for _, mountDir := range mounts {
 		realMountpoint := strings.TrimSuffix(mountDir, MapfsDirectorySuffix)
 
-		umountInvokeResult, err := m.invoker.Invoke(env, "umount", []string{"-l", "-f", realMountpoint})
+		err = m.invoker.Invoke(env, "umount", []string{"-l", "-f", realMountpoint}).Wait()
 		if err != nil {
-			logger.Error("warning-umount-intermediate-failed", err)
-		} else {
-			err = umountInvokeResult.Wait()
-			if err != nil {
-				logger.Error("warning-umount-command-intermediate-failed", err)
-			}
+			logger.Error("warning-umount-command-intermediate-failed", err)
 		}
 
 		logger.Info("unmount-successful", lager.Data{"path": realMountpoint})
@@ -398,14 +350,9 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 
 		logger.Info("remove-directory-successful", lager.Data{"path": realMountpoint})
 
-		umountMountDirInvokeResult, err := m.invoker.Invoke(env, "umount", []string{"-l", "-f", mountDir})
+		err = m.invoker.Invoke(env, "umount", []string{"-l", "-f", mountDir}).Wait()
 		if err != nil {
 			logger.Error("warning-umount-mapfs-failed", err)
-		} else {
-			err = umountMountDirInvokeResult.Wait()
-			if err != nil {
-				logger.Error("warning-umount-mapfs-failed", err)
-			}
 		}
 
 		logger.Info("unmount-successful", lager.Data{"path": mountDir})
