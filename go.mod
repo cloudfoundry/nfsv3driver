@@ -6,10 +6,10 @@ require (
 	code.cloudfoundry.org/dockerdriver v0.0.0-20191212003739-aa77eeea8c23
 	code.cloudfoundry.org/goshims v0.0.0-20190529192408-bb24d2ef71ff
 	code.cloudfoundry.org/lager v2.0.0+incompatible
-	github.com/onsi/ginkgo v1.11.0
-	github.com/onsi/gomega v1.8.1
 	code.cloudfoundry.org/volume-mount-options v0.0.0-20191114202258-e09e839f17af
 	code.cloudfoundry.org/volumedriver v0.0.0-20191224183039-2215e751862c
+	github.com/onsi/ginkgo v1.11.0
+	github.com/onsi/gomega v1.8.1
 	github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00
 	github.com/tedsuo/rata v1.0.0
 	gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d // indirect
