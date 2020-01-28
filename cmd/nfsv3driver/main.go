@@ -1,13 +1,14 @@
 package main
 
 import (
-	"code.cloudfoundry.org/goshims/timeshim"
 	"encoding/json"
 	"flag"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
+
+	"code.cloudfoundry.org/goshims/timeshim"
 
 	cf_http "code.cloudfoundry.org/cfhttp"
 	cf_debug_server "code.cloudfoundry.org/debugserver"
@@ -130,7 +131,7 @@ var uniqueVolumeIds = flag.Bool(
 )
 
 const fsType = "nfs"
-const mountOptions = "rsize=1048576,wsize=1048576,hard,intr,timeo=600,retrans=2,actimeo=0"
+const mountOptions = "rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,actimeo=0"
 
 var (
 	ldapSvcUser  string
