@@ -99,7 +99,7 @@ var _ = Describe("Main", func() {
 			Context("when they are invalid", func() {
 
 				BeforeEach(func() {
-					command.Args = append(command.Args, "-default-in-mount=sloppy_mount:123")
+					command.Args = []string{"invalidargs",}
 					expectedStartOutput = "fatal-err-aborting"
 				})
 

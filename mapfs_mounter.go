@@ -366,16 +366,11 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 	}
 }
 
-func NewMapFsVolumeMountMask(allowedMountOptions string, defaultMountOptions string) (vmo.MountOptsMask, error) {
-	allowed := []string{"mount", "source", "experimental", "uid", "gid", "username", "password", "readonly", "version"}
-	allowed = append(allowed, strings.Split(allowedMountOptions, ",")...)
+func NewMapFsVolumeMountMask() (vmo.MountOptsMask, error) {
+	allowed := []string{"auto_cache", "mount", "source", "experimental", "uid", "gid", "username", "password", "readonly", "version"}
 
-	defaultMap := map[string]interface{}{}
-	for _, value := range strings.Split(defaultMountOptions, ",") {
-		split := strings.Split(value, ":")
-		if len(split) == 2 {
-			defaultMap[split[0]] = split[1]
-		}
+	defaultMap := map[string]interface{}{
+		"auto_cache": "true",
 	}
 
 	return vmo.NewMountOptsMask(
