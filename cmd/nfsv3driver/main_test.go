@@ -65,7 +65,7 @@ var _ = Describe("Main", func() {
 				"Name": "nfsv3driver",
 				"Addr": "http://127.0.0.1:7589",
 				"TLSConfig": null,
-				"UniqueVolumeIds": false
+				"UniqueVolumeIds": true
 			}`))
 		})
 
@@ -195,30 +195,6 @@ var _ = Describe("Main", func() {
 					_, err := net.Dial("tcp", "0.0.0.0:7593")
 					return err
 				}, 5).ShouldNot(HaveOccurred())
-			})
-		})
-
-		Context("with unique volume IDs enabled", func() {
-			BeforeEach(func() {
-				command.Args = append(command.Args, "-uniqueVolumeIds")
-			})
-
-			It("sets the uniqueVolumeIds flag in the spec file", func() {
-				specFile := filepath.Join(dir, "nfsv3driver.json")
-				Eventually(func() error {
-					_, err := os.Stat(specFile)
-					return err
-				}, 5).ShouldNot(HaveOccurred())
-
-				specFileContents, err := ioutil.ReadFile(specFile)
-				Expect(err).NotTo(HaveOccurred())
-
-				Expect(string(specFileContents)).To(MatchJSON(`{
-					"Name": "nfsv3driver",
-					"Addr": "http://127.0.0.1:7589",
-					"TLSConfig": null,
-					"UniqueVolumeIds": true
-				}`))
 			})
 		})
 	})

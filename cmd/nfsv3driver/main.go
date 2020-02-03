@@ -112,12 +112,6 @@ var insecureSkipVerify = flag.Bool(
 	"whether SSL communication should skip verification of server IP addresses in the certificate",
 )
 
-var uniqueVolumeIds = flag.Bool(
-	"uniqueVolumeIds",
-	false,
-	"whether the NFS v3 driver should opt-in to unique volumes",
-)
-
 const fsType = "nfs"
 const mountOptions = "rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,actimeo=0"
 
@@ -190,9 +184,9 @@ func main() {
 	)
 
 	if *transport == "tcp" {
-		nfsDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, false, false)
+		nfsDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, false)
 	} else if *transport == "tcp-json" {
-		nfsDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, true, *uniqueVolumeIds)
+		nfsDriverServer = createNfsDriverServer(logger, client, *atAddress, *driversPath, true)
 	} else {
 		nfsDriverServer = createNfsDriverUnixServer(logger, client, *atAddress)
 	}
@@ -239,11 +233,11 @@ func processRunnerFor(servers grouper.Members) ifrit.Runner {
 	return sigmon.New(grouper.NewOrdered(os.Interrupt, servers))
 }
 
-func createNfsDriverServer(logger lager.Logger, client dockerdriver.Driver, atAddress, driversPath string, jsonSpec bool, uniqueVolumeIds bool) ifrit.Runner {
+func createNfsDriverServer(logger lager.Logger, client dockerdriver.Driver, atAddress, driversPath string, jsonSpec bool) ifrit.Runner {
 	advertisedUrl := "http://" + atAddress
 	logger.Info("writing-spec-file", lager.Data{"location": driversPath, "name": "nfsv3driver", "address": advertisedUrl})
 	if jsonSpec {
-		driverJsonSpec := dockerdriver.DriverSpec{Name: "nfsv3driver", Address: advertisedUrl, UniqueVolumeIds: uniqueVolumeIds}
+		driverJsonSpec := dockerdriver.DriverSpec{Name: "nfsv3driver", Address: advertisedUrl, UniqueVolumeIds: true}
 
 		if *requireSSL {
 			absCaFile, err := filepath.Abs(*caFile)
