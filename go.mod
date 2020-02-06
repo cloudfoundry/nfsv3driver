@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/dockerdriver v0.0.0-20191212003739-aa77eeea8c23
 	code.cloudfoundry.org/goshims v0.0.0-20190529192408-bb24d2ef71ff
 	code.cloudfoundry.org/lager v2.0.0+incompatible
-	code.cloudfoundry.org/volume-mount-options v1.0.1-0.20200123185836-689a2edb28f2
+	code.cloudfoundry.org/volume-mount-options v0.1.0
 	code.cloudfoundry.org/volumedriver v0.1.0
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0

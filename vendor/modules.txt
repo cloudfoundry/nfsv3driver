@@ -29,7 +29,7 @@ code.cloudfoundry.org/lager/lagertest
 code.cloudfoundry.org/lager/lagerctx
 # code.cloudfoundry.org/tlsconfig v0.0.0-20190710180242-462f72de1106
 code.cloudfoundry.org/tlsconfig
-# code.cloudfoundry.org/volume-mount-options v1.0.1-0.20200123185836-689a2edb28f2
+# code.cloudfoundry.org/volume-mount-options v0.1.0
 code.cloudfoundry.org/volume-mount-options
 code.cloudfoundry.org/volume-mount-options/utils
 # code.cloudfoundry.org/volumedriver v0.1.0
@@ -92,37 +92,17 @@ github.com/tedsuo/ifrit/sigmon
 github.com/tedsuo/ifrit/ginkgomon
 # github.com/tedsuo/rata v1.0.0
 github.com/tedsuo/rata
-# golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
-golang.org/x/crypto/chacha20poly1305
-golang.org/x/crypto/cryptobyte
-golang.org/x/crypto/curve25519
-golang.org/x/crypto/hkdf
-golang.org/x/crypto/cryptobyte/asn1
-golang.org/x/crypto/internal/chacha20
-golang.org/x/crypto/internal/subtle
-golang.org/x/crypto/poly1305
 # golang.org/x/net v0.0.0-20190628185345-da137c7871d7
-golang.org/x/net/http/httpguts
-golang.org/x/net/http/httpproxy
-golang.org/x/net/http2/hpack
-golang.org/x/net/idna
-golang.org/x/net/dns/dnsmessage
-golang.org/x/net/lif
-golang.org/x/net/route
 golang.org/x/net/html/charset
 golang.org/x/net/html
 golang.org/x/net/html/atom
 # golang.org/x/sys v0.0.0-20191120155948-bd437916bb0e
-golang.org/x/sys/cpu
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.2
-golang.org/x/text/secure/bidirule
-golang.org/x/text/unicode/bidi
-golang.org/x/text/unicode/norm
-golang.org/x/text/transform
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
+golang.org/x/text/transform
 golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/internal
 golang.org/x/text/encoding/japanese
