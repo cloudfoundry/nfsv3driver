@@ -18,8 +18,6 @@ code.cloudfoundry.org/tlsconfig v0.0.0-20190710180242-462f72de1106 h1:F36x++Jh2a
 code.cloudfoundry.org/tlsconfig v0.0.0-20190710180242-462f72de1106/go.mod h1:VxNwgI63VxUGfSR/F3VzjOpnWLbeH+AB1pQugK1i1bA=
 code.cloudfoundry.org/volume-mount-options v0.3.0 h1:8NxWuveD1ds+rG6KhCH67a0Mq+5UXM+rC7jTPrj6jtw=
 code.cloudfoundry.org/volume-mount-options v0.3.0/go.mod h1:jYveqE1DELyeimEDe3KYAs+4sSC/bLZ3dA8/uEyIyZE=
-code.cloudfoundry.org/volumedriver v0.1.0 h1:13sR7y81xEuCpIQXu4Et5Nnl3Wpr7myupA3Bx7wXzIQ=
-code.cloudfoundry.org/volumedriver v0.1.0/go.mod h1:LZtcR9/P262Bvn1M9IIx4Eu2N8sczH1g3qg/p5mT38Q=
 code.cloudfoundry.org/volumedriver v0.3.0 h1:lgFqDp+gQZB/Ws71bYl6DWmiqG+L/YacDcPzwP8jDM4=
 code.cloudfoundry.org/volumedriver v0.3.0/go.mod h1:jD+YS97Fr/F5XX//cYQLnKsKYmrwcTCPEKAwPGC13j0=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
