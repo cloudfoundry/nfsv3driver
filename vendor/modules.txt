@@ -32,7 +32,7 @@ code.cloudfoundry.org/tlsconfig
 # code.cloudfoundry.org/volume-mount-options v1.1.0
 code.cloudfoundry.org/volume-mount-options
 code.cloudfoundry.org/volume-mount-options/utils
-# code.cloudfoundry.org/volumedriver v0.3.0
+# code.cloudfoundry.org/volumedriver v0.4.0
 code.cloudfoundry.org/volumedriver
 code.cloudfoundry.org/volumedriver/invoker
 code.cloudfoundry.org/volumedriver/invokerfakes
@@ -96,7 +96,7 @@ github.com/tedsuo/rata
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
-# golang.org/x/sys v0.0.0-20200316214734-08c61614bede
+# golang.org/x/sys v0.0.0-20200317113312-5766fd39f98d
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.2
 golang.org/x/text/encoding
