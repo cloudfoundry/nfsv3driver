@@ -1,5 +1,7 @@
 module code.cloudfoundry.org/nfsv3driver
 
+go 1.14
+
 require (
 	code.cloudfoundry.org/cfhttp v2.0.0+incompatible
 	code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c // indirect

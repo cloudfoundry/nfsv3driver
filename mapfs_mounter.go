@@ -2,8 +2,8 @@ package nfsv3driver
 
 import (
 	"context"
-	"fmt"
 	"errors"
+	"fmt"
 	"os"
 	"regexp"
 	"strconv"
@@ -141,9 +141,23 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		return dockerdriver.SafeError{SafeDescription: err.Error()}
 	}
 
+	cache := false
 	mountOptions := m.defaultOpts
-	if _, ok := opts["readonly"]; ok {
-		mountOptions = strings.Replace(mountOptions, ",actimeo=0", "", -1)
+
+	if val, ok := opts["readonly"]; ok {
+		cache, _ = strconv.ParseBool(fmt.Sprintf("%v", val))
+	}
+
+	if val, ok := opts["cache"]; ok {
+		cache, err = strconv.ParseBool(fmt.Sprintf("%v", val))
+		if err != nil {
+			logger.Error("invalid-cache-option", err)
+			return dockerdriver.SafeError{SafeDescription: "Invalid 'cache' option"}
+		}
+	}
+
+	if cache == true {
+		mountOptions = strings.ReplaceAll(mountOptions, ",actimeo=0", "")
 	}
 
 	if version, ok := opts["version"].(string); ok {
@@ -357,7 +371,7 @@ func (m *mapfsMounter) Purge(env dockerdriver.Env, path string) {
 }
 
 func NewMapFsVolumeMountMask(allowedMountOptions string, defaultMountOptions string) (vmo.MountOptsMask, error) {
-	allowed := []string{"mount", "source", "experimental", "uid", "gid", "username", "password", "readonly", "version"}
+	allowed := []string{"auto_cache", "mount", "source", "experimental", "uid", "gid", "username", "password", "readonly", "version", "cache"}
 	allowed = append(allowed, strings.Split(allowedMountOptions, ",")...)
 
 	defaultMap := map[string]interface{}{}

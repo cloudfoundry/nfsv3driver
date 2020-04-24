@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/onsi/ginkgo/extensions/table"
-	"github.com/onsi/gomega/gbytes"
 	"os"
 	"strings"
 	"syscall"
+
+	"github.com/onsi/ginkgo/extensions/table"
+	"github.com/onsi/gomega/gbytes"
 
 	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/dockerdriver/dockerdriverfakes"
@@ -233,6 +234,83 @@ var _ = Describe("MapfsMounter", func() {
 				})
 			})
 
+			Context("cache option", func() {
+				Context("when the mount is cache true", func() {
+					BeforeEach(func() {
+						opts["cache"] = true
+					})
+
+					It("should not append 'actimeo=0' to the kernel mount options", func() {
+						Expect(err).NotTo(HaveOccurred())
+						_, _, args := fakePgInvoker.InvokeArgsForCall(0)
+						Expect(len(args)).To(BeNumerically(">", 3))
+						Expect(args[2]).To(Equal("-o"))
+						Expect(args[3]).NotTo(ContainSubstring("actimeo=0"))
+						Expect(args[3]).NotTo(ContainSubstring("cache"))
+					})
+				})
+
+				Context("when the mount is cache false", func() {
+					BeforeEach(func() {
+						opts["cache"] = false
+					})
+
+					It("should append 'actimeo=0' to the kernel mount options", func() {
+						Expect(err).NotTo(HaveOccurred())
+						_, _, args := fakePgInvoker.InvokeArgsForCall(0)
+						Expect(len(args)).To(BeNumerically(">", 3))
+						Expect(args[2]).To(Equal("-o"))
+						Expect(args[3]).To(ContainSubstring("actimeo=0"))
+						Expect(args[3]).NotTo(ContainSubstring("cache"))
+					})
+				})
+
+				Context("when the mount is cache unset", func() {
+					BeforeEach(func() {
+						Expect(opts).NotTo(HaveKey("cache"))
+					})
+
+					It("should append 'actimeo=0' to the kernel mount options", func() {
+						Expect(err).NotTo(HaveOccurred())
+						_, _, args := fakePgInvoker.InvokeArgsForCall(0)
+						Expect(len(args)).To(BeNumerically(">", 3))
+						Expect(args[2]).To(Equal("-o"))
+						Expect(args[3]).To(ContainSubstring("actimeo=0"))
+						Expect(args[3]).NotTo(ContainSubstring("cache"))
+					})
+				})
+
+				Context("when the mount is cache false and readonly", func() {
+					BeforeEach(func() {
+						opts["cache"] = false
+						opts["readonly"] = true
+					})
+
+					It("should append 'actimeo=0' to the kernel mount options", func() {
+						Expect(err).NotTo(HaveOccurred())
+						_, _, args := fakePgInvoker.InvokeArgsForCall(0)
+						Expect(len(args)).To(BeNumerically(">", 3))
+						Expect(args[2]).To(Equal("-o"))
+						Expect(args[3]).To(ContainSubstring("actimeo=0"))
+						Expect(args[3]).NotTo(ContainSubstring("cache"))
+					})
+				})
+
+				Context("when the mount is cache invalid", func() {
+					BeforeEach(func() {
+						opts["cache"] = "foobar"
+					})
+
+					It("should return an error", func() {
+						Expect(err).To(HaveOccurred())
+						Expect(err).To(MatchError("Invalid 'cache' option"))
+
+						_, ok := err.(dockerdriver.SafeError)
+						Expect(ok).To(BeTrue())
+					})
+				})
+			})
+
 			table.DescribeTable("when the mount has a legacy format", func(legacySourceFormat string, expectedShareFormat string) {
 				err = subject.Mount(env, legacySourceFormat, target, opts)
 				Expect(err).NotTo(HaveOccurred())
@@ -438,7 +516,6 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(logger.TestSink.Buffer().Contents()).To(ContainSubstring("nacho share"))
 			})
 
-
 		})
 		Context("when stat returns ambiguous results", func() {
 			var (
@@ -540,7 +617,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			Context("when unmount fails", func() {
-				BeforeEach(func(){
+				BeforeEach(func() {
 					fakeInvoker.InvokeReturns(nil, errors.New("unmount-failed"))
 				})
 				It("should log the error", func() {
@@ -550,7 +627,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			Context("when remove fails", func() {
-				BeforeEach(func(){
+				BeforeEach(func() {
 					fakeOs.RemoveReturns(errors.New("remove-failed"))
 				})
 				It("should log the error", func() {
