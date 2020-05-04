@@ -2,8 +2,8 @@ package nfsv3driver
 
 import (
 	"context"
-	"fmt"
 	"errors"
+	"fmt"
 	"os"
 	"regexp"
 	"strconv"
@@ -385,11 +385,11 @@ func NewMapFsVolumeMountMask(allowedMountOptions string, defaultMountOptions str
 	return vmo.NewMountOptsMask(
 		allowed,
 		defaultMap,
+		map[string]string{},
+		[]string{},
+		[]string{},
 		nil,
-		[]string{},
-		[]string{},
 	)
-
 }
 
 func uniformData(data interface{}) string {
