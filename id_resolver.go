@@ -65,6 +65,7 @@ func (d *ldapIdResolver) Resolve(env dockerdriver.Env, username string, password
 			return "", "", errors.New("Failed to load CA certificate")
 		}
 
+		// #nosec G402
 		l, err = d.ldap.DialTLS(d.ldapProto, addr, &tls.Config{
 			ServerName: d.ldapHost,
 			RootCAs:    roots,
