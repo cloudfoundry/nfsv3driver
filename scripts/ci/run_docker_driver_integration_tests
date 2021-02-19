@@ -2,6 +2,9 @@
 
 set -x -e
 
+# something strange happens to our /var/run directory in the latest version of hush-house. Add a nasty hack to allow dbus to start up
+mkdir -p /var/run/dbus
+
 /start.sh &
 
 function kill_ganesha {
