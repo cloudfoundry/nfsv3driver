@@ -16,7 +16,11 @@ trap kill_ganesha EXIT
 export SOURCE="localhost:/"
 export GOROOT=/usr/local/go
 export PATH=$GOROOT/bin:$PATH
-go get -u github.com/onsi/ginkgo/ginkgo
+
+if ! ginkgo version &> /dev/null
+then
+  go get -u github.com/onsi/ginkgo/ginkgo
+fi
 
 pushd mapfs
   mkdir -p /var/vcap/packages/mapfs/bin/
