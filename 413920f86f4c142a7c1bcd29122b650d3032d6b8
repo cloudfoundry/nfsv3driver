@@ -1,0 +1,7 @@
+{
+  "pr": "76",
+  "repository": "cloudfoundry/nfsv3driver",
+  "base_branch": "master",
+  "head_branch": "dependabot/go_modules/github.com/onsi/ginkgo-1.16.5",
+  "branch_tip": "413920f86f4c142a7c1bcd29122b650d3032d6b8"
+}
