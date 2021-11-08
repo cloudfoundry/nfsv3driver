@@ -1,0 +1,7 @@
+{
+  "pr": "79",
+  "repository": "cloudfoundry/nfsv3driver",
+  "base_branch": "master",
+  "head_branch": "dependabot/go_modules/code.cloudfoundry.org/goshims-0.7.0",
+  "branch_tip": "5ab12ae9b1e3074a1cba9ed77e1f257e0be0c47c"
+}
