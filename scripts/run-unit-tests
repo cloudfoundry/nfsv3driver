@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -ex
+
+pushd $(dirname $0)/..
+  ginkgo -keepGoing -p -race -trace -randomizeAllSpecs -progress "$@"
+  pushd cmd/nfsv3driver
+    ginkgo -keepGoing -race -trace -randomizeAllSpecs -progress "$@"
+  popd
+popd
