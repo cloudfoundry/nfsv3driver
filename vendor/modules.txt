@@ -40,7 +40,7 @@ code.cloudfoundry.org/tlsconfig
 ## explicit; go 1.13
 code.cloudfoundry.org/volume-mount-options
 code.cloudfoundry.org/volume-mount-options/utils
-# code.cloudfoundry.org/volumedriver v0.47.0
+# code.cloudfoundry.org/volumedriver v0.48.0
 ## explicit; go 1.19
 code.cloudfoundry.org/volumedriver
 code.cloudfoundry.org/volumedriver/invoker
@@ -91,7 +91,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/gomega v1.27.2
+# github.com/onsi/gomega v1.27.3
 ## explicit; go 1.18
 github.com/onsi/gomega
 github.com/onsi/gomega/format
