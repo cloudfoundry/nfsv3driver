@@ -7,7 +7,7 @@ require (
 	code.cloudfoundry.org/goshims v0.12.0
 	code.cloudfoundry.org/lager v2.0.0+incompatible
 	code.cloudfoundry.org/volume-mount-options v1.1.0
-	code.cloudfoundry.org/volumedriver v0.47.0
+	code.cloudfoundry.org/volumedriver v0.48.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.27.3
 	github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00
