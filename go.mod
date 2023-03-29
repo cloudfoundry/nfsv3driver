@@ -1,6 +1,6 @@
 module code.cloudfoundry.org/nfsv3driver
 
-go 1.19
+go 1.20
 
 require (
 	code.cloudfoundry.org/cfhttp v2.0.0+incompatible
