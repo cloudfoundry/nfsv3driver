@@ -40,8 +40,8 @@ code.cloudfoundry.org/tlsconfig
 ## explicit; go 1.13
 code.cloudfoundry.org/volume-mount-options
 code.cloudfoundry.org/volume-mount-options/utils
-# code.cloudfoundry.org/volumedriver v0.50.0
-## explicit; go 1.19
+# code.cloudfoundry.org/volumedriver v0.51.0
+## explicit; go 1.20
 code.cloudfoundry.org/volumedriver
 code.cloudfoundry.org/volumedriver/invoker
 code.cloudfoundry.org/volumedriver/invokerfakes
