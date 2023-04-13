@@ -9,7 +9,7 @@ code.cloudfoundry.org/clock
 # code.cloudfoundry.org/debugserver v0.0.0-20200131002057-141d5fa0e064
 ## explicit
 code.cloudfoundry.org/debugserver
-# code.cloudfoundry.org/dockerdriver v0.0.0-20200131001834-1b34132928c1
+# code.cloudfoundry.org/dockerdriver v0.0.0-20230406152506-76bff1bc51ef
 ## explicit
 code.cloudfoundry.org/dockerdriver
 code.cloudfoundry.org/dockerdriver/driverhttp
@@ -33,6 +33,10 @@ code.cloudfoundry.org/lager
 code.cloudfoundry.org/lager/lagerctx
 code.cloudfoundry.org/lager/lagerflags
 code.cloudfoundry.org/lager/lagertest
+# code.cloudfoundry.org/lager/v3 v3.0.1
+## explicit; go 1.19
+code.cloudfoundry.org/lager/v3
+code.cloudfoundry.org/lager/v3/internal/truncate
 # code.cloudfoundry.org/tlsconfig v0.0.0-20200131000646-bbe0f8da39b3
 ## explicit; go 1.13
 code.cloudfoundry.org/tlsconfig
@@ -40,7 +44,7 @@ code.cloudfoundry.org/tlsconfig
 ## explicit; go 1.13
 code.cloudfoundry.org/volume-mount-options
 code.cloudfoundry.org/volume-mount-options/utils
-# code.cloudfoundry.org/volumedriver v0.52.0
+# code.cloudfoundry.org/volumedriver v0.53.0
 ## explicit; go 1.20
 code.cloudfoundry.org/volumedriver
 code.cloudfoundry.org/volumedriver/invoker
@@ -48,12 +52,15 @@ code.cloudfoundry.org/volumedriver/invokerfakes
 code.cloudfoundry.org/volumedriver/mountchecker
 code.cloudfoundry.org/volumedriver/oshelper
 code.cloudfoundry.org/volumedriver/volumedriverfakes
-# github.com/bmizerany/pat v0.0.0-20170815010413-6226ea591a40
+# github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f
 ## explicit
 github.com/bmizerany/pat
 # github.com/fsnotify/fsnotify v1.4.9
 ## explicit; go 1.13
 github.com/fsnotify/fsnotify
+# github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
+## explicit; go 1.13
+github.com/go-task/slim-sprig
 # github.com/google/go-cmp v0.5.9
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
@@ -61,6 +68,9 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
+# github.com/google/pprof v0.0.0-20230406165453-00490a63f317
+## explicit; go 1.19
+github.com/google/pprof/profile
 # github.com/nxadm/tail v1.4.8
 ## explicit; go 1.13
 github.com/nxadm/tail
@@ -91,6 +101,24 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
+# github.com/onsi/ginkgo/v2 v2.9.2
+## explicit; go 1.18
+github.com/onsi/ginkgo/v2/config
+github.com/onsi/ginkgo/v2/formatter
+github.com/onsi/ginkgo/v2/ginkgo
+github.com/onsi/ginkgo/v2/ginkgo/build
+github.com/onsi/ginkgo/v2/ginkgo/command
+github.com/onsi/ginkgo/v2/ginkgo/generators
+github.com/onsi/ginkgo/v2/ginkgo/internal
+github.com/onsi/ginkgo/v2/ginkgo/labels
+github.com/onsi/ginkgo/v2/ginkgo/outline
+github.com/onsi/ginkgo/v2/ginkgo/run
+github.com/onsi/ginkgo/v2/ginkgo/unfocus
+github.com/onsi/ginkgo/v2/ginkgo/watch
+github.com/onsi/ginkgo/v2/internal/interrupt_handler
+github.com/onsi/ginkgo/v2/internal/parallel_support
+github.com/onsi/ginkgo/v2/reporters
+github.com/onsi/ginkgo/v2/types
 # github.com/onsi/gomega v1.27.6
 ## explicit; go 1.18
 github.com/onsi/gomega
@@ -105,10 +133,14 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
+# github.com/openzipkin/zipkin-go v0.4.1
+## explicit; go 1.18
+github.com/openzipkin/zipkin-go/idgenerator
+github.com/openzipkin/zipkin-go/model
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/tedsuo/ifrit v0.0.0-20191009134036-9a97d0632f00
+# github.com/tedsuo/ifrit v0.0.0-20230330192023-5cba443a66c4
 ## explicit
 github.com/tedsuo/ifrit
 github.com/tedsuo/ifrit/ginkgomon
@@ -145,6 +177,10 @@ golang.org/x/text/internal/utf8internal
 golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
+# golang.org/x/tools v0.8.0
+## explicit; go 1.18
+golang.org/x/tools/go/ast/inspector
+golang.org/x/tools/internal/typeparams
 # gopkg.in/asn1-ber.v1 v1.0.0-20181015200546-f715ec2f112d
 ## explicit
 gopkg.in/asn1-ber.v1
