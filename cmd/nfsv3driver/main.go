@@ -1,6 +1,7 @@
 package main
 
 import (
+	"code.cloudfoundry.org/tlsconfig"
 	"encoding/json"
 	"flag"
 	"os"
@@ -8,9 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"code.cloudfoundry.org/goshims/timeshim"
-
-	cf_http "code.cloudfoundry.org/cfhttp"
 	cf_debug_server "code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/dockerdriver/driverhttp"
@@ -20,8 +18,9 @@ import (
 	"code.cloudfoundry.org/goshims/ldapshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/goshims/syscallshim"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/goshims/timeshim"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminhttp"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminlocal"
@@ -266,7 +265,12 @@ func createNfsDriverServer(logger lager.Logger, client dockerdriver.Driver, atAd
 
 	var server ifrit.Runner
 	if *requireSSL {
-		tlsConfig, err := cf_http.NewTLSConfig(*certFile, *keyFile, *caFile)
+		tlsConfig, err := tlsconfig.
+			Build(
+				tlsconfig.WithIdentityFromFile(*certFile, *keyFile),
+				tlsconfig.WithInternalServiceDefaults(),
+			).
+			Server(tlsconfig.WithClientAuthenticationFromFile(*caFile))
 		if err != nil {
 			logger.Fatal("tls-configuration-failed", err)
 		}

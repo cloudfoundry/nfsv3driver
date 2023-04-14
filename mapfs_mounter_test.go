@@ -1,13 +1,9 @@
 package nfsv3driver_test
 
 import (
-	"code.cloudfoundry.org/volumedriver/invoker"
-	"code.cloudfoundry.org/volumedriver/invokerfakes"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/onsi/ginkgo/extensions/table"
-	"github.com/onsi/gomega/gbytes"
 	"os"
 	"strings"
 	"syscall"
@@ -18,14 +14,17 @@ import (
 	"code.cloudfoundry.org/goshims/ioutilshim/ioutil_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/goshims/syscallshim/syscall_fake"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
 	vmo "code.cloudfoundry.org/volume-mount-options"
 	"code.cloudfoundry.org/volumedriver"
+	"code.cloudfoundry.org/volumedriver/invoker"
+	"code.cloudfoundry.org/volumedriver/invokerfakes"
 	nfsfakes "code.cloudfoundry.org/volumedriver/volumedriverfakes"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 )
 
 var _ = Describe("MapfsMounter", func() {
@@ -119,7 +118,7 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args).To(ContainElement("target_mapfs"))
 			})
 
-			table.DescribeTable("when version is invalid", func(version string) {
+			DescribeTable("when version is invalid", func(version string) {
 				opts["version"] = version
 
 				err = subject.Mount(env, source, target, opts)
@@ -128,10 +127,10 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(ok).To(BeTrue())
 				Expect(err.Error()).To(Equal("\"version\" must be a positive numeric value"))
 			},
-				table.Entry("version with additional options", "4.1,4.2"),
-				table.Entry("not a number", "foo"),
-				table.Entry("negative number", "-1"),
-				table.Entry("not a valid version", "0"),
+				Entry("version with additional options", "4.1,4.2"),
+				Entry("not a number", "foo"),
+				Entry("negative number", "-1"),
+				Entry("not a valid version", "0"),
 			)
 		})
 
@@ -241,7 +240,7 @@ var _ = Describe("MapfsMounter", func() {
 				})
 			})
 
-			Context("cache option", func(){
+			Context("cache option", func() {
 				Context("when the mount is cache true", func() {
 					BeforeEach(func() {
 						opts["cache"] = true
@@ -318,7 +317,7 @@ var _ = Describe("MapfsMounter", func() {
 				})
 			})
 
-			table.DescribeTable("when the mount has a legacy format", func(legacySourceFormat string, expectedShareFormat string) {
+			DescribeTable("when the mount has a legacy format", func(legacySourceFormat string, expectedShareFormat string) {
 				fakeInvoker = &invokerfakes.FakeInvoker{}
 				fakeInvoker.InvokeReturns(fakeInvokeResult)
 				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, mask, mapfsPath)
@@ -330,10 +329,10 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(len(args)).To(BeNumerically(">", 4))
 				Expect(args[4]).To(Equal(expectedShareFormat))
 			},
-				table.Entry("with subdirectories", "nfs://server/some/share/path/", "server:/some/share/path/"),
-				table.Entry("with subdirectories without a trailing slash", "nfs://server/some/share/path", "server:/some/share/path"),
-				table.Entry("without subdirectories", "nfs://server/", "server:/"),
-				table.Entry("without subdirectories without a trailing slash", "nfs://server", "server:/"),
+				Entry("with subdirectories", "nfs://server/some/share/path/", "server:/some/share/path/"),
+				Entry("with subdirectories without a trailing slash", "nfs://server/some/share/path", "server:/some/share/path"),
+				Entry("without subdirectories", "nfs://server/", "server:/"),
+				Entry("without subdirectories without a trailing slash", "nfs://server", "server:/"),
 			)
 
 			Context("when the share value is invalid", func() {
@@ -441,7 +440,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 		})
 
-		table.DescribeTable("when uid is provided invalid values it should error", func(invalidUid interface{}) {
+		DescribeTable("when uid is provided invalid values it should error", func(invalidUid interface{}) {
 			opts["uid"] = invalidUid
 			err = subject.Mount(env, source, target, opts)
 			Expect(err).To(HaveOccurred())
@@ -450,13 +449,13 @@ var _ = Describe("MapfsMounter", func() {
 			Expect(err.Error()).To(Equal("Invalid 'uid' option (0, negative, or non-integer)"))
 
 		},
-			table.Entry("when uid is not an integer", "foo"),
-			table.Entry("when uid is negative", -1),
-			table.Entry("when uid is not an integer", 1.2),
-			table.Entry("when uid is zero", 0),
+			Entry("when uid is not an integer", "foo"),
+			Entry("when uid is negative", -1),
+			Entry("when uid is not an integer", 1.2),
+			Entry("when uid is zero", 0),
 		)
 
-		table.DescribeTable("when gid is provided invalid values it should error", func(invalidGid interface{}) {
+		DescribeTable("when gid is provided invalid values it should error", func(invalidGid interface{}) {
 			opts["gid"] = invalidGid
 			err = subject.Mount(env, source, target, opts)
 			Expect(err).To(HaveOccurred())
@@ -465,10 +464,10 @@ var _ = Describe("MapfsMounter", func() {
 			Expect(err.Error()).To(Equal("Invalid 'gid' option (0, negative, or non-integer)"))
 
 		},
-			table.Entry("when gid is not an integer", "foo"),
-			table.Entry("when gid is negative", -1),
-			table.Entry("when gid is not an integer", 1.2),
-			table.Entry("when gid is zero", 0),
+			Entry("when gid is not an integer", "foo"),
+			Entry("when gid is negative", -1),
+			Entry("when gid is not an integer", 1.2),
+			Entry("when gid is zero", 0),
 		)
 
 		Context("when the specified uid doesn't have read access", func() {

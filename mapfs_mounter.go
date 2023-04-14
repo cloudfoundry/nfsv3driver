@@ -1,7 +1,6 @@
 package nfsv3driver
 
 import (
-	"code.cloudfoundry.org/volumedriver/invoker"
 	"context"
 	"errors"
 	"fmt"
@@ -17,9 +16,10 @@ import (
 	"code.cloudfoundry.org/goshims/ioutilshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/goshims/syscallshim"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	vmo "code.cloudfoundry.org/volume-mount-options"
 	"code.cloudfoundry.org/volumedriver"
+	"code.cloudfoundry.org/volumedriver/invoker"
 	"code.cloudfoundry.org/volumedriver/mountchecker"
 )
 

@@ -4,16 +4,16 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
-	"time"
-
 	"fmt"
+	"time"
 
 	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/goshims/ldapshim"
 	"gopkg.in/ldap.v2"
 )
 
-//go:generate counterfeiter -o nfsdriverfakes/fake_id_resolver.go . IdResolver
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o nfsdriverfakes/fake_id_resolver.go . IdResolver
 type IdResolver interface {
 	Resolve(env dockerdriver.Env, username string, password string) (uid string, gid string, err error)
 }

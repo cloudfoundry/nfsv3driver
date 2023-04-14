@@ -1,12 +1,12 @@
 package nfsv3driver_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
-	"code.cloudfoundry.org/nfsv3driver"
 	"testing"
 	"time"
+
+	"code.cloudfoundry.org/nfsv3driver"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 func TestNfsV3Driver(t *testing.T) {

@@ -1,15 +1,15 @@
 package main_test
 
 import (
-	"github.com/onsi/gomega/gbytes"
 	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 )
 
@@ -99,7 +99,7 @@ var _ = Describe("Main", func() {
 			Context("when they are invalid", func() {
 
 				BeforeEach(func() {
-					command.Args = []string{"invalidargs",}
+					command.Args = []string{"invalidargs"}
 					expectedStartOutput = "fatal-err-aborting"
 				})
 

@@ -1,12 +1,13 @@
 package driveradminhttp
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 
-	cf_http_handlers "code.cloudfoundry.org/cfhttp/handlers"
 	"code.cloudfoundry.org/dockerdriver/driverhttp"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin"
 	"github.com/tedsuo/rata"
 )
@@ -35,11 +36,11 @@ func newEvacuateHandler(logger lager.Logger, client driveradmin.DriverAdmin) htt
 		response := client.Evacuate(env)
 		if response.Err != "" {
 			logger.Error("failed-evacuating", errors.New(response.Err))
-			cf_http_handlers.WriteJSONResponse(w, http.StatusInternalServerError, response)
+			writeJSONResponse(w, http.StatusInternalServerError, response)
 			return
 		}
 
-		cf_http_handlers.WriteJSONResponse(w, http.StatusOK, response)
+		writeJSONResponse(w, http.StatusOK, response)
 	}
 }
 
@@ -54,10 +55,23 @@ func newPingHandler(logger lager.Logger, client driveradmin.DriverAdmin) http.Ha
 		response := client.Ping(env)
 		if response.Err != "" {
 			logger.Error("failed-pinging", errors.New(response.Err))
-			cf_http_handlers.WriteJSONResponse(w, http.StatusInternalServerError, response)
+			writeJSONResponse(w, http.StatusInternalServerError, response)
 			return
 		}
 
-		cf_http_handlers.WriteJSONResponse(w, http.StatusOK, response)
+		writeJSONResponse(w, http.StatusOK, response)
+	}
+}
+
+func writeJSONResponse(w http.ResponseWriter, statusCode int, jsonObj interface{}) {
+	jsonBytes, err := json.Marshal(jsonObj)
+	if err != nil {
+		panic("Unable to encode JSON: " + err.Error())
+	}
+	w.Header().Set("Content-Length", strconv.Itoa(len(jsonBytes)))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	if _, err := w.Write(jsonBytes); err != nil {
+		panic("Unable to write data: " + err.Error())
 	}
 }
