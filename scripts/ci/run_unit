@@ -8,9 +8,4 @@ cd nfsv3driver
 export GOROOT=/usr/local/go
 export PATH=$GOROOT/bin:$PATH
 
-if ! ginkgo version &> /dev/null
-then
-  go get -u github.com/onsi/ginkgo/ginkgo
-fi
-
 ./scripts/run-unit-tests -race
