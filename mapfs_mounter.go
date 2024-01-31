@@ -166,6 +166,13 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		if versionFloat <= 0 {
 			return dockerdriver.SafeError{SafeDescription: "\"version\" must be a positive numeric value"}
 		}
+		if versionFloat == 3.0 {
+			version = "3"
+			logger.Info("detected version parameter set to `3.0`, NFSv3 does not have a minor version available, correcting to `3`")
+		}
+		if versionFloat > 3.0 && versionFloat < 4.0 {
+			return dockerdriver.SafeError{SafeDescription: fmt.Sprintf("NFSv3 does not use minor versions. NFSv %v does not exist", versionFloat)}
+		}
 
 		mountOptions = mountOptions + ",vers=" + version
 	}

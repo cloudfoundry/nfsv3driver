@@ -117,23 +117,41 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(args).To(ContainElement("source"))
 				Expect(args).To(ContainElement("target_mapfs"))
 			})
-
-			DescribeTable("when version is invalid", func(version string) {
+			Context("when NFS version 3.X is specified", func() {
+				When("version specified is numerically equal to a valid version 3", func() {
+					BeforeEach(func() {
+						opts["version"] = "3.0"
+					})
+					It("should automatically correct the version to 3 if the values are numerically equal", func() {
+						Expect(err).NotTo(HaveOccurred())
+						_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(0)
+						Expect(cmd).To(Equal("mount"))
+						Expect(len(args)).To(BeNumerically(">", 5))
+						Expect(args).To(ContainElement("-t"))
+						Expect(args).To(ContainElement("my-fs"))
+						Expect(args).To(ContainElement("-o"))
+						Expect(args).To(ContainElement("my-mount-options,timeo=600,retrans=2,actimeo=0,vers=3"))
+						Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("NFSv3 does not have a minor version available")))
+					})
+				})
+			})
+			DescribeTable("when version is invalid", func(expectErr string, version string) {
 				opts["version"] = version
 
 				err = subject.Mount(env, source, target, opts)
 				Expect(err).To(HaveOccurred())
 				_, ok := err.(dockerdriver.SafeError)
 				Expect(ok).To(BeTrue())
-				Expect(err.Error()).To(Equal("\"version\" must be a positive numeric value"))
+				Expect(err).To(MatchError(expectErr))
 			},
-				Entry("version with additional options", "4.1,4.2"),
-				Entry("not a number", "foo"),
-				Entry("negative number", "-1"),
-				Entry("not a valid version", "0"),
+				Entry("version with additional options", "\"version\" must be a positive numeric value", "4.1,4.2"),
+				Entry("not a number", "\"version\" must be a positive numeric value", "foo"),
+				Entry("negative number", "\"version\" must be a positive numeric value", "-1"),
+				Entry("not a valid version", "\"version\" must be a positive numeric value", "0"),
+				Entry("specifying nfsv3 with minor version of 3.1", "NFSv3 does not use minor versions. NFSv 3.1 does not exist", "3.1"),
+				Entry("specifying nfsv3 with minor version of 3.9", "NFSv3 does not use minor versions. NFSv 3.9 does not exist", "3.9"),
 			)
 		})
-
 		Context("when experimental is specified", func() {
 			BeforeEach(func() {
 				opts["experimental"] = "true"
