@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	cf_http "code.cloudfoundry.org/cfhttp"
-	cf_debug_server "code.cloudfoundry.org/debugserver"
+	"code.cloudfoundry.org/cfhttp"
+	"code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/dockerdriver/driverhttp"
 	"code.cloudfoundry.org/dockerdriver/invoker"
@@ -23,6 +23,7 @@ import (
 	"code.cloudfoundry.org/goshims/syscallshim"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
+	lagerv3 "code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminhttp"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminlocal"
@@ -214,9 +215,9 @@ func main() {
 		{Name: "nfsdriver-server", Runner: nfsDriverServer},
 	}
 
-	if dbgAddr := cf_debug_server.DebugAddress(flag.CommandLine); dbgAddr != "" {
+	if dbgAddr := debugserver.DebugAddress(flag.CommandLine); dbgAddr != "" {
 		servers = append(grouper.Members{
-			{Name: "debug-server", Runner: cf_debug_server.Runner(dbgAddr, logSink)},
+			{Name: "debug-server", Runner: debugserver.Runner(dbgAddr, newLogSinkShim(logSink))},
 		}, servers...)
 	}
 
@@ -285,7 +286,7 @@ func createNfsDriverServer(logger lager.Logger, client dockerdriver.Driver, atAd
 
 	var server ifrit.Runner
 	if *requireSSL {
-		tlsConfig, err := cf_http.NewTLSConfig(*certFile, *keyFile, *caFile)
+		tlsConfig, err := cfhttp.NewTLSConfig(*certFile, *keyFile, *caFile)
 		if err != nil {
 			logger.Fatal("tls-configuration-failed", err)
 		}
@@ -312,7 +313,7 @@ func newLogger() (lager.Logger, *lager.ReconfigurableSink) {
 
 func parseCommandLine() {
 	lagerflags.AddFlags(flag.CommandLine)
-	cf_debug_server.AddFlags(flag.CommandLine)
+	debugserver.AddFlags(flag.CommandLine)
 	flag.Parse()
 }
 
@@ -337,11 +338,33 @@ func parseEnvironment() {
 	}
 
 	if ldapTimeout < 0 {
-		panic("LDAP_TIMEOUT is set to negtive value")
+		panic("LDAP_TIMEOUT is set to negative value")
 	}
 
 	// if ldapTimeout is not set, use default value
 	if ldapTimeout == 0 {
 		ldapTimeout = 120
 	}
+}
+
+type logSinkShim struct {
+	sink *lager.ReconfigurableSink
+}
+
+func (s *logSinkShim) Log(logFormat lagerv3.LogFormat) {
+	s.sink.Log(lager.LogFormat{
+		Timestamp: logFormat.Timestamp,
+		Source:    logFormat.Source,
+		Message:   logFormat.Message,
+		LogLevel:  lager.LogLevel(logFormat.LogLevel),
+		Data:      lager.Data(logFormat.Data),
+		Error:     logFormat.Error,
+	})
+}
+
+func newLogSinkShim(sink *lager.ReconfigurableSink) *lagerv3.ReconfigurableSink {
+	return lagerv3.NewReconfigurableSink(
+		&logSinkShim{sink},
+		lagerv3.LogLevel(sink.GetMinLevel()),
+	)
 }
