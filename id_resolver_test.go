@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"context"
@@ -12,7 +12,7 @@ import (
 	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/dockerdriver/driverhttp"
 	"code.cloudfoundry.org/goshims/ldapshim/ldap_fake"
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"code.cloudfoundry.org/nfsv3driver"
 	"gopkg.in/ldap.v2"
 )
@@ -136,7 +136,7 @@ z6sbK6WkL0AwPEcI/HzUOrsAUBtyY8cfy6yVcuQ=
 				Expect(timeLimit).To(Equal(0))
 				Expect(typesOnly).To(BeFalse())
 				Expect(filter).To(Equal("(&(objectClass=User)(cn=user))"))
-				Expect(attributes).To( ConsistOf("dn", "uidNumber", "gidNumber"))
+				Expect(attributes).To(ConsistOf("dn", "uidNumber", "gidNumber"))
 				Expect(controls).To(BeNil())
 			})
 

@@ -3,14 +3,13 @@ package driveradminhttp_test
 import (
 	"fmt"
 	"io"
+	"testing"
 
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/ginkgomon"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	"testing"
 )
 
 var debugServerAddress string

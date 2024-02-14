@@ -2,10 +2,10 @@
 package volumedriverfakes
 
 import (
-	sync "sync"
+	"sync"
 
-	dockerdriver "code.cloudfoundry.org/dockerdriver"
-	volumedriver "code.cloudfoundry.org/volumedriver"
+	"code.cloudfoundry.org/dockerdriver"
+	"code.cloudfoundry.org/volumedriver"
 )
 
 type FakeMounter struct {
@@ -66,15 +66,16 @@ func (fake *FakeMounter) Check(arg1 dockerdriver.Env, arg2 string, arg3 string) 
 		arg2 string
 		arg3 string
 	}{arg1, arg2, arg3})
+	stub := fake.CheckStub
+	fakeReturns := fake.checkReturns
 	fake.recordInvocation("Check", []interface{}{arg1, arg2, arg3})
 	fake.checkMutex.Unlock()
-	if fake.CheckStub != nil {
-		return fake.CheckStub(arg1, arg2, arg3)
+	if stub != nil {
+		return stub(arg1, arg2, arg3)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.checkReturns
 	return fakeReturns.result1
 }
 
@@ -129,15 +130,16 @@ func (fake *FakeMounter) Mount(arg1 dockerdriver.Env, arg2 string, arg3 string, 
 		arg3 string
 		arg4 map[string]interface{}
 	}{arg1, arg2, arg3, arg4})
+	stub := fake.MountStub
+	fakeReturns := fake.mountReturns
 	fake.recordInvocation("Mount", []interface{}{arg1, arg2, arg3, arg4})
 	fake.mountMutex.Unlock()
-	if fake.MountStub != nil {
-		return fake.MountStub(arg1, arg2, arg3, arg4)
+	if stub != nil {
+		return stub(arg1, arg2, arg3, arg4)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.mountReturns
 	return fakeReturns.result1
 }
 
@@ -189,9 +191,10 @@ func (fake *FakeMounter) Purge(arg1 dockerdriver.Env, arg2 string) {
 		arg1 dockerdriver.Env
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.PurgeStub
 	fake.recordInvocation("Purge", []interface{}{arg1, arg2})
 	fake.purgeMutex.Unlock()
-	if fake.PurgeStub != nil {
+	if stub != nil {
 		fake.PurgeStub(arg1, arg2)
 	}
 }
@@ -222,15 +225,16 @@ func (fake *FakeMounter) Unmount(arg1 dockerdriver.Env, arg2 string) error {
 		arg1 dockerdriver.Env
 		arg2 string
 	}{arg1, arg2})
+	stub := fake.UnmountStub
+	fakeReturns := fake.unmountReturns
 	fake.recordInvocation("Unmount", []interface{}{arg1, arg2})
 	fake.unmountMutex.Unlock()
-	if fake.UnmountStub != nil {
-		return fake.UnmountStub(arg1, arg2)
+	if stub != nil {
+		return stub(arg1, arg2)
 	}
 	if specificReturn {
 		return ret.result1
 	}
-	fakeReturns := fake.unmountReturns
 	return fakeReturns.result1
 }
 

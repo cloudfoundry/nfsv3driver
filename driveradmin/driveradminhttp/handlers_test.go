@@ -7,11 +7,11 @@ import (
 
 	"fmt"
 
-	"code.cloudfoundry.org/lager/lagertest"
+	"code.cloudfoundry.org/lager/v3/lagertest"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminhttp"
 	"code.cloudfoundry.org/nfsv3driver/nfsdriverfakes"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -25,7 +25,6 @@ var _ = Describe("Volman Driver Handlers", func() {
 			httpRequest          *http.Request
 			httpResponseRecorder *httptest.ResponseRecorder
 			route                rata.Route
-
 		)
 
 		BeforeEach(func() {

@@ -10,7 +10,7 @@ import (
 
 	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/goshims/execshim"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 )
 
 //go:generate counterfeiter -o nfsdriverfakes/fake_background_invoker.go . BackgroundInvoker

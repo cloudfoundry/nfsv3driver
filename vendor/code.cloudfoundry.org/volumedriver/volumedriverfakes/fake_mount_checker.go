@@ -45,15 +45,17 @@ func (fake *FakeMountChecker) Exists(arg1 string) (bool, error) {
 	fake.existsArgsForCall = append(fake.existsArgsForCall, struct {
 		arg1 string
 	}{arg1})
+	stub := fake.ExistsStub
+	fakeReturns := fake.existsReturns
 	fake.recordInvocation("Exists", []interface{}{arg1})
 	fake.existsMutex.Unlock()
-	if fake.ExistsStub != nil {
-		return fake.ExistsStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.existsReturns.result1, fake.existsReturns.result2
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeMountChecker) ExistsCallCount() int {
@@ -62,13 +64,22 @@ func (fake *FakeMountChecker) ExistsCallCount() int {
 	return len(fake.existsArgsForCall)
 }
 
+func (fake *FakeMountChecker) ExistsCalls(stub func(string) (bool, error)) {
+	fake.existsMutex.Lock()
+	defer fake.existsMutex.Unlock()
+	fake.ExistsStub = stub
+}
+
 func (fake *FakeMountChecker) ExistsArgsForCall(i int) string {
 	fake.existsMutex.RLock()
 	defer fake.existsMutex.RUnlock()
-	return fake.existsArgsForCall[i].arg1
+	argsForCall := fake.existsArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeMountChecker) ExistsReturns(result1 bool, result2 error) {
+	fake.existsMutex.Lock()
+	defer fake.existsMutex.Unlock()
 	fake.ExistsStub = nil
 	fake.existsReturns = struct {
 		result1 bool
@@ -77,6 +88,8 @@ func (fake *FakeMountChecker) ExistsReturns(result1 bool, result2 error) {
 }
 
 func (fake *FakeMountChecker) ExistsReturnsOnCall(i int, result1 bool, result2 error) {
+	fake.existsMutex.Lock()
+	defer fake.existsMutex.Unlock()
 	fake.ExistsStub = nil
 	if fake.existsReturnsOnCall == nil {
 		fake.existsReturnsOnCall = make(map[int]struct {
@@ -96,15 +109,17 @@ func (fake *FakeMountChecker) List(arg1 *regexp.Regexp) ([]string, error) {
 	fake.listArgsForCall = append(fake.listArgsForCall, struct {
 		arg1 *regexp.Regexp
 	}{arg1})
+	stub := fake.ListStub
+	fakeReturns := fake.listReturns
 	fake.recordInvocation("List", []interface{}{arg1})
 	fake.listMutex.Unlock()
-	if fake.ListStub != nil {
-		return fake.ListStub(arg1)
+	if stub != nil {
+		return stub(arg1)
 	}
 	if specificReturn {
 		return ret.result1, ret.result2
 	}
-	return fake.listReturns.result1, fake.listReturns.result2
+	return fakeReturns.result1, fakeReturns.result2
 }
 
 func (fake *FakeMountChecker) ListCallCount() int {
@@ -113,13 +128,22 @@ func (fake *FakeMountChecker) ListCallCount() int {
 	return len(fake.listArgsForCall)
 }
 
+func (fake *FakeMountChecker) ListCalls(stub func(*regexp.Regexp) ([]string, error)) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
+	fake.ListStub = stub
+}
+
 func (fake *FakeMountChecker) ListArgsForCall(i int) *regexp.Regexp {
 	fake.listMutex.RLock()
 	defer fake.listMutex.RUnlock()
-	return fake.listArgsForCall[i].arg1
+	argsForCall := fake.listArgsForCall[i]
+	return argsForCall.arg1
 }
 
 func (fake *FakeMountChecker) ListReturns(result1 []string, result2 error) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
 	fake.ListStub = nil
 	fake.listReturns = struct {
 		result1 []string
@@ -128,6 +152,8 @@ func (fake *FakeMountChecker) ListReturns(result1 []string, result2 error) {
 }
 
 func (fake *FakeMountChecker) ListReturnsOnCall(i int, result1 []string, result2 error) {
+	fake.listMutex.Lock()
+	defer fake.listMutex.Unlock()
 	fake.ListStub = nil
 	if fake.listReturnsOnCall == nil {
 		fake.listReturnsOnCall = make(map[int]struct {
