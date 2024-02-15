@@ -3,8 +3,8 @@
 set -ex
 
 pushd $(dirname $0)/..
-  ginkgo -keep-going -p -race -trace -randomize-all -show-node-events "$@"
+  go run github.com/onsi/ginkgo/v2/ginkgo -keep-going -p -race -trace -randomize-all -show-node-events "$@"
   pushd cmd/nfsv3driver
-    ginkgo -keep-going -race -trace -randomize-all -show-node-events "$@"
+    go run github.com/onsi/ginkgo/v2/ginkgo -keep-going -race -trace -randomize-all -show-node-events "$@"
   popd
 popd
