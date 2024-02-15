@@ -6,7 +6,7 @@ import (
 
 	cf_http_handlers "code.cloudfoundry.org/cfhttp/handlers"
 	"code.cloudfoundry.org/dockerdriver/driverhttp"
-	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin"
 	"github.com/tedsuo/rata"
 )

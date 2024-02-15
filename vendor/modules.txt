@@ -3,20 +3,18 @@
 code.cloudfoundry.org/cfhttp
 code.cloudfoundry.org/cfhttp/handlers
 code.cloudfoundry.org/cfhttp/unix_transport
-# code.cloudfoundry.org/clock v0.0.0-20180518195852-02e53af36e6c
+# code.cloudfoundry.org/clock v1.0.0
 ## explicit
 code.cloudfoundry.org/clock
 # code.cloudfoundry.org/debugserver v0.0.0-20240209143423-2b9fa99122f1
 ## explicit; go 1.19
 code.cloudfoundry.org/debugserver
-# code.cloudfoundry.org/dockerdriver v0.0.0-20190430182539-d20038a36dd2
+# code.cloudfoundry.org/dockerdriver v0.0.0-20230406152506-76bff1bc51ef
 ## explicit
 code.cloudfoundry.org/dockerdriver
-code.cloudfoundry.org/dockerdriver/dockerdriverfakes
 code.cloudfoundry.org/dockerdriver/driverhttp
-code.cloudfoundry.org/dockerdriver/invoker
-# code.cloudfoundry.org/goshims v0.0.0-20190529192408-bb24d2ef71ff
-## explicit
+# code.cloudfoundry.org/goshims v0.30.0
+## explicit; go 1.20
 code.cloudfoundry.org/goshims/bufioshim
 code.cloudfoundry.org/goshims/execshim
 code.cloudfoundry.org/goshims/execshim/exec_fake
@@ -31,35 +29,39 @@ code.cloudfoundry.org/goshims/osshim/os_fake
 code.cloudfoundry.org/goshims/syscallshim
 code.cloudfoundry.org/goshims/syscallshim/syscall_fake
 code.cloudfoundry.org/goshims/timeshim
-# code.cloudfoundry.org/lager v2.0.0+incompatible
-## explicit
-code.cloudfoundry.org/lager
-code.cloudfoundry.org/lager/lagerctx
-code.cloudfoundry.org/lager/lagerflags
-code.cloudfoundry.org/lager/lagertest
 # code.cloudfoundry.org/lager/v3 v3.0.3
 ## explicit; go 1.19
 code.cloudfoundry.org/lager/v3
 code.cloudfoundry.org/lager/v3/internal/truncate
-# code.cloudfoundry.org/tlsconfig v0.0.0-20190710180242-462f72de1106
-## explicit
+code.cloudfoundry.org/lager/v3/lagerctx
+code.cloudfoundry.org/lager/v3/lagerflags
+code.cloudfoundry.org/lager/v3/lagertest
+# code.cloudfoundry.org/tlsconfig v0.0.0-20200131000646-bbe0f8da39b3
+## explicit; go 1.13
 code.cloudfoundry.org/tlsconfig
 # code.cloudfoundry.org/volume-mount-options v0.0.0-20190906175603-989332e3b8fa
 ## explicit
 code.cloudfoundry.org/volume-mount-options
 code.cloudfoundry.org/volume-mount-options/utils
-# code.cloudfoundry.org/volumedriver v0.0.0-20190624205815-521b41315311
-## explicit
+# code.cloudfoundry.org/volumedriver v0.84.0
+## explicit; go 1.22.0
 code.cloudfoundry.org/volumedriver
+code.cloudfoundry.org/volumedriver/internal/syncmap
+code.cloudfoundry.org/volumedriver/invoker
+code.cloudfoundry.org/volumedriver/invokerfakes
 code.cloudfoundry.org/volumedriver/mountchecker
 code.cloudfoundry.org/volumedriver/oshelper
 code.cloudfoundry.org/volumedriver/volumedriverfakes
-# github.com/bmizerany/pat v0.0.0-20170815010413-6226ea591a40
+# github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f
 ## explicit
 github.com/bmizerany/pat
 # github.com/fsnotify/fsnotify v1.4.9
 ## explicit; go 1.13
 github.com/fsnotify/fsnotify
+# github.com/go-logr/logr v1.4.1
+## explicit; go 1.18
+github.com/go-logr/logr
+github.com/go-logr/logr/funcr
 # github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572
 ## explicit; go 1.13
 github.com/go-task/slim-sprig
@@ -84,7 +86,6 @@ github.com/nxadm/tail/winfile
 ## explicit; go 1.16
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
-github.com/onsi/ginkgo/extensions/table
 github.com/onsi/ginkgo/formatter
 github.com/onsi/ginkgo/internal/codelocation
 github.com/onsi/ginkgo/internal/containernode
@@ -105,6 +106,7 @@ github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
 # github.com/onsi/ginkgo/v2 v2.15.0
 ## explicit; go 1.20
+github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
 github.com/onsi/ginkgo/v2/formatter
 github.com/onsi/ginkgo/v2/ginkgo
@@ -117,8 +119,11 @@ github.com/onsi/ginkgo/v2/ginkgo/outline
 github.com/onsi/ginkgo/v2/ginkgo/run
 github.com/onsi/ginkgo/v2/ginkgo/unfocus
 github.com/onsi/ginkgo/v2/ginkgo/watch
+github.com/onsi/ginkgo/v2/internal
+github.com/onsi/ginkgo/v2/internal/global
 github.com/onsi/ginkgo/v2/internal/interrupt_handler
 github.com/onsi/ginkgo/v2/internal/parallel_support
+github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
 # github.com/onsi/gomega v1.31.1
@@ -154,6 +159,7 @@ github.com/tedsuo/ifrit/sigmon
 github.com/tedsuo/rata
 # golang.org/x/net v0.21.0
 ## explicit; go 1.18
+golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset

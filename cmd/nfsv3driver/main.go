@@ -13,7 +13,6 @@ import (
 	"code.cloudfoundry.org/debugserver"
 	"code.cloudfoundry.org/dockerdriver"
 	"code.cloudfoundry.org/dockerdriver/driverhttp"
-	"code.cloudfoundry.org/dockerdriver/invoker"
 	"code.cloudfoundry.org/goshims/bufioshim"
 	"code.cloudfoundry.org/goshims/execshim"
 	"code.cloudfoundry.org/goshims/filepathshim"
@@ -21,13 +20,13 @@ import (
 	"code.cloudfoundry.org/goshims/ldapshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/goshims/syscallshim"
-	"code.cloudfoundry.org/lager"
-	"code.cloudfoundry.org/lager/lagerflags"
-	lagerv3 "code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3"
+	"code.cloudfoundry.org/lager/v3/lagerflags"
 	"code.cloudfoundry.org/nfsv3driver"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminhttp"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin/driveradminlocal"
 	"code.cloudfoundry.org/volumedriver"
+	"code.cloudfoundry.org/volumedriver/invoker"
 	"code.cloudfoundry.org/volumedriver/mountchecker"
 	"code.cloudfoundry.org/volumedriver/oshelper"
 	"github.com/tedsuo/ifrit"
@@ -178,7 +177,7 @@ func main() {
 
 	mounter = nfsv3driver.NewMapfsMounter(
 		invoker.NewProcessGroupInvoker(),
-		invoker.NewRealInvoker(),
+		invoker.NewProcessGroupInvoker(),
 		nfsv3driver.NewBackgroundInvoker(&execshim.ExecShim{}),
 		&osshim.OsShim{},
 		&syscallshim.SyscallShim{},
@@ -217,7 +216,7 @@ func main() {
 
 	if dbgAddr := debugserver.DebugAddress(flag.CommandLine); dbgAddr != "" {
 		servers = append(grouper.Members{
-			{Name: "debug-server", Runner: debugserver.Runner(dbgAddr, newLogSinkShim(logSink))},
+			{Name: "debug-server", Runner: debugserver.Runner(dbgAddr, logSink)},
 		}, servers...)
 	}
 
@@ -345,26 +344,4 @@ func parseEnvironment() {
 	if ldapTimeout == 0 {
 		ldapTimeout = 120
 	}
-}
-
-type logSinkShim struct {
-	sink *lager.ReconfigurableSink
-}
-
-func (s *logSinkShim) Log(logFormat lagerv3.LogFormat) {
-	s.sink.Log(lager.LogFormat{
-		Timestamp: logFormat.Timestamp,
-		Source:    logFormat.Source,
-		Message:   logFormat.Message,
-		LogLevel:  lager.LogLevel(logFormat.LogLevel),
-		Data:      lager.Data(logFormat.Data),
-		Error:     logFormat.Error,
-	})
-}
-
-func newLogSinkShim(sink *lager.ReconfigurableSink) *lagerv3.ReconfigurableSink {
-	return lagerv3.NewReconfigurableSink(
-		&logSinkShim{sink},
-		lagerv3.LogLevel(sink.GetMinLevel()),
-	)
 }

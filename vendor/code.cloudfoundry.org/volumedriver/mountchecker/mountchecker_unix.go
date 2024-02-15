@@ -1,3 +1,4 @@
+//go:build linux || darwin
 // +build linux darwin
 
 package mountchecker
@@ -11,7 +12,8 @@ import (
 	"code.cloudfoundry.org/goshims/osshim"
 )
 
-//go:generate counterfeiter -o ../volumedriverfakes/fake_mount_checker.go . MountChecker
+//go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
+//counterfeiter:generate -o ../volumedriverfakes/fake_mount_checker.go . MountChecker
 
 type MountChecker interface {
 	Exists(string) (bool, error)
