@@ -33,8 +33,6 @@ var _ = Describe("MapfsMounter", func() {
 		env         dockerdriver.Env
 		err         error
 
-		fakePgInvoker          *invokerfakes.FakeInvoker
-		fakePgInvokeResult     *invokerfakes.FakeInvokeResult
 		fakeInvoker            *invokerfakes.FakeInvoker
 		fakeInvokeResult       *invokerfakes.FakeInvokeResult
 		secondFakeInvokeResult *invokerfakes.FakeInvokeResult
@@ -61,13 +59,10 @@ var _ = Describe("MapfsMounter", func() {
 		opts["uid"] = "2000"
 		opts["gid"] = "2000"
 
-		fakePgInvoker = &invokerfakes.FakeInvoker{}
-		fakeInvoker = &invokerfakes.FakeInvoker{}
 		fakeBgInvoker = &nfsdriverfakes.FakeBackgroundInvoker{}
+		fakeInvoker = &invokerfakes.FakeInvoker{}
 		fakeInvokeResult = &invokerfakes.FakeInvokeResult{}
 		secondFakeInvokeResult = &invokerfakes.FakeInvokeResult{}
-		fakePgInvokeResult = &invokerfakes.FakeInvokeResult{}
-		fakePgInvoker.InvokeReturns(fakePgInvokeResult)
 		fakeInvoker.InvokeReturns(fakeInvokeResult)
 		fakeIoutil = &ioutil_fake.FakeIoutil{}
 		fakeOs = &os_fake.FakeOs{}
@@ -89,7 +84,7 @@ var _ = Describe("MapfsMounter", func() {
 		mask, err = nfsv3driver.NewMapFsVolumeMountMask("auto_cache,fsname", "")
 		Expect(err).NotTo(HaveOccurred())
 
-		subject = nfsv3driver.NewMapfsMounter(fakePgInvoker, fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, mask, mapfsPath)
+		subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options,timeo=600,retrans=2,actimeo=0", nil, mask, mapfsPath)
 	})
 
 	Context("#Mount", func() {
@@ -111,7 +106,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should use version specified", func() {
 				Expect(err).NotTo(HaveOccurred())
-				_, cmd, args, _ := fakePgInvoker.InvokeArgsForCall(0)
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
 				Expect(len(args)).To(BeNumerically(">", 5))
 				Expect(args).To(ContainElement("-t"))
@@ -170,7 +165,7 @@ var _ = Describe("MapfsMounter", func() {
 
 		Context("when mount succeeds", func() {
 			It("should use the mapfs mounter", func() {
-				Expect(fakePgInvoker.InvokeCallCount()).NotTo(BeZero())
+				Expect(fakeInvoker.InvokeCallCount()).NotTo(BeZero())
 			})
 
 			It("should return without error", func() {
@@ -185,7 +180,7 @@ var _ = Describe("MapfsMounter", func() {
 			})
 
 			It("should use the passed in variables", func() {
-				_, cmd, args, _ := fakePgInvoker.InvokeArgsForCall(0)
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
 				Expect(len(args)).To(BeNumerically(">", 5))
 				Expect(args).To(ContainElement("-t"))
@@ -226,14 +221,14 @@ var _ = Describe("MapfsMounter", func() {
 				})
 
 				It("should not append 'ro' to the kernel mount options, since garden manages the ro mount", func() {
-					_, _, args, _ := fakePgInvoker.InvokeArgsForCall(0)
+					_, _, args, _ := fakeInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 3))
 					Expect(args[2]).To(Equal("-o"))
 					Expect(args[3]).NotTo(ContainSubstring(",ro"))
 				})
 				It("should not append 'actimeo=0' to the kernel mount options", func() {
 					Expect(err).NotTo(HaveOccurred())
-					_, _, args, _ := fakePgInvoker.InvokeArgsForCall(0)
+					_, _, args, _ := fakeInvoker.InvokeArgsForCall(0)
 					Expect(len(args)).To(BeNumerically(">", 3))
 					Expect(args[2]).To(Equal("-o"))
 					Expect(args[3]).NotTo(ContainSubstring("actimeo=0"))
@@ -248,7 +243,7 @@ var _ = Describe("MapfsMounter", func() {
 
 					It("should not append 'actimeo=0' to the kernel mount options", func() {
 						Expect(err).NotTo(HaveOccurred())
-						_, _, args, _ := fakePgInvoker.InvokeArgsForCall(0)
+						_, _, args, _ := fakeInvoker.InvokeArgsForCall(0)
 						Expect(len(args)).To(BeNumerically(">", 3))
 						Expect(args[2]).To(Equal("-o"))
 						Expect(args[3]).NotTo(ContainSubstring("actimeo=0"))
@@ -263,7 +258,7 @@ var _ = Describe("MapfsMounter", func() {
 
 					It("should append 'actimeo=0' to the kernel mount options", func() {
 						Expect(err).NotTo(HaveOccurred())
-						_, _, args, _ := fakePgInvoker.InvokeArgsForCall(0)
+						_, _, args, _ := fakeInvoker.InvokeArgsForCall(0)
 						Expect(len(args)).To(BeNumerically(">", 3))
 						Expect(args[2]).To(Equal("-o"))
 						Expect(args[3]).To(ContainSubstring("actimeo=0"))
@@ -278,7 +273,7 @@ var _ = Describe("MapfsMounter", func() {
 
 					It("should append 'actimeo=0' to the kernel mount options", func() {
 						Expect(err).NotTo(HaveOccurred())
-						_, _, args, _ := fakePgInvoker.InvokeArgsForCall(0)
+						_, _, args, _ := fakeInvoker.InvokeArgsForCall(0)
 						Expect(len(args)).To(BeNumerically(">", 3))
 						Expect(args[2]).To(Equal("-o"))
 						Expect(args[3]).To(ContainSubstring("actimeo=0"))
@@ -294,7 +289,7 @@ var _ = Describe("MapfsMounter", func() {
 
 					It("should append 'actimeo=0' to the kernel mount options", func() {
 						Expect(err).NotTo(HaveOccurred())
-						_, _, args, _ := fakePgInvoker.InvokeArgsForCall(0)
+						_, _, args, _ := fakeInvoker.InvokeArgsForCall(0)
 						Expect(len(args)).To(BeNumerically(">", 3))
 						Expect(args[2]).To(Equal("-o"))
 						Expect(args[3]).To(ContainSubstring("actimeo=0"))
@@ -321,7 +316,7 @@ var _ = Describe("MapfsMounter", func() {
 				err = subject.Mount(env, legacySourceFormat, target, opts)
 				Expect(err).NotTo(HaveOccurred())
 
-				_, _, args, _ := fakePgInvoker.InvokeArgsForCall(1)
+				_, _, args, _ := fakeInvoker.InvokeArgsForCall(1)
 				Expect(len(args)).To(BeNumerically(">", 4))
 				Expect(args[4]).To(Equal(expectedShareFormat))
 			},
@@ -381,7 +376,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			It("should mount directly to the target", func() {
 				Expect(err).NotTo(HaveOccurred())
-				_, cmd, args, _ := fakePgInvoker.InvokeArgsForCall(0)
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(0)
 				Expect(cmd).To(Equal("mount"))
 				Expect(args).To(ContainElement("source"))
 				Expect(args).To(ContainElement("target"))
@@ -478,8 +473,8 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(ok).To(BeTrue())
 				Expect(err.Error()).To(ContainSubstring("access"))
 
-				Expect(fakeInvoker.InvokeCallCount()).To(Equal(1))
-				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(0)
+				Expect(fakeInvoker.InvokeCallCount()).To(Equal(2))
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(1)
 				Expect(cmd).To(Equal("umount"))
 				Expect(len(args)).To(BeNumerically(">", 0))
 				Expect(args[0]).To(Equal("target_mapfs"))
@@ -492,7 +487,7 @@ var _ = Describe("MapfsMounter", func() {
 			Context("when it fails to unmount the intermediate directory", func() {
 
 				BeforeEach(func() {
-					fakeInvokeResult.WaitReturns(errors.New("intermediate-unmount-failed"))
+					fakeInvokeResult.WaitReturnsOnCall(1, errors.New("intermediate-unmount-failed"))
 				})
 				It("should log the error", func() {
 					Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("intermediate-unmount-failed")))
@@ -574,8 +569,8 @@ var _ = Describe("MapfsMounter", func() {
 		})
 		Context("when mount errors", func() {
 			BeforeEach(func() {
-				fakePgInvokeResult.StdOutputReturns("error")
-				fakePgInvokeResult.WaitReturns(fmt.Errorf("error"))
+				fakeInvokeResult.StdOutputReturns("error")
+				fakeInvokeResult.WaitReturns(fmt.Errorf("error"))
 			})
 
 			It("should return error", func() {
@@ -611,8 +606,8 @@ var _ = Describe("MapfsMounter", func() {
 				Expect(ok).To(BeTrue())
 			})
 			It("should invoke unmount", func() {
-				Expect(fakeInvoker.InvokeCallCount()).To(Equal(1))
-				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(0)
+				Expect(fakeInvoker.InvokeCallCount()).To(Equal(2))
+				_, cmd, args, _ := fakeInvoker.InvokeArgsForCall(1)
 				Expect(cmd).To(Equal("umount"))
 				Expect(len(args)).To(BeNumerically(">", 0))
 				Expect(args[0]).To(Equal("target_mapfs"))
@@ -625,7 +620,7 @@ var _ = Describe("MapfsMounter", func() {
 
 			Context("when unmount fails", func() {
 				BeforeEach(func() {
-					fakeInvokeResult.WaitReturns(errors.New("unmount-failed"))
+					fakeInvokeResult.WaitReturnsOnCall(1, errors.New("unmount-failed"))
 				})
 				It("should log the error", func() {
 					Expect(logger.LogMessages()).To(ContainElement(ContainSubstring("unmount-failed")))
@@ -647,7 +642,7 @@ var _ = Describe("MapfsMounter", func() {
 			BeforeEach(func() {
 				fakeIdResolver = &nfsdriverfakes.FakeIdResolver{}
 
-				subject = nfsv3driver.NewMapfsMounter(fakePgInvoker, fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, mask, mapfsPath)
+				subject = nfsv3driver.NewMapfsMounter(fakeInvoker, fakeBgInvoker, fakeOs, fakeSyscall, fakeIoutil, fakeMountChecker, "my-fs", "my-mount-options", fakeIdResolver, mask, mapfsPath)
 				fakeIdResolver.ResolveReturns("100", "100", nil)
 
 				delete(opts, "uid")

@@ -31,7 +31,6 @@ const InvalidUidValueErrorMessage = "Invalid 'uid' option (0, negative, or non-i
 const InvalidGidValueErrorMessage = "Invalid 'gid' option (0, negative, or non-integer)"
 
 type mapfsMounter struct {
-	pgInvoker         invoker.Invoker
 	invoker           invoker.Invoker
 	backgroundInvoker BackgroundInvoker
 	osshim            osshim.Os
@@ -53,20 +52,8 @@ func init() {
 	legacyNfsSharePattern, _ = regexp.Compile("^nfs://([^/]+)(/.*)?$")
 }
 
-func NewMapfsMounter(
-	pgInvoker invoker.Invoker,
-	invoker invoker.Invoker,
-	bgInvoker BackgroundInvoker,
-	osshim osshim.Os,
-	syscallshim syscallshim.Syscall,
-	ioutilshim ioutilshim.Ioutil,
-	mountChecker mountchecker.MountChecker,
-	fstype, defaultOpts string,
-	resolver IdResolver,
-	mask vmo.MountOptsMask,
-	mapfsPath string,
-) volumedriver.Mounter {
-	return &mapfsMounter{pgInvoker, invoker, bgInvoker, osshim, syscallshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, mask, mapfsPath}
+func NewMapfsMounter(invoker invoker.Invoker, bgInvoker BackgroundInvoker, osshim osshim.Os, syscallshim syscallshim.Syscall, ioutilshim ioutilshim.Ioutil, mountChecker mountchecker.MountChecker, fstype, defaultOpts string, resolver IdResolver, mask vmo.MountOptsMask, mapfsPath string) volumedriver.Mounter {
+	return &mapfsMounter{invoker, bgInvoker, osshim, syscallshim, ioutilshim, mountChecker, fstype, defaultOpts, resolver, mask, mapfsPath}
 }
 
 func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string, opts map[string]interface{}) error {
@@ -178,7 +165,7 @@ func (m *mapfsMounter) Mount(env dockerdriver.Env, remote string, target string,
 		t = target
 	}
 
-	err = m.pgInvoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t}).Wait()
+	err = m.invoker.Invoke(env, "mount", []string{"-t", m.fstype, "-o", mountOptions, remote, t}).Wait()
 	if err != nil {
 		logger.Error("invoke-mount-failed", err)
 		err1 := m.osshim.Remove(intermediateMount)
