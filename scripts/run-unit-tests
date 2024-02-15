@@ -2,7 +2,7 @@
 
 set -ex
 
-pushd $(dirname $0)/..
+pushd "$(dirname "$0")/.."
   go run github.com/onsi/ginkgo/v2/ginkgo -keep-going -p -race -trace -randomize-all -show-node-events "$@"
   pushd cmd/nfsv3driver
     go run github.com/onsi/ginkgo/v2/ginkgo -keep-going -race -trace -randomize-all -show-node-events "$@"

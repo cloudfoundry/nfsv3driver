@@ -177,7 +177,6 @@ func main() {
 
 	mounter = nfsv3driver.NewMapfsMounter(
 		invoker.NewProcessGroupInvoker(),
-		invoker.NewProcessGroupInvoker(),
 		nfsv3driver.NewBackgroundInvoker(&execshim.ExecShim{}),
 		&osshim.OsShim{},
 		&syscallshim.SyscallShim{},
