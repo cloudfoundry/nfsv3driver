@@ -606,8 +606,8 @@ code.cloudfoundry.org/lager/v3 v3.0.3 h1:/UTmadZfIaKuT/whEinSxK1mzRfNu1uPfvjFfGq
 code.cloudfoundry.org/lager/v3 v3.0.3/go.mod h1:Zn5q1SrIuuHjEUE7xerMKt3ztunrJQCZETAo7rV0CH8=
 code.cloudfoundry.org/tlsconfig v0.0.0-20230320190829-8f91c367795b h1:FjTuGbVBKeaSyvW7WEATlIFCyb0uCpaiuTSaMQXjUyY=
 code.cloudfoundry.org/tlsconfig v0.0.0-20230320190829-8f91c367795b/go.mod h1:C8SxvGRSutmgzV2FxH8Zwqz2Q8HsaAITQRQFKhlDzPw=
-code.cloudfoundry.org/volume-mount-options v0.0.0-20190906175603-989332e3b8fa h1:45493Tjlyo0MdnYc8/sqM23EokpcNcmSHQC+gNAW+ZQ=
-code.cloudfoundry.org/volume-mount-options v0.0.0-20190906175603-989332e3b8fa/go.mod h1:O+NYVIDS0y3ckHcTBbuzKOJFOnEMkHmuG9nyfTdNg9Y=
+code.cloudfoundry.org/volume-mount-options v0.80.0 h1:PmJMLWDbOYkOAEwPIfBcmLpE8yuDv1MMWYhTIiO6UNs=
+code.cloudfoundry.org/volume-mount-options v0.80.0/go.mod h1:YmhjaptXiteIhg9Fdr7sxngRdIksI55tDUHOS5wurVA=
 code.cloudfoundry.org/volumedriver v0.84.0 h1:5rbJtoDVJM0kH9bEmW8x4xIba2hrxi9gNnI3niRCo64=
 code.cloudfoundry.org/volumedriver v0.84.0/go.mod h1:RkBFW2wF8xDs+5bsOlxR47/Fd1Vfoy6uKmPrez9YnHk=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
@@ -762,6 +762,8 @@ github.com/google/go-cmp v0.5.8/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeN
 github.com/google/go-cmp v0.5.9/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
+github.com/google/gofuzz v1.2.0 h1:xRy4A+RhZaiKjJ1bPfwQ8sedCA+YS2YcCHW6ec7JMi0=
+github.com/google/gofuzz v1.2.0/go.mod h1:dBl0BpW6vV/+mYPU4Po3pmUjxk6FQPldtuIdl/M65Eg=
 github.com/google/martian v2.1.0+incompatible/go.mod h1:9I4somxYTbIHy5NJKHRl3wXiIaQGbYVAs8BPL6v8lEs=
 github.com/google/martian/v3 v3.0.0/go.mod h1:y5Zk1BBys9G+gd6Jrk0W3cC1+ELVxBWuIGO+w/tUAp0=
 github.com/google/martian/v3 v3.1.0/go.mod h1:y5Zk1BBys9G+gd6Jrk0W3cC1+ELVxBWuIGO+w/tUAp0=
