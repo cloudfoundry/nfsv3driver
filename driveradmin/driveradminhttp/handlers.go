@@ -4,7 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	cf_http_handlers "code.cloudfoundry.org/cfhttp/handlers"
+	// cfhttphandlers module is imported solely for the WriteJSONResponse function
+	cfhttphandlers "code.cloudfoundry.org/cfhttp/handlers"
 	"code.cloudfoundry.org/dockerdriver/driverhttp"
 	"code.cloudfoundry.org/lager/v3"
 	"code.cloudfoundry.org/nfsv3driver/driveradmin"
@@ -35,11 +36,11 @@ func newEvacuateHandler(logger lager.Logger, client driveradmin.DriverAdmin) htt
 		response := client.Evacuate(env)
 		if response.Err != "" {
 			logger.Error("failed-evacuating", errors.New(response.Err))
-			cf_http_handlers.WriteJSONResponse(w, http.StatusInternalServerError, response)
+			cfhttphandlers.WriteJSONResponse(w, http.StatusInternalServerError, response)
 			return
 		}
 
-		cf_http_handlers.WriteJSONResponse(w, http.StatusOK, response)
+		cfhttphandlers.WriteJSONResponse(w, http.StatusOK, response)
 	}
 }
 
@@ -54,10 +55,10 @@ func newPingHandler(logger lager.Logger, client driveradmin.DriverAdmin) http.Ha
 		response := client.Ping(env)
 		if response.Err != "" {
 			logger.Error("failed-pinging", errors.New(response.Err))
-			cf_http_handlers.WriteJSONResponse(w, http.StatusInternalServerError, response)
+			cfhttphandlers.WriteJSONResponse(w, http.StatusInternalServerError, response)
 			return
 		}
 
-		cf_http_handlers.WriteJSONResponse(w, http.StatusOK, response)
+		cfhttphandlers.WriteJSONResponse(w, http.StatusOK, response)
 	}
 }
