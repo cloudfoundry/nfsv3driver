@@ -6,7 +6,7 @@ code.cloudfoundry.org/cfhttp/unix_transport
 # code.cloudfoundry.org/clock v1.1.0
 ## explicit; go 1.20
 code.cloudfoundry.org/clock
-# code.cloudfoundry.org/debugserver v0.0.0-20240209143423-2b9fa99122f1
+# code.cloudfoundry.org/debugserver v0.0.0-20240216143506-a6177cebb9a9
 ## explicit; go 1.19
 code.cloudfoundry.org/debugserver
 # code.cloudfoundry.org/dockerdriver v0.0.0-20240212163430-06ff61152bd1
@@ -128,7 +128,7 @@ github.com/tedsuo/ifrit/sigmon
 # github.com/tedsuo/rata v1.0.0
 ## explicit
 github.com/tedsuo/rata
-# golang.org/x/mod v0.14.0
+# golang.org/x/mod v0.15.0
 ## explicit; go 1.18
 golang.org/x/mod/internal/lazyregexp
 golang.org/x/mod/module
@@ -164,7 +164,7 @@ golang.org/x/text/language
 golang.org/x/text/runes
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.17.0
+# golang.org/x/tools v0.18.0
 ## explicit; go 1.18
 golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/ast/inspector
@@ -174,6 +174,7 @@ golang.org/x/tools/go/packages
 golang.org/x/tools/go/types/objectpath
 golang.org/x/tools/go/types/typeutil
 golang.org/x/tools/imports
+golang.org/x/tools/internal/aliases
 golang.org/x/tools/internal/event
 golang.org/x/tools/internal/event/core
 golang.org/x/tools/internal/event/keys
