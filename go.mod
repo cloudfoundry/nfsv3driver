@@ -2,7 +2,7 @@ module code.cloudfoundry.org/nfsv3driver
 
 require (
 	code.cloudfoundry.org/debugserver v0.0.0-20240216143506-a6177cebb9a9
-	code.cloudfoundry.org/dockerdriver v0.0.0-20240212163430-06ff61152bd1
+	code.cloudfoundry.org/dockerdriver v0.0.0-20240213153304-5bf6621f54e1
 	code.cloudfoundry.org/goshims v0.30.0
 	code.cloudfoundry.org/lager/v3 v3.0.3
 	code.cloudfoundry.org/tlsconfig v0.0.0-20240212155513-9c53d48c26df
