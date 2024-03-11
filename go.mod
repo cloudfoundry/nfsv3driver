@@ -6,7 +6,7 @@ require (
 	code.cloudfoundry.org/goshims v0.30.0
 	code.cloudfoundry.org/lager/v3 v3.0.3
 	code.cloudfoundry.org/tlsconfig v0.0.0-20240212155513-9c53d48c26df
-	code.cloudfoundry.org/volume-mount-options v0.80.0
+	code.cloudfoundry.org/volume-mount-options v0.81.0
 	code.cloudfoundry.org/volumedriver v0.87.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
 	github.com/onsi/ginkgo/v2 v2.16.0
