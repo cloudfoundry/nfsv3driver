@@ -8,7 +8,7 @@ require (
 	code.cloudfoundry.org/dockerdriver v0.0.0-20240213153304-5bf6621f54e1
 	code.cloudfoundry.org/goshims v0.30.0
 	code.cloudfoundry.org/lager/v3 v3.0.3
-	code.cloudfoundry.org/tlsconfig v0.0.0-20240216143505-4f8d9b753d56
+	code.cloudfoundry.org/tlsconfig v0.0.0-20240308143921-4b874b341ed6
 	code.cloudfoundry.org/volume-mount-options v0.80.0
 	code.cloudfoundry.org/volumedriver v0.84.0
 	github.com/onsi/ginkgo/v2 v2.16.0
