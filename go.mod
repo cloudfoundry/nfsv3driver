@@ -3,7 +3,7 @@ module code.cloudfoundry.org/nfsv3driver
 require (
 	code.cloudfoundry.org/debugserver v0.0.0-20240329144309-51fd35f19159
 	code.cloudfoundry.org/dockerdriver v0.0.0-20240213153304-5bf6621f54e1
-	code.cloudfoundry.org/goshims v0.32.0
+	code.cloudfoundry.org/goshims v0.33.0
 	code.cloudfoundry.org/lager/v3 v3.0.3
 	code.cloudfoundry.org/tlsconfig v0.0.0-20240308143921-4b874b341ed6
 	code.cloudfoundry.org/volume-mount-options v0.83.0
@@ -35,4 +35,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-go 1.22.1
+go 1.22.2
