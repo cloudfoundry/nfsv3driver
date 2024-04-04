@@ -1,10 +1,10 @@
 module code.cloudfoundry.org/nfsv3driver
 
-go 1.22.0
+go 1.22.2
 
 require (
 	code.cloudfoundry.org/cfhttp v2.0.0+incompatible
-	code.cloudfoundry.org/debugserver v0.0.0-20240327135753-7c09a8661dd3
+	code.cloudfoundry.org/debugserver v0.0.0-20240403132449-5d2c8205fccf
 	code.cloudfoundry.org/dockerdriver v0.0.0-20240213153304-5bf6621f54e1
 	code.cloudfoundry.org/goshims v0.30.0
 	code.cloudfoundry.org/lager/v3 v3.0.3
@@ -25,7 +25,7 @@ require (
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20240320155624-b11c3daa6f07 // indirect
+	github.com/google/pprof v0.0.0-20240327155427-868f304927ed // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/openzipkin/zipkin-go v0.4.2 // indirect
