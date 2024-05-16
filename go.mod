@@ -4,7 +4,7 @@ go 1.22.0
 
 require (
 	code.cloudfoundry.org/cfhttp v2.0.0+incompatible
-	code.cloudfoundry.org/debugserver v0.0.0-20240508165206-bfca98dd3bfa
+	code.cloudfoundry.org/debugserver v0.0.0-20240510172920-2e46c6dc69d9
 	code.cloudfoundry.org/dockerdriver v0.0.0-20240213153304-5bf6621f54e1
 	code.cloudfoundry.org/goshims v0.30.0
 	code.cloudfoundry.org/lager/v3 v3.0.3
@@ -25,7 +25,7 @@ require (
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
-	github.com/google/pprof v0.0.0-20240508145209-1db217f89380 // indirect
+	github.com/google/pprof v0.0.0-20240509144519-723abb6459b7 // indirect
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/openzipkin/zipkin-go v0.4.3 // indirect
