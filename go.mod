@@ -5,7 +5,7 @@ require (
 	code.cloudfoundry.org/dockerdriver v0.0.0-20240425154110-a68c794c8bb0
 	code.cloudfoundry.org/goshims v0.35.0
 	code.cloudfoundry.org/lager/v3 v3.0.3
-	code.cloudfoundry.org/tlsconfig v0.0.0-20240308143921-4b874b341ed6
+	code.cloudfoundry.org/tlsconfig v0.0.0-20240510172918-c1e19801fe80
 	code.cloudfoundry.org/volume-mount-options v0.87.0
 	code.cloudfoundry.org/volumedriver v0.95.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.8.1
