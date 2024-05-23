@@ -6,7 +6,7 @@ code.cloudfoundry.org/cfhttp/unix_transport
 # code.cloudfoundry.org/clock v1.1.0
 ## explicit; go 1.20
 code.cloudfoundry.org/clock
-# code.cloudfoundry.org/debugserver v0.0.0-20240510172920-2e46c6dc69d9
+# code.cloudfoundry.org/debugserver v0.0.0-20240522170726-5166a3ff2759
 ## explicit; go 1.19
 code.cloudfoundry.org/debugserver
 # code.cloudfoundry.org/dockerdriver v0.0.0-20240213153304-5bf6621f54e1
@@ -58,7 +58,7 @@ github.com/bmizerany/pat
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
-# github.com/go-logr/logr v1.4.1
+# github.com/go-logr/logr v1.4.2
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
@@ -72,7 +72,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/pprof v0.0.0-20240509144519-723abb6459b7
+# github.com/google/pprof v0.0.0-20240521024322-9665fa269a30
 ## explicit; go 1.19
 github.com/google/pprof/profile
 # github.com/nxadm/tail v1.4.11
@@ -104,7 +104,7 @@ github.com/onsi/ginkgo/reporters/stenographer
 github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable
 github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty
 github.com/onsi/ginkgo/types
-# github.com/onsi/ginkgo/v2 v2.17.3
+# github.com/onsi/ginkgo/v2 v2.18.0
 ## explicit; go 1.20
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
