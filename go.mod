@@ -5,10 +5,10 @@ go 1.22.0
 require (
 	code.cloudfoundry.org/cfhttp v2.0.0+incompatible
 	code.cloudfoundry.org/debugserver v0.0.0-20240605172147-3433a40ea1bc
-	code.cloudfoundry.org/dockerdriver v0.0.0-20240213153304-5bf6621f54e1
-	code.cloudfoundry.org/goshims v0.30.0
+	code.cloudfoundry.org/dockerdriver v0.0.0-20240524195252-a62c739d15b4
+	code.cloudfoundry.org/goshims v0.35.0
 	code.cloudfoundry.org/lager/v3 v3.0.3
-	code.cloudfoundry.org/tlsconfig v0.0.0-20240308143921-4b874b341ed6
+	code.cloudfoundry.org/tlsconfig v0.0.0-20240522170710-79df114af82a
 	code.cloudfoundry.org/volume-mount-options v0.80.0
 	code.cloudfoundry.org/volumedriver v0.84.0
 	github.com/onsi/ginkgo/v2 v2.19.0
@@ -19,6 +19,7 @@ require (
 )
 
 require (
+	code.cloudfoundry.org/cfhttp/v2 v2.1.0 // indirect
 	code.cloudfoundry.org/clock v1.1.0 // indirect
 	github.com/bmizerany/pat v0.0.0-20210406213842-e4b6760bdd6f // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
