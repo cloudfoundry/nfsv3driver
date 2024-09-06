@@ -1,2 +1,3 @@
-# nfsv3driver
-This driver mounts NFS shares.  For more information about using this driver in your Cloud Foundry, visit the [nfs-volume-release git repository](https://github.com/cloudfoundry/nfs-volume-release).
+# Archived
+
+The code for this repo now lives under code.cloudfoundry.org/nfs-volume-release
